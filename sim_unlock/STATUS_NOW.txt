@@ -1,0 +1,46 @@
+الحالة الحالية — USB AT على /dev/ttyACM0 (ASRMicro 2ecc:3012)
+ملاحظات آخر جلسة:
+- /dev/ttyACM0 ← الواجهة 1-1:1.2 cdc_acm (وحيدة؛ لا توجد ttyUSB/ACM1).
+- picocom -b 115200:
+  ATE1 -> OK
+  AT -> OK
+  AT+CGMI -> ERROR
+  AT+CGMM -> ERROR
+  AT+CSQ -> ERROR
+  AT+CLCK=PN,2 -> ERROR
+  AT+CPIN? -> ERROR
+  AT+CLCK=PN,0,80822207,16 -> ERROR
+  AT+CLCK="PS",0,"80822207",16 -> ERROR
+- هذا السلوك (ATE1/AT OK لكن كل "+cmd" ERROR) =/=> البوابة الحية؟ لا.
+  التفسير المرجح: هذه ليست منافذ AT الخاصة بالمودم الحقيقية بل منفذ DIAG/DEBUG
+  (iInterface=11 Marvell DIAG / iInterface=12 Marvell DEBUG). iInterface 2 = CDC Data
+  (RNDIS) ليس AT. وجهة at_over_usb.txt يربطها بالضبط: الواجهات 4/5 = vendor-specific diag.
+- كلمة سر MEP المكتشفة = 80822207 (آخر سطر /tmp/mep1 == strings /dev/mtd1 | tail -1).
+- ملاحظة: على القناة الشبكة (set_atcmd_info) كان الاستعلام AT+CLCK=PN,2 يُرسل إلى المودم
+  ويُجاب +CLCK: 0 (مع موجة rild تتكتّر). لكن أوامر الحلول (CLCK=PN,0,...) لم تُرسل
+  بسبب بوابة atcmdsrv (checkAtCmdValid على /tmp/flag_usb). هذا يتوافق مع أن البوابة
+  الحقيقية للأوامر الحية هنا على المنفذ الخاطئ.
+
+الخطوة التالية: العثور على منفذ AT الحقيقي للـ CP. الخيارات:
+1. power-cycle كامل للراوتر مع USB موصول → قد يُعلن الـ CP عن منفذ AT CDC-ACM آخر.
+2. ربط الواجهة الصحيحة (1-1:1.X حيث X يطابق الواجهة CDC-ACM التي تُعلن عن AT):
+   modprobe -r cdc_acm؛ ثم echo 1-1:1.<iface> > .../cdc_acm/bind  (ليس 1.2).
+3. جرّب الـ baud المختلف: 9600 / 57600 / 115200 (مع ATE1 + AT بعد كل baud).
+
+--- تحديث من lsusb -t + sysfs (فعلياً) ---
+Bus 001 Dev 113 (ASRMicro 2ecc:3012):
+  If 0 = Wireless  / rndis_host  (RNDIS eth)
+  If 1 = CDC Data   / rndis_host
+  If 2 = Communications / cdc_acm  <-- المنفذ الوحيد المثبت = /dev/ttyACM0  (AT port المفترض)
+  If 3 = CDC Data    / (مرتبط بـ cdc_acm زوجيج If2، لكنه لم يُظهر as separate tty)
+  If 4 = CDC Data / proto=ff / Driver=[none]  <-- Marvell DIAG  (vendor-specific)
+  If 5 = CDC Data / proto=ff / Driver=[none]  <-- Marvell DEBUG
+الخلاصة: المنفذ ttyACM0 = If 2 = AT port الصحيح، لكن الأوامر +AT تُرجع ERROR.
+→ المشكلة ليست المنفذ، بل: الـ CP لا يُفعّل parser الأوامر المركّبة حتى يكون جاهّاً/boot نظيق.
+الإجراءات التالية:
+1. Power-cycle كامل (unplug 10s, replug) مع USB موصول؛ انتظر 5–7s.
+2. picocom -b 115200 /dev/ttyACM0 ثم:
+   ATE1 / AT / AT+CGMI / AT+CGMM / AT+CPIN?
+   سجّل الردود الصفيقة. إذا CGMI/GMM أرجعا اسماً → نرسل AT+CLCK=PN,0,80822207,16.
+3. إذا استمرت ERROR على الأوامر المركّبة → ننتقل للخيار البديل (Web API AT%EXE على
+   version/set_atcmd_info مع إعادة كتابة rild، أو توجيه If 4/5 إلى driver إذا كان بإمكانه AT).

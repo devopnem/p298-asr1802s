@@ -1,0 +1,63 @@
+
+config global_cfg global_cfg
+	option agent_active	1
+	option data_enable	1
+	option host_ip	'192.168.1.100'
+	option downlink_only	0
+	option wifi_enable	0
+
+config pdp_cfg 'pdp_0'
+	option pdp_enable	0
+	option apn			'uwap.orange.co.il'
+	option ip_type		'IPV4'
+	option lte_default	1
+	option default_gw	1
+
+config pdp_cfg 'pdp_1'
+	option pdp_enable	0
+	option apn			'sphone'
+	option ip_type		'IPV4'
+	option lte_default	0
+	option default_gw	0
+
+config pdp_cfg 'pdp_2'
+	option pdp_enable	0
+	option apn			'apn_name'
+	option ip_type		'IPV6'
+	option lte_default	0
+	option default_gw	0
+
+config pdp_cfg 'pdp_3'
+	option pdp_enable	0
+	option apn			'apn_name'
+	option ip_type		'IPV4V6'
+	option lte_default	0
+	option default_gw	0
+
+config pdp_cfg 'pdp_4'
+	option pdp_enable	0
+	option apn			'apn_name'
+	option ip_type		'IPV4'
+	option lte_default	0
+	option default_gw	0
+
+config pdp_cfg 'pdp_5'
+	option pdp_enable	0
+	option apn			'apn_name'
+	option ip_type		'IPV4'
+	option lte_default	0
+	option default_gw	0
+
+config pdp_cfg 'pdp_6'
+	option pdp_enable	0
+	option apn			'apn_name'
+	option ip_type		'IPV4'
+	option lte_default	0
+	option default_gw	0
+
+config pdp_cfg 'pdp_7'
+	option pdp_enable	0
+	option apn			'apn_name'
+	option ip_type		'IPV4'
+	option lte_default	0
+	option default_gw	0

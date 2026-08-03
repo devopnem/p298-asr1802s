@@ -1,0 +1,1 @@
+rootfstype=squashfs init=/etc/preinit noinitrd console=ttyS0,115200 panic_debug crashkernel=4k@0x00A00000 RDCA=0x00A00400 rootsize=0xF00000 force_pm80x_fg mem=128M@0x0 cpmem=32M@0x6000000 ddr_mode=1 APMF=1 nocpload=0x6000000 lcd_type=0 PROD=0 IMSD=1 FAST=47574c33 MACA=00014328 MACB=802a0000 root=/dev/mtdblock15 system=a quiet

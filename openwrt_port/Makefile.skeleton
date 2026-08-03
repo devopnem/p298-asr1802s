@@ -1,0 +1,44 @@
+# Skeleton Target/Makefile proposal for an **upstream** OpenWrt add of ASR1802S / KAGU.
+# (استناداً إلى DEVICE_PROFILE.md). ليس مكتملاً — بعد مراجعة kernel/mainline first.
+
+# target/linux/as1802s/Makefile  (target = as1802s)
+include/kbuild.mk
+
+PKG_VERSION:=1
+KERNEL_PATCHES:=
+
+define KernelPatchOS
+  # ملفات DTS/DTC المرسلة للـ upstream kernel أولاً — إلزامي قبل OpenWrt.
+endef
+
+# target/linux/as1802s/target.mk
+BOARDNAME:=ASR1802S (KAGU)
+CPU_ARCH:=armv7-a
+CPU_TYPE:=cortex-a9
+CHIPSET:=asr1802s
+TARGET_OPTIMIZATION:= \
+  -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard -pipe
+MAINTAINER:=Your Name <you@example>
+
+# target/linux/asr1802s/image/Makefile  (Ooredoo R291 v2)
+include/linux/kconfig.mk
+include/linux/version.mk
+
+define Device/ooredoo_r291-v2
+  DEVICE_TITLE := Ooredoo R291 v2 (ASR1802S/KAGU)
+  DEVICE_MODEL := Ooredoo R291 v2
+  DEVICE_VENDOR := Ooredoo
+  SOC := asr1802s
+  # صيغة توحيدية: kernel (5MB) + rootfs squashfs (20MB) → mtd13/15 bank A
+  IMAGE := tftpkernel | tftpramdisk
+  KERNEL :=
+  KERNEL_LOAD_ADDR := 0x00008000     # loadaddr من U-Boot env
+  KERNEL_ENTRY := 0x00008000
+  KERNEL_INITRAMFS := 1
+  KERNEL_A := sysupgrade
+  KERNEL_B := sysupgrade
+  BLOCKSIZE := 128k            # SPI-NAND erase block
+  DEVICE_DTS := asr1802s-kagu
+  UBINIZE := 1                 # الـ overlay UBIFS
+endef
+TARGET_DEVICES += ooredoo_r291-v2

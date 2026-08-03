@@ -1,0 +1,95 @@
+Short guide for descendants: how to revive the Modem on the Yota C300-1 after installing OpenWTR from Lenar (notion_r281_v23.05-squashfs-sysupgrade)
+
+I'm Starting Immediately after installation of OpenWRT. All the steps are already in the subject.
+After installing OpenWRT, we most likely do not have a built-in modem (in the router it is separate).
+
+Signs:
+
+    LuCI: There is a problem reading data from the modem
+    There is no Internet
+    3ginfo-lite does not read modem
+    LTE interface does not rise normally
+
+
+Diagnosis:
+
+    modem in the system is visible
+    /dev/ttyACM0 on site
+    USB Part is working
+    the modem rises like RNDIS, and you need NCM
+    CP-modem service teams work
+    Ordinary AT-teams don't work: AT+CPIN? AT+CSQ AT+COPS?
+
+
+Correction
+1. Disable PIPE mode
+at_pipe d
+
+Verification:
+at_pipe s
+at_cmd 'AT+ACONFIG?'
+
+It must be like this:
+AT+ACONFIG?
+PID=0,VID=0,IMSD=0,PIPE=0,FAST=0,RDUP=0,EEHP=0,SDLG=0
+
+2. We stitch the modified CP exactly under our vendor (Balruses from (LENAR)
+I have a router YOTA C300-1, so I used this file:
+P29M29HYOTA_C300-1_CP_CP_V002-Mod.bin
+
+First we put the file in /tmp/cpflash, then execute:
+fbfdownloader -b /tmp/cpflash/P29M29HYOTA_C300-1_CC2_CP_V002-Mod.b 2>&1 | tetmp/cpflash/fbf-flash.
+
+In the logger waiting: Burn Successful
+3. Prescribe the correct APN manually
+I have a SIM from MTS, so the settings are as follows:
+uci set network.wwan.disabled='0'
+uci set network.wwan.proto= ''ncm'
+uci set network.wwan.device='/dev/ttiACM0'
+uci set network.wwan.apn='internet.mts.ru'
+uci set network.wwan.username='ms
+uci set network.wwan.password='m
+uci set network.wwan.auth='pa'
+uci set network.wwan.pdpptype=''
+uci set network.wwan.delay='10'
+uci Commitation Network
+/etc/init.d/network restart
+
+After that, the modem begins to work in NSM, and the Internet appears.
+Briefly:
+
+    Disable PIPE
+    sewing a modified CP under your vendar
+    manually prescribe the correct APN for your operator
+    
+    
+    Ancient Instructions almost unchanged. But there were also moments not very clear at once. So I will describe it in detail.
+
+    Connect the router with a cable to the PC, in the network adapter we set the static ip v4 - 10.10.10.3 mask 255.255.255.0 save.
+    Download Attached filetftpd64_portable_v4.74.zip (573.82 KB )
+    , unpack.
+    In the tight yet folder we put the firmware file or the bakp of the mtd4 section section. Rename it into firmware.bin. The expansion of bin should be initiated, other images are not suitable.
+    Start the program tftpd64
+    We drain the router, clamcle the hidden reset button with a sharp object. Turn on the router without reset.
+    In tftpd64 choose 10.10.10.3 as server interface as appear
+    The firmware will begin automatically as soon as the interface is picked up. A modal window with a bar progress will appear, at this point you can release the reset button.
+    Usually takes 30 seconds, then the router itself starts and you need to check at the address of the webface (address depends on the firmware of the runoff 10.0.0.1, openWRT 192.168.1.1)
+    
+    
+    
+    
+    Also made fixing TTL
+#
+TTL script
+On the router by ssh create a script file:
+nano /tmp/script.tlfix.sh
+
+Insert content into it and through Ctrl+O agree, save and exit via Ctlr+X
+#
+Content of the script
+
+We perform it:
+chmod +x /tmp/script.tlfix.sh &&/tmp/script.tlfix.sh
+
+
+And all the files from the ball downloaded about the stock, it is not clear what-when they will block, so let it lie here - https://disk.yandex.ru/d/U73CGqzVgE-ooQ

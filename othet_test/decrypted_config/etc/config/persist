@@ -1,0 +1,13 @@
+
+config 0 'sys'
+	option attachtype '0'
+	option vendor 'CMCC'
+
+config 0 'radio'
+	option sim1__auto_answer 'false'
+	option boot__cfun '1'
+	option fastdorm__timeout '5000'
+
+config 0 'audio'
+	option codecmaster '0'
+

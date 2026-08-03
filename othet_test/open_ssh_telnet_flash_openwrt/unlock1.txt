@@ -1,0 +1,41 @@
+
+Local
+*****
+[offline]
+
+Group: Permanent
+Messages: 250
+Registration: 30.03.20
+
+Reputation: -  26  +
+
+	
+For those who want to put a temporary unlock on their modems, who does not want to stitch their device, perform the following commands in the phone
+
+
+
+echo -e "#/bin/sh\r\n" > /etc/rc.local
+
+echo -e "ubus call version set_atcmd_info '{\"atcmd\":\"AT*PROD=2\"}'\r\n" >> /etc/rc.local
+
+echo -e "ubus call version set_atcmd_info '{\"atcmd\":\"TMD_MEP=D"}'\r\n" >> /etc/rc.local
+
+echo -e "ubus call version set_atcmd_info '{\"atcmd\":\"AT*PROD=0\}'\r\n" >> /etc/rc.local & ch@d&ch/rc.local
+
+reboot
+
+
+
+
+This will create an unlock scenario code each time the router starts.
+
+echo -e "#/bin/sh\r\n" > /etc/rc.local
+
+echo -e "ubus call version set_atcmd_info '{\"atcmd\":\"AT*PROD=2\"}'\r\n" >> /etc/rc.local
+
+echo -e "ubus call version set_atcmd_info '{\"atcmd\":\"TMD_MEP=D"}'\r\n" >> /etc/rc.local
+
+echo -e "ubus call version set_atcmd_info '{\"atcmd\":\"AT*PROD=0\}'\r\n" >> /etc/rc.local & ch@d&ch/rc.local
+
+reboot
+

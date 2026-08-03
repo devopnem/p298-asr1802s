@@ -1,0 +1,5 @@
+=== /dev/cidatatty0 ===
+[resp] 
+=== /dev/citty0 ===
+[resp] 
+=== /dev/ttymodem0 ===

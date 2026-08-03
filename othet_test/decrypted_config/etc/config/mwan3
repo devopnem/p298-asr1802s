@@ -1,0 +1,70 @@
+config globals 'globals'
+
+config interface 'wan'
+	option enabled '1'
+	list track_ip '8.8.4.4'
+	list track_ip '8.8.8.8'
+	list track_ip '114.114.114.114'
+	option reliability '1'
+	option count '1'
+	option timeout '2'
+	option interval '5'
+	option down '3'
+	option up '8'
+
+config interface 'wan0'
+	option enabled '1'
+	list track_ip '8.8.8.8'
+	list track_ip '8.8.4.4'
+	list track_ip '114.114.114.114'
+	option reliability '1'
+	option count '1'
+	option timeout '2'
+	option interval '5'
+	option down '3'
+	option up '8'
+
+config member 'wan_m1_w3'
+	option interface 'wan'
+	option metric '1'
+	option weight '3'
+
+config member 'wan_m2_w3'
+	option interface 'wan'
+	option metric '2'
+	option weight '3'
+
+config member 'wan0_m1_w2'
+	option interface 'wan0'
+	option metric '1'
+	option weight '2'
+
+config member 'wan0_m2_w2'
+	option interface 'wan0'
+	option metric '2'
+	option weight '2'
+
+config policy 'wan_only'
+	list use_member 'wan_m1_w3'
+
+config policy 'wan0_only'
+	list use_member 'wan0_m1_w2'
+
+config policy 'balanced'
+	list use_member 'wan_m1_w3'
+	list use_member 'wan0_m1_w2'
+
+config policy 'wan_pri_wan0'
+	list use_member 'wan_m1_w3'
+	list use_member 'wan0_m2_w2'
+
+config policy 'wan0_pri_wan'
+	list use_member 'wan_m2_w3'
+	list use_member 'wan0_m1_w2'
+
+config rule 'sticky_all'
+	option src_ip '0.0.0.0/0'
+	option dest_ip '0.0.0.0/0'
+	option proto 'all'
+	option use_policy 'balanced'
+

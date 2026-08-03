@@ -1,0 +1,93 @@
+config interface loopback
+        option ifname   lo
+        option proto    static
+        option ipaddr   127.0.0.1
+        option netmask  255.0.0.0
+
+config interface lan
+        option ifname   usbnet0
+        option type     bridge
+        option proto    static
+        option ipaddr   192.168.1.1
+        option netmask  255.255.255.0
+        option ip6assign 60
+
+config interface wan60
+        option ifname   ccinet0
+        option proto    dhcpv6
+        option auto     0
+
+config interface wan61
+        option ifname   ccinet1
+        option proto    dhcpv6
+        option auto     0
+
+config interface wan62
+        option ifname   ccinet2
+        option proto    dhcpv6
+        option auto     0
+
+config interface wan63
+        option ifname   ccinet3
+        option proto    dhcpv6
+        option auto     0
+
+config interface wan64
+        option ifname   ccinet4
+        option proto    dhcpv6
+        option auto     0
+
+config interface wan65
+        option ifname   ccinet5
+        option proto    dhcpv6
+        option auto     0
+
+config interface wan66
+        option ifname   ccinet6
+        option proto    dhcpv6
+        option auto     0
+
+config interface wan67
+        option ifname   ccinet7
+        option proto    dhcpv6
+        option auto     0
+
+config interface wan0
+        option ifname   ccinet0
+        option proto    none
+        option auto     0
+
+config interface wan1
+        option ifname   ccinet1
+        option proto    none
+        option auto     0
+
+config interface wan2
+        option ifname   ccinet2
+        option proto    none
+        option auto     0
+
+config interface wan3
+        option ifname   ccinet3
+        option proto    none
+        option auto     0
+
+config interface wan4
+        option ifname   ccinet4
+        option proto    none
+        option auto     0
+
+config interface wan5
+        option ifname   ccinet5
+        option proto    none
+        option auto     0
+
+config interface wan6
+        option ifname   ccinet6
+        option proto    none
+        option auto     0
+
+config interface wan7
+        option ifname   ccinet7
+        option proto    none
+        option auto     0

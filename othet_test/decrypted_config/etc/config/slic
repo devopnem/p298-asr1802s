@@ -1,0 +1,3 @@
+config mode-setting 'cfg'
+	option workmode '0'
+

@@ -1,0 +1,2 @@
+config NSN NSN
+    option APCFG_enable 'N'

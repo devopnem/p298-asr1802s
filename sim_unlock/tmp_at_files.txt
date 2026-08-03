@@ -1,0 +1,16 @@
+=== atcmdrec ===
+AT+CGREG?
+
+=== atresprec ===
+*CESQ: 99,99,11,18,255,255,0
+
+
+=== mep1 (hexdump) ===
+ash: od: not found
+=== which nc ===
+/usr/bin/nc
+BusyBox v1.22.1 (2024-04-11 18:25:34 CST) multi-call binary.
+
+Usage: nc [IPADDR PORT]
+
+Open a pipe to IP:PORT

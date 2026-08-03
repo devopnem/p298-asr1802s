@@ -1,0 +1,20 @@
+Here’s my other workaround to access SSH connection.
+
+Use "nc" to download the file.
+(Tab 1) ./busybox nc -l -l 2026 > dropbear.tz
+(Tab 2) nc 192.168.8.1 2026 < dropbear.tgz
+(Tab 3) tar -xzf dropbear.tgz
+(Tab 3) ppf ./ssh/* /
+(Tab 3) reboot
+
+File: dropbear.tgz
+46% of the original
+Attached image
+1078 x 462 (53.5 KB)
+
+46% of the original
+Attached image
+1078 x 462 (36.33 KB)
+
+46% of the original
+

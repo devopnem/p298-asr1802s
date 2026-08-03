@@ -1,0 +1,47 @@
+
+config squashfs 'rootfstype'
+
+config /etc/preinit 'init'
+
+config noinitrd 'noinitrd'
+
+config ttyS0,115200 'console'
+
+config panic_debug 'panic_debug'
+
+config 4k@0x00A00000 'crashkernel'
+
+config 0x00A00400 'RDCA'
+
+config 0xF00000 'rootsize'
+
+config force_pm80x_fg 'force_pm80x_fg'
+
+config 128M@0x0 'mem'
+
+config 32M@0x6000000 'cpmem'
+
+config 1 'ddr_mode'
+
+config 1 'APMF'
+
+config 0x6000000 'nocpload'
+
+config 0 'lcd_type'
+
+config 0 'PROD'
+
+config 1 'IMSD'
+
+config 47574c33 'FAST'
+
+config 00014328 'MACA'
+
+config 802a0000 'MACB'
+
+config /dev/mtdblock15 'root'
+
+config a 'system'
+
+config quiet 'quiet'
+

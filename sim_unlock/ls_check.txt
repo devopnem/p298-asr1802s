@@ -1,0 +1,39 @@
+ls: /usr/bin/nvmcp: No such file or directory
+ls: /rom/usr/bin/nvmcp: No such file or directory
+ls: /usr/bin/serial_atcmd: No such file or directory
+ls: /rom/usr/bin/serial_atcmd: No such file or directory
+---
+drwxr-xr-x    2 root     root          1634 Apr 11  2024 .
+drwxr-xr-x    1 root     root           400 Aug  2 14:16 ..
+-rwxr-xr-x    1 root     root          5701 Apr 11  2024 VoIP_service
+-rwxrwxr-x    1 root     root          1250 Apr 11  2024 VoIP_service.sh
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 [ -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 [[ -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         95649 Apr 11  2024 adbd
+-rwxr-xr-x    1 root     root         25722 Apr 11  2024 aoc
+-rwxr-xr-x    1 root     root         54053 Apr 11  2024 audio_if
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 awk -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 basename -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 bunzip2 -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 bzcat -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         10497 Apr 11  2024 cfgcmd
+-rwxr-xr-x    1 root     root         63117 Apr 11  2024 chl
+-rwxr-xr-x    1 root     root         22637 Apr 11  2024 chl_agent
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 clear -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        383771 Apr 11  2024 cm
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 cmp -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         36714 Apr 11  2024 comgt
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 crontab -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        115703 Apr 11  2024 curl
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 cut -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 dbclient -> ../sbin/dropbear
+-rwxr-xr-x    1 root     root         45939 Apr 11  2024 dbmgr
+-rwxr-xr-x    1 root     root          1658 Apr 11  2024 delprop
+-rwxr-xr-x    1 root     root         37629 Apr 11  2024 diagnose
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 dirname -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 dropbearkey -> ../sbin/dropbear
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 du -> ../../bin/busybox
+---
+/dev/root on /rom type squashfs (ro,relatime)
+ubi0_0 on /overlay type ubifs (rw,noatime)
+overlayfs:/overlay/root on / type overlayfs (rw,noatime,lowerdir=/,upperdir=/overlay/root,workdir=/overlay/work)

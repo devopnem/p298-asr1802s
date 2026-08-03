@@ -1,0 +1,6 @@
+config SMS SMS
+    option report 0    
+    option save_location 0    
+    option over_mode 0    
+    option validity 143    
+    option center_num N    

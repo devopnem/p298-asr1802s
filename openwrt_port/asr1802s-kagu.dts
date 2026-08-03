@@ -1,0 +1,71 @@
+# Device Tree skeleton — Ooredoo R291 v2 (ASR 1826s / KAGU, ASR1802S)
+#
+# القاعدة: بنيتْه على القراءة المباشرة من `ooredoo_backup/probe/` (dmesg / iomem / interrupts / cmdline).
+# استبدل "......" بالعناقل/المنافذ الفعلية التي استخلصتها. هذه مسودة مراجعة upstream،
+# وتحتاج `asr1802s.dtsi` (مرسّفة) غير موجودة في kernel الرسمي بعد.
+
+/dts-v1/;
+#include "asr1802s.dtsi"
+
+/ {
+        model = "Ooredoo R291 v2 (ASR 1826s / KAGU)";
+        compatible = "asr,1802s-evb", "asr,1802s";
+
+        aliases {
+                serial0 = &uart0;     /* ttyS0 @ d4017000 */
+                mmc0    = &mmc0;
+        };
+
+        chosen {
+                stdout-path = "serial0";
+                bootargs  = "console=ttyS0,115200 earlyprintk mem=128M cpmem=32M@0x6000000 rootfstype=squashfs root=/dev/mtdblock15";
+        };
+
+        soc {
+                /* U-Boot env على cp_reliabledata؛ حافظ على dropbear_password/secure-bootflags */
+                /* 25 ذراعاً MTD على SPI-NAND F35UQA001G — انظر DEVICE_PROFILE.md §2 */
+
+                uart0: serial@d4017000 {
+                        compatible = "asn,pxa2xx-uart";   /* أو marvell,pxa2xx-uart */
+                        reg = <0xd4017000 0x100>;
+                        interrupts = <59>;
+                        clock-frequency = <100000000>;
+                        status = "okay";
+                };
+
+                spi@....... {  /* qspi@d401b000 → SPI-NAND F35UQA001G */
+                        compatible = "asr,kagu-qspi";
+                        reg = <0xd401b000 0x1000>, <0xd420b000 0x1000>;
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        linux,stdout-cap = <&spi_nand>;
+                        partitions { /* 25 MTD من /proc/mtd §2 */ };
+                };
+
+                ethernet: eth@...... {  /* asr-eth @ d4281800 */
+                        compatible = "asr,kagu-eth";
+                        reg = <0xd4281800 0x1000>;
+                        interrupts = <42 43>;
+                        clocks = <&clkmagic 0>;
+                        /* ذراع DSA yt9215 على MDIO → br-lan */
+                        status = "okay";
+                };
+
+                /* Dual PCIe gen1×1 → wlan0 / wlan1 (RTL8812FE) */
+                pcie@... { /* phy @ d4210000 / d4220000 */ };
+
+                /* SLIC VoIP MAXLINEAR — GPIO23 reset، GPIO24 wakeup */
+                slic: slic@... { /* maxlinear,max1919 أو ما يناسب */ };
+        };
+
+        /* الحفاظ على NVM الخاص بالوحدة — ضعه في overlay/package، لا تكتب fstab فارغ */
+        /* /overlay/root/NVM/TTPCom_NRAM2_*  (MAC wifi، إعدادات SIM/IMEI) */
+
+        memory {
+                /* 128 MB؛ 32 MB محجوز كبنك CP */
+                reg = <0x00000000 0x08000000>;
+        };
+
+        /* LED/нопки حسب GPIO 104/117 (WPS)، 145 (RESTORE)، 250 (adapter_power) */
+        leds { /* ... */ };
+};

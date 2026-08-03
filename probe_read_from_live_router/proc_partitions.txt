@@ -1,0 +1,28 @@
+major minor  #blocks  name
+
+  31        0        256 mtdblock0
+  31        1        128 mtdblock1
+  31        2        128 mtdblock2
+  31        3        128 mtdblock3
+  31        4        128 mtdblock4
+  31        5        128 mtdblock5
+  31        6        128 mtdblock6
+  31        7        256 mtdblock7
+  31        8        256 mtdblock8
+  31        9      15360 mtdblock9
+  31       10      15360 mtdblock10
+  31       11        768 mtdblock11
+  31       12        768 mtdblock12
+  31       13       5120 mtdblock13
+  31       14       5120 mtdblock14
+  31       15      20480 mtdblock15
+  31       16      20480 mtdblock16
+  31       17       6144 mtdblock17
+  31       18       6144 mtdblock18
+  31       19        768 mtdblock19
+  31       20        256 mtdblock20
+  31       21        256 mtdblock21
+  31       22        256 mtdblock22
+  31       23      25344 mtdblock23
+  31       24       6912 mtdblock24
+ 254        0      22988 zram0

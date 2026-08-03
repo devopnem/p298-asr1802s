@@ -1,0 +1,39 @@
+
+ubus call version set_atcmd_info '{"atcmd":"AT%EXE=\"serial_atcmd AT+CLCK=PN,0,`strings /dev/mtd1 | tail -1`,16\""'
+
+ubus call version set_atcmd_info '{"atcmd":"AT%EXE=\"serial_atcmd AT+CLCK=PN,0,`strings /tmp/mep1 | tail -1`,16","'
+
+If you do not have access to the shell (telnet or ssh),
+
+Perform this in the developer console (dev tools/console) of the browser:
+
+const protocol = window.location.protocol;
+const hostname = window.location.hostname;
+const url = `${protocol}//${hostname}/xml_action.cgi? method=set`;
+
+const xml = `<? xml version="1."0" encoding="US-ASCII"? >
+<RGW>
+<param>
+<method>call</method>
+<session>000</session>
+<obj_path>version</obj_path>
+<obj_method>set_atcmd_info</obj_method>
+</param>
+<version>
+<atcmd>AT%EXE="serial_atcmd AT+CLCK=PN,0,$(strings /dev/mtd1 | tail -1),16"</atcmd>
+</version>
+</RGW>`;
+
+fentch(url, {
+method: "POST",
+headers: {
+"Content-Type": "application/xml; charset=US-ASCII"
+"Accept": "application/xml,text/play,*/*"
+},
+body: xml,
+mode: "cors",
+credentials: "include"
+})
+.then(r => r.text())
+.then(date =>converse.log("Response:", data))
+.catch(err = console>error("Execution error request:", err));

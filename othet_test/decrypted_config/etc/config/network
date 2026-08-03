@@ -1,0 +1,163 @@
+
+config interface 'loopback'
+	option ifname 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
+
+config interface 'lan'
+	option ifname 'usbnet0 hsicnet0 eth0.2'
+	option type 'bridge'
+	option bridge_empty '1'
+	option macaddr '00:01:43:28:80:2a'
+	option proto 'static'
+	option ipaddr '192.168.1.1'
+	option default_ip '192.168.1.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
+
+config interface 'lan2'
+	option ifname 'br0'
+	option macaddr '00:01:43:28:80:2c'
+	option proto 'static'
+	option ipaddr '192.168.1.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
+
+config interface 'wan'
+	option force_link '1'
+	option macaddr '00:01:43:28:80:2b'
+	option proto 'dhcp'
+	option metric '20'
+	option ifname 'eth0.1'
+	option connect '0'
+
+config switch
+	option name 'switch0'
+	option reset '1'
+	option enable_vlan '1'
+
+config switch_vlan 'eth0_1'
+	option device 'switch0'
+	option vlan '1'
+	option ports '5t'
+
+config switch_vlan 'eth0_2'
+	option device 'switch0'
+	option vlan '2'
+	option ports '0 1 2 3 5t'
+
+config switch_port 'port0'
+	option device 'switch0'
+	option port '0'
+	option pvid '2'
+
+config switch_port 'port1'
+	option device 'switch0'
+	option port '1'
+	option pvid '2'
+
+config switch_port 'port2'
+	option device 'switch0'
+	option port '2'
+	option pvid '2'
+
+config switch_port 'port3'
+	option device 'switch0'
+	option port '3'
+	option pvid '2'
+
+config interface 'wan60'
+	option ifname 'ccinet0'
+	option proto 'dhcpv6'
+	option auto '0'
+
+config interface 'wan61'
+	option ifname 'ccinet1'
+	option proto 'dhcpv6'
+	option auto '0'
+
+config interface 'wan62'
+	option ifname 'ccinet2'
+	option proto 'dhcpv6'
+	option auto '0'
+
+config interface 'wan63'
+	option ifname 'ccinet3'
+	option proto 'dhcpv6'
+	option auto '0'
+
+config interface 'wan64'
+	option ifname 'ccinet4'
+	option proto 'dhcpv6'
+	option auto '0'
+
+config interface 'wan65'
+	option ifname 'ccinet5'
+	option proto 'dhcpv6'
+	option auto '0'
+
+config interface 'wan66'
+	option ifname 'ccinet6'
+	option proto 'dhcpv6'
+	option auto '0'
+
+config interface 'wan67'
+	option ifname 'ccinet7'
+	option proto 'dhcpv6'
+	option auto '0'
+
+config interface 'wan0'
+	option ifname 'ccinet0'
+	option metric '10'
+	option proto 'static'
+	option auto '0'
+
+config interface 'wan1'
+	option ifname 'ccinet1'
+	option proto 'none'
+	option auto '0'
+
+config interface 'wan2'
+	option ifname 'ccinet2'
+	option proto 'none'
+	option auto '0'
+
+config interface 'wan3'
+	option ifname 'ccinet3'
+	option proto 'none'
+	option auto '0'
+
+config interface 'wan4'
+	option ifname 'ccinet4'
+	option proto 'none'
+	option auto '0'
+
+config interface 'wan5'
+	option ifname 'ccinet5'
+	option proto 'none'
+	option auto '0'
+
+config interface 'wan6'
+	option ifname 'ccinet6'
+	option proto 'none'
+	option auto '0'
+
+config interface 'wan7'
+	option ifname 'ccinet7'
+	option proto 'none'
+	option auto '0'
+
+config interface 'wlan'
+	option proto 'dhcp'
+
+config interface 'wlan6'
+	option proto 'dhcpv6'
+
+config interface 'vpn'
+	option proto 'none'
+
+config interface 'gre_tunnel'
+	option proto 'none'
+	option ifname '@vpn'
+

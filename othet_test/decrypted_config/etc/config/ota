@@ -1,0 +1,17 @@
+config ota-mode ota_mode
+	option type   2
+	option size   0
+	option url   '/tmp/pxa1826.img'
+	option username   ''
+	option password   ''
+	option sync   0
+
+config ota
+	option fota_upgrade_url 'http://nacs.notioni.com:9091/openacs-client/inter/fotaUpgrade?'
+	option fota_register_url 'http://nacs.notioni.com:9091/openacs-client/inter/fotaRegist'
+	option fota_upgrade_time_start '0'
+	option fota_upgrade_time_end '3'
+	option fota_upgrade_time_period '1800'
+	option progress_notify 10
+	option interval 5
+	option first_interval 1

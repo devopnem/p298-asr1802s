@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+#
+# Device Tree binding for the ASR Microelectronics ASR1802S SoC.
+# ASR1802S is an ARM Cortex-A9 (ARMv7-A) communication/IAD SoC sold in
+# Ooredoo R291 v2 gateways (board code "KAGU").  Nothing in this SoC is
+# supported by mainline Linux today; this binding is RFC material for an
+# upstream "SoC support" series (clock/reset/pinctrl/irq/DDR) which must
+# land before the board can boot a mainline kernel.
+#
+# All MMIO / IRQ / partition data below was extracted at runtime from a
+# shipping unit (kernel 3.10.33 vendor, /proc/iomem, /proc/interrupts,
+# /proc/mtd and U-Boot env on mtd21).  Addresses are physical.
+title: ASR ASR1802S SoC (KAGU)
+
+maintainer: R291 porting project <your@email>
+
+description:
+  ASR1802S SoC.  Single Cortex-A9 (arch_id 0xc07) core, 128 MiB system
+  RAM (32 MiB of which is permanently reserved for the Communication
+  Processor, cpmem=32M@0x6000000), SPI-NAND attached to an on-SoC QSPI
+  controller, dual Gen1×1 PCIe host ports (used here by two Realtek
+  RTL8812FE PCI-e WiFi chips), an integrated Ethernet MAC, a 88PM802
+  PMIC on I2C, a MAX1919/SLIC VoIP front-end, USB3 (DWC3) and an MMC
+  host.  The SoC is booted by a Marvell-derived U-Boot with bootcmd
+  "mrvlboot".
+
+properties:
+  compatible:
+    description:
+      Should be the SoC: "asr,1802s".  Board-level compatible strings
+      ("asr,1802s-evb") may be listed ahead of the SoC string.
+    const: asr,1802s
+
+  "#address-cells":
+    description: 1 cells for 32-bit MMIO space used by the APB/AXI buses.
+    enum: [1, 2]
+  "#size-cells":
+    enum: [1, 2]
+  "#interrupt-cells":
+    description: IRQs are wired to the ASR ICU interrupt controller.
+    const: 3
+
+  soc:
+    type: object
+    description: Root of the SoC register space.  Buses:
+      - APB  at 0xd4000000 (UART/RTC/SPI/I2C/thermal/pinctrl)
+      - AXI  at 0xd4200000 (PCIe PHYs, MMC, Ethernet, QSPI, USB3)
+      - PCIe MMIO aperture 0xd8200000 (wlan0) and 0xe0100000 (wlan1)
+    properties:
+      compatible:
+        const: simple-bus
+      ranges:
+        description: MMIO windows decoded by the SoC address space.
+
+  memory:
+    description: 128 MiB of system RAM at 0x0.  The lower 32 MiB at
+      0x06000000..0x08000000 is reserved for the CP.
+    reg:
+      maxItems: 1
+
+  "#cpus":
+    description: Single Cortex-A9 core.
+    const: 1
+
+  cpus:
+    type: object
+
+  chosen:
+    properties:
+      stdout-path:
+        description: Primary UART for the serial console.
+        const: serial0
+
+  reserved-memory:
+    description: 32 MiB CP carve-out (cpmem=32M@0x6000000).
+    properties:
+      "#address-cells": [1, 2]
+      "#size-cells": [1, 1]
+
+additionalProperties: true
+
+examples:
+  - |
+    // Minimal SoC + KAGU board.  Peripheral offsets are taken from the
+    // runtime probe in ooredoo_backup/probe/*.
+    #include "asr1826s-kagu.dts"
+    / {
+            model = "Ooredoo R291 v2 (ASR 1826s / KAGU)";
+            compatible = "asr,1802s-evb", "asr,1802s";
+            soc { compatible = "simple-bus"; #address-cells = <1>; #size-cells = <1>; };
+    };

@@ -1,0 +1,47 @@
+Excellent! This is a critical discovery! The WebUI's firmwareUpload() function reveals the EXACT upload mechanism:
+
+1. URL: /xml_action.cgi?Action=Upload&file=upgrade&command=
+2. Method: POST
+3. ContentType: application/octet-stream (RAW body, not multipart!)
+4. Headers: 
+   - Authorization: <Digest auth> (via getAuthHeader("POST"))
+   - Content-Range: bytes <from>-<to>/<total> (for chunked uploads!)
+5. Response parsing: $(data).find("upload_status").text() — looks for <upload_status> tag in the XML response!
+
+Key findings:
+- The WebUI uses RAW body (Content-Type: application/octet-stream) with Content-Range header for chunked uploads!
+- The response is parsed for upload_status tag — NOT error_cause!
+- If upload_status == 0 → success, continue upload
+- If upload_status == '' (empty) → also continue (success)
+- Otherwise → error
+
+So the CGI response format for file=upgrade has BOTH error_cause AND potentially upload_status! The api_upload.py's _parse_response() only looks for error_cause, but the WebUI looks for upload_status.
+
+This means:
+1. The CGI might return upload_status=0 for bootloader images (the first chunk of the EXE's uboot.bin upload)
+2. But our api_upload.py only checks error_cause and interprets it as firmware validation
+
+Also important: the WebUI sends the file in 3MB chunks (firmwareSegmentSize = 310241024) with Content-Range header. The CGI might:
+1. Accept the first chunk of a bootloader image → return upload_status=0 (or upload_status empty)
+2. Write it to mtd0 directly
+
+But our api_upload.py sends the entire 132KB U-Boot in one RAW upload without Content-Range header. The CGI might handle it differently:
+- Without Content-Range → might treat it as a single complete file → validate as firmware → error_cause=2
+- With Content-Range → might treat it as a firmware upload chunk → different handling
+
+Also, I need to check: the firmwareUpload_IE11() function doesn't set Content-Range for the first chunk (when FileDataFrom == 0), but firmwareUpload() (regular function) might.
+
+Let me read more of the firmwareUpload() function to see if it also sets Content-Range.
+
+Wait, looking more carefully at the firmwareUpload_IE11() function:
+'beforeSend': function(xhr) {
+    xhr.setRequestHeader("Authorization", getAuthHeader("POST"));
+    if(FileDataFrom != 0) {
+        xhr.setRequestHeader("Content-Range", "bytes "+FileDataFrom+"-"+FileDataTo+"/"+FileDataTotal);
+    }
+}
+
+For IE11, Content-Range is only set when FileDataFrom != 0 (i.e., for chunks after the first one). For the first chunk, no Content-Range header is sent.
+
+Let me read the regular firmwareUpload() function to see if it does the same.
+This is a critical discovery! The WebUI uses RAW body (Content-Type: application/octet-stream) with Content-Range headers for chunked uploads, and parses upload_status (not error_cause) in the response. Let me read the full firmwareUpload() function:

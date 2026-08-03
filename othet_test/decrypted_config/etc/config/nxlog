@@ -1,0 +1,7 @@
+config nxlog config
+        option logread '0'
+        option dmesg '0'
+        option logcat '0'
+        option tcpdump '0'
+        option ramdump '0'
+	option sdl '0'

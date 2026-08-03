@@ -1,0 +1,404 @@
+/rom/bin:
+drwxr-xr-x    2 root     root          1314 Apr 11  2024 .
+drwxr-xr-x   17 root     root           258 Apr 11  2024 ..
+-rwxr-xr-x    1 root     root          8566 Apr 11  2024 UDPserver
+-rwxr-xr-x    1 root     root          6258 Apr 11  2024 aestest
+-rwxr-xr-x    1 root     root          4740 Apr 11  2024 apather_c
+-rwxr-xr-x    1 root     root          4436 Apr 11  2024 apather_s
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 ash -> busybox
+-rwxr-xr-x    1 root     root        732022 Apr 11  2024 atcmdsrv
+-rwxr-xr-x    1 root     root         99369 Apr 11  2024 auth
+-rwxr-xr-x    1 root     root        411097 Apr 11  2024 busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 cat -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 chgrp -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 chmod -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 chown -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 cp -> busybox
+-rwxr-xr-x    1 root     root         89098 Apr 11  2024 cp_load
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 date -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 dd -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 df -> busybox
+-rwxr-xr-x    1 root     root        139510 Apr 11  2024 diag
+-rwxr-xr-x    1 root     root          3416 Apr 11  2024 diagcmd
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 dmesg -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 echo -> busybox
+-rwxr-xr-x    1 root     root         99387 Apr 11  2024 eeh
+-rwxr-xr-x    1 root     root          2482 Apr 11  2024 eeh_HowToConfig.txt
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 egrep -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 false -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 fgrep -> busybox
+-rwxr-xr-x    1 root     root         19270 Apr 11  2024 flash
+-rwxr-xr-x    1 root     root          5758 Apr 11  2024 fs_test
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 fsync -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 grep -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 gunzip -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 gzip -> busybox
+-rwxr-xr-x    1 root     root         47406 Apr 11  2024 hwacc
+-rwxr-xr-x    1 root     root          6928 Apr 11  2024 ims_test
+-rwxrwxr-x    1 root     root          1550 Apr 11  2024 ipcalc.sh
+-rwxr-xr-x    1 root     root         25050 Apr 11  2024 iwcontrol
+-rwxr-xr-x    1 root     root         17170 Apr 11  2024 iwpriv
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 kill -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 ln -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 lock -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 login -> busybox
+-rwxrwxr-x    1 root     root           424 Apr 11  2024 login.sh
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 ls -> busybox
+-rwxr-xr-x    1 root     root          3240 Apr 11  2024 mipsram_extract
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 mkdir -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 mknod -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 mktemp -> busybox
+-rwxr-xr-x    1 root     root         89930 Apr 11  2024 mnv_encrypt
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 mount -> busybox
+-rwxr-xr-x    1 root     root         25186 Apr 11  2024 mrdloader
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 mv -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 netmsg -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 netstat -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 nice -> busybox
+-rwxr-xr-x    1 root     root          2365 Apr 11  2024 nvmcp
+-rwxr-xr-x    1 root     root        134954 Apr 11  2024 nvmproxy
+-rwxr-xr-x    1 root     root          5830 Apr 11  2024 oom_kill_test
+-rwxr-xr-x    1 root     root        113139 Apr 11  2024 opkg
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 pidof -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 ping -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 ping6 -> busybox
+-rwxr-xr-x    1 root     root         57256 Apr 11  2024 pppmodem
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 ps -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 pwd -> busybox
+-rwxr-xr-x    1 root     root          7221 Apr 11  2024 rild
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 rm -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 rmdir -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 sed -> busybox
+-rwxr-xr-x    1 root     root          5461 Apr 11  2024 serial_atcmd
+-rwxr-xr-x    1 root     root          4473 Apr 11  2024 serial_cfun0
+-rwxr-xr-x    1 root     root          4473 Apr 11  2024 serial_client
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 sh -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 sleep -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 stty -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 su -> busybox
+-rwxr-xr-x    1 root     root         16960 Apr 11  2024 sulog
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 sync -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 tar -> busybox
+-rwxr-xr-x    1 root     root          3814 Apr 11  2024 telmon
+-rwxr-xr-x    1 root     root          2091 Apr 11  2024 threadinfo.sh
+-rwxr-xr-x    1 root     root          4441 Apr 11  2024 tinycap
+-rwxr-xr-x    1 root     root          4774 Apr 11  2024 tinymix
+-rwxr-xr-x    1 root     root          2722 Apr 11  2024 tinypcminfo
+-rwxr-xr-x    1 root     root          4762 Apr 11  2024 tinyplay
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 touch -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 true -> busybox
+-rwxr-xr-x    1 root     root          6542 Apr 11  2024 ubus
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 umount -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 uname -> busybox
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 vi -> busybox
+-rwxr-xr-x    1 root     root          3638 Apr 11  2024 webs
+lrwxrwxrwx    1 root     root            29 Apr 11  2024 wifi_cal -> /root/wifi/script/wifi_cal.sh
+-rwxr-xr-x    1 root     root        194132 Apr 11  2024 wscd
+lrwxrwxrwx    1 root     root             7 Apr 11  2024 zcat -> busybox
+
+/rom/usr/bin:
+drwxr-xr-x    2 root     root          1634 Apr 11  2024 .
+drwxr-xr-x    6 root     root            74 Apr 11  2024 ..
+-rwxr-xr-x    1 root     root          5701 Apr 11  2024 VoIP_service
+-rwxrwxr-x    1 root     root          1250 Apr 11  2024 VoIP_service.sh
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 [ -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 [[ -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         95649 Apr 11  2024 adbd
+-rwxr-xr-x    1 root     root         25722 Apr 11  2024 aoc
+-rwxr-xr-x    1 root     root         54053 Apr 11  2024 audio_if
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 awk -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 basename -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 bunzip2 -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 bzcat -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         10497 Apr 11  2024 cfgcmd
+-rwxr-xr-x    1 root     root         63117 Apr 11  2024 chl
+-rwxr-xr-x    1 root     root         22637 Apr 11  2024 chl_agent
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 clear -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        383771 Apr 11  2024 cm
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 cmp -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         36714 Apr 11  2024 comgt
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 crontab -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        115703 Apr 11  2024 curl
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 cut -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 dbclient -> ../sbin/dropbear
+-rwxr-xr-x    1 root     root         45939 Apr 11  2024 dbmgr
+-rwxr-xr-x    1 root     root          1658 Apr 11  2024 delprop
+-rwxr-xr-x    1 root     root         37629 Apr 11  2024 diagnose
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 dirname -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 dropbearkey -> ../sbin/dropbear
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 du -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        189574 Apr 11  2024 dxslic
+-rwxr-xr-x    1 root     root          1438 Apr 11  2024 ecall_daemon
+-rwxr-xr-x    1 root     root         17065 Apr 11  2024 embms
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 env -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 expr -> ../../bin/busybox
+-rwxr-xr-x    1 root     root          8803 Apr 11  2024 fc-cache
+-rwxr-xr-x    1 root     root          7251 Apr 11  2024 fc-cat
+-rwxr-xr-x    1 root     root          4559 Apr 11  2024 fc-list
+-rwxr-xr-x    1 root     root          4882 Apr 11  2024 fc-match
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 find -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 flock -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 free -> ../../bin/busybox
+lrwxrwxrwx    1 root     root             5 Apr 11  2024 gcom -> comgt
+-rwxr-xr-x    1 root     root          1710 Apr 11  2024 getprop
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 head -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 hexdump -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 hostid -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 id -> ../../bin/busybox
+-rwxr-xr-x    1 root     root       1867379 Apr 11  2024 imsd
+-rwxr-xr-x    1 root     root         41623 Apr 11  2024 iperf
+-rwxr-xr-x    1 root     root          7070 Apr 11  2024 jshn
+-rwxr-xr-x    1 root     root         12958 Apr 11  2024 jsonfilter
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 killall -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 less -> ../../bin/busybox
+-rwxrwxrwx    1 root     root         12805 Apr 11  2024 logcat
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 logger -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         16910 Apr 11  2024 login.cgi
+-rwxr-xr-x    1 root     root          7798 Apr 11  2024 lua
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 md5sum -> ../../bin/busybox
+-rwxr-xr-x    1 root     root          3954 Apr 11  2024 mem_monitor
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 mkfifo -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         52335 Apr 11  2024 msgcenter
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 nc -> ../../bin/busybox
+-rwxr-xr-x    1 root     root          7678 Apr 11  2024 ndsctl
+-rwxr-xr-x    1 root     root         80399 Apr 11  2024 nodogsplash
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 nslookup -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         41942 Apr 11  2024 ntfs-3g
+-rwxr-xr-x    1 root     root          3378 Apr 11  2024 ntfs-3g.probe
+-rwxrwxr-x    1 root     root          4430 Apr 11  2024 nvram
+-rwxr-xr-x    1 root     root         43405 Apr 11  2024 nxlog
+-rwxr-xr-x    1 root     root        510613 Apr 11  2024 openssl
+-rwxr-xr-x    1 root     root        124707 Apr 11  2024 ota
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 passwd -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 pgrep -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         47941 Apr 11  2024 piped
+-rwxrwxr-x    1 root     root           877 Apr 11  2024 pmic_wdt.sh
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 printf -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         25489 Apr 11  2024 qos
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 readlink -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 reset -> ../../bin/busybox
+-rwxr-xr-x    1 root     root          2514 Apr 11  2024 resolveip
+-rwxr-xr-x    1 root     root        580993 Apr 11  2024 router
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 scp -> ../sbin/dropbear
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 seq -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         37757 Apr 11  2024 server_control
+-rwxr-xr-x    1 root     root          1662 Apr 11  2024 setprop
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 sort -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 ssh -> ../sbin/dropbear
+-rwxr-xr-x    1 root     root        213745 Apr 11  2024 strace
+-rwxr-xr-x    1 root     root         10686 Apr 11  2024 streamingmedia_test
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 strings -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 tail -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 tee -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 telnet -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 test -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 tftp -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 time -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 top -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 tr -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        543965 Apr 11  2024 tr069
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 traceroute -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        136225 Apr 11  2024 traf_s
+-rwxr-xr-x    1 root     root       2821443 Apr 11  2024 tri_voip
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 uniq -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 uptime -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         26965 Apr 11  2024 ver_cfg
+-rwxr-xr-x    1 root     root         87869 Apr 11  2024 voip_manage
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 wc -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 wget -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 which -> ../../bin/busybox
+-rwxrwxr-x    1 root     root           810 Apr 11  2024 wifi_stat_chk.sh
+-rwxr-xr-x    1 root     root         17441 Apr 11  2024 wifimonitor
+-rwxr-xr-x    1 root     root         91865 Apr 11  2024 wireless
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 xargs -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         50403 Apr 11  2024 xml_action.cgi
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 yes -> ../../bin/busybox
+
+/usr/bin:
+drwxr-xr-x    2 root     root          1634 Apr 11  2024 .
+drwxr-xr-x    1 root     root           400 Aug  2 14:11 ..
+-rwxr-xr-x    1 root     root          5701 Apr 11  2024 VoIP_service
+-rwxrwxr-x    1 root     root          1250 Apr 11  2024 VoIP_service.sh
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 [ -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 [[ -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         95649 Apr 11  2024 adbd
+-rwxr-xr-x    1 root     root         25722 Apr 11  2024 aoc
+-rwxr-xr-x    1 root     root         54053 Apr 11  2024 audio_if
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 awk -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 basename -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 bunzip2 -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 bzcat -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         10497 Apr 11  2024 cfgcmd
+-rwxr-xr-x    1 root     root         63117 Apr 11  2024 chl
+-rwxr-xr-x    1 root     root         22637 Apr 11  2024 chl_agent
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 clear -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        383771 Apr 11  2024 cm
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 cmp -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         36714 Apr 11  2024 comgt
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 crontab -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        115703 Apr 11  2024 curl
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 cut -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 dbclient -> ../sbin/dropbear
+-rwxr-xr-x    1 root     root         45939 Apr 11  2024 dbmgr
+-rwxr-xr-x    1 root     root          1658 Apr 11  2024 delprop
+-rwxr-xr-x    1 root     root         37629 Apr 11  2024 diagnose
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 dirname -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 dropbearkey -> ../sbin/dropbear
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 du -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        189574 Apr 11  2024 dxslic
+-rwxr-xr-x    1 root     root          1438 Apr 11  2024 ecall_daemon
+-rwxr-xr-x    1 root     root         17065 Apr 11  2024 embms
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 env -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 expr -> ../../bin/busybox
+-rwxr-xr-x    1 root     root          8803 Apr 11  2024 fc-cache
+-rwxr-xr-x    1 root     root          7251 Apr 11  2024 fc-cat
+-rwxr-xr-x    1 root     root          4559 Apr 11  2024 fc-list
+-rwxr-xr-x    1 root     root          4882 Apr 11  2024 fc-match
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 find -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 flock -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 free -> ../../bin/busybox
+lrwxrwxrwx    1 root     root             5 Apr 11  2024 gcom -> comgt
+-rwxr-xr-x    1 root     root          1710 Apr 11  2024 getprop
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 head -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 hexdump -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 hostid -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 id -> ../../bin/busybox
+-rwxr-xr-x    1 root     root       1867379 Apr 11  2024 imsd
+-rwxr-xr-x    1 root     root         41623 Apr 11  2024 iperf
+-rwxr-xr-x    1 root     root          7070 Apr 11  2024 jshn
+-rwxr-xr-x    1 root     root         12958 Apr 11  2024 jsonfilter
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 killall -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 less -> ../../bin/busybox
+-rwxrwxrwx    1 root     root         12805 Apr 11  2024 logcat
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 logger -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         16910 Apr 11  2024 login.cgi
+-rwxr-xr-x    1 root     root          7798 Apr 11  2024 lua
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 md5sum -> ../../bin/busybox
+-rwxr-xr-x    1 root     root          3954 Apr 11  2024 mem_monitor
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 mkfifo -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         52335 Apr 11  2024 msgcenter
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 nc -> ../../bin/busybox
+-rwxr-xr-x    1 root     root          7678 Apr 11  2024 ndsctl
+-rwxr-xr-x    1 root     root         80399 Apr 11  2024 nodogsplash
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 nslookup -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         41942 Apr 11  2024 ntfs-3g
+-rwxr-xr-x    1 root     root          3378 Apr 11  2024 ntfs-3g.probe
+-rwxrwxr-x    1 root     root          4430 Apr 11  2024 nvram
+-rwxr-xr-x    1 root     root         43405 Apr 11  2024 nxlog
+-rwxr-xr-x    1 root     root        510613 Apr 11  2024 openssl
+-rwxr-xr-x    1 root     root        124707 Apr 11  2024 ota
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 passwd -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 pgrep -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         47941 Apr 11  2024 piped
+-rwxrwxr-x    1 root     root           877 Apr 11  2024 pmic_wdt.sh
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 printf -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         25489 Apr 11  2024 qos
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 readlink -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 reset -> ../../bin/busybox
+-rwxr-xr-x    1 root     root          2514 Apr 11  2024 resolveip
+-rwxr-xr-x    1 root     root        580993 Apr 11  2024 router
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 scp -> ../sbin/dropbear
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 seq -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         37757 Apr 11  2024 server_control
+-rwxr-xr-x    1 root     root          1662 Apr 11  2024 setprop
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 sort -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 ssh -> ../sbin/dropbear
+-rwxr-xr-x    1 root     root        213745 Apr 11  2024 strace
+-rwxr-xr-x    1 root     root         10686 Apr 11  2024 streamingmedia_test
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 strings -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 tail -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 tee -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 telnet -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 test -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 tftp -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 time -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 top -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 tr -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        543965 Apr 11  2024 tr069
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 traceroute -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        136225 Apr 11  2024 traf_s
+-rwxr-xr-x    1 root     root       2821443 Apr 11  2024 tri_voip
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 uniq -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 uptime -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         26965 Apr 11  2024 ver_cfg
+-rwxr-xr-x    1 root     root         87869 Apr 11  2024 voip_manage
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 wc -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 wget -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 which -> ../../bin/busybox
+-rwxrwxr-x    1 root     root           810 Apr 11  2024 wifi_stat_chk.sh
+-rwxr-xr-x    1 root     root         17441 Apr 11  2024 wifimonitor
+-rwxr-xr-x    1 root     root         91865 Apr 11  2024 wireless
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 xargs -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         50403 Apr 11  2024 xml_action.cgi
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 yes -> ../../bin/busybox
+
+/usr/sbin:
+drwxr-xr-x    2 root     root          1099 Apr 11  2024 .
+drwxr-xr-x    1 root     root           400 Aug  2 14:11 ..
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 arping -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         17196 Apr 11  2024 brctl
+-rwxr-xr-x    1 root     root         16845 Apr 11  2024 chat
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 chroot -> ../../bin/busybox
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 crond -> ../../bin/busybox
+-rwxr-xr-x    1 root     root        161705 Apr 11  2024 dnsmasq
+-rwxr-xr-x    1 root     root        161115 Apr 11  2024 dropbear
+-rwxr-xr-x    1 root     root          2122 Apr 11  2024 ebtables
+-rwxr-xr-x    1 root     root          4578 Apr 11  2024 ebtables-restore
+-rwxr-xr-x    1 root     root          1672 Apr 11  2024 ebtables-save
+-rwxr-xr-x    1 root     root        206073 Apr 11  2024 ethtool
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 flash_eraseall -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         17021 Apr 11  2024 fw_printenv
+lrwxrwxrwx    1 root     root            11 Apr 11  2024 fw_setenv -> fw_printenv
+lrwxrwxrwx    1 root     root             4 Apr 11  2024 hostapd -> wpad
+-rwxr-xr-x    1 root     root          9902 Apr 11  2024 i2cdetect
+-rwxr-xr-x    1 root     root         12134 Apr 11  2024 i2cdump
+-rwxr-xr-x    1 root     root          9526 Apr 11  2024 i2cget
+-rwxr-xr-x    1 root     root         11610 Apr 11  2024 i2cset
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 insmod -> /sbin/kmodloader
+-rwxr-xr-x    1 root     root        155891 Apr 11  2024 ip
+lrwxrwxrwx    1 root     root            13 Apr 11  2024 ip6tables -> xtables-multi
+lrwxrwxrwx    1 root     root            13 Apr 11  2024 ip6tables-restore -> xtables-multi
+lrwxrwxrwx    1 root     root            13 Apr 11  2024 ip6tables-save -> xtables-multi
+-rwxr-xr-x    1 root     root          7700 Apr 11  2024 ipsec
+lrwxrwxrwx    1 root     root            13 Apr 11  2024 iptables -> xtables-multi
+lrwxrwxrwx    1 root     root            13 Apr 11  2024 iptables-restore -> xtables-multi
+lrwxrwxrwx    1 root     root            13 Apr 11  2024 iptables-save -> xtables-multi
+-rwxr-xr-x    1 root     root         89613 Apr 11  2024 iw
+-rwxr-xr-x    1 root     root        272006 Apr 11  2024 lighttpd
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 lsmod -> /sbin/kmodloader
+-rwxr-xr-x    1 root     root         95157 Apr 11  2024 miniupnpd
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 modinfo -> /sbin/kmodloader
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 modprobe -> /sbin/kmodloader
+-rwxrwxr-x    1 root     root          6025 Apr 11  2024 mwan3
+-rwxrwxr-x    1 root     root          1298 Apr 11  2024 mwan3track
+lrwxrwxrwx    1 root     root            17 Apr 11  2024 ntpd -> ../../bin/busybox
+-rwxr-xr-x    1 root     root         32249 Apr 11  2024 odhcp6c
+-rwxr-xr-x    1 root     root         51535 Apr 11  2024 odhcpd
+-rwxr-xr-x    1 root     root           139 Apr 11  2024 odhcpd-update
+-rwxr-xr-x    1 root     root          2062 Apr 11  2024 port_forwarding.sh
+-rwxr-xr-x    1 root     root        240691 Apr 11  2024 pppd
+-rwxr-xr-x    1 root     root          6642 Apr 11  2024 px5g
+lrwxrwxrwx    1 root     root            16 Apr 11  2024 rmmod -> /sbin/kmodloader
+-rwxr-xr-x    1 root     root        264097 Apr 11  2024 stresstest
+lrwxrwxrwx    1 root     root            11 Apr 11  2024 swapoff -> /sbin/block
+lrwxrwxrwx    1 root     root            11 Apr 11  2024 swapon -> /sbin/block
+-rwxr-xr-x    1 root     root        196964 Apr 11  2024 tc
+-rwxr-xr-x    1 root     root        284559 Apr 11  2024 tcpdump
+-rwxr-xr-x    1 root     root         14848 Apr 11  2024 ubiattach
+-rwxr-xr-x    1 root     root         10558 Apr 11  2024 ubiblock
+-rwxr-xr-x    1 root     root          4702 Apr 11  2024 ubicrc32
+-rwxr-xr-x    1 root     root         11868 Apr 11  2024 ubidetach
+-rwxr-xr-x    1 root     root         42665 Apr 11  2024 ubiformat
+-rwxr-xr-x    1 root     root         16813 Apr 11  2024 ubimkvol
+-rwxr-xr-x    1 root     root         18804 Apr 11  2024 ubinfo
+-rwxr-xr-x    1 root     root         25705 Apr 11  2024 ubinize
+-rwxr-xr-x    1 root     root         12814 Apr 11  2024 ubirename
+-rwxr-xr-x    1 root     root         13948 Apr 11  2024 ubirmvol
+-rwxr-xr-x    1 root     root         15340 Apr 11  2024 ubirsvol
+-rwxr-xr-x    1 root     root         14682 Apr 11  2024 ubiupdatevol
+-rwxr-xr-x    1 root     root         82744 Apr 11  2024 upnpd
+lrwxrwxrwx    1 root     root             4 Apr 11  2024 wpa_supplicant -> wpad
+-rwxr-xr-x    1 root     root       1437001 Apr 11  2024 wpad
+-rwxr-xr-x    1 root     root         87615 Apr 11  2024 xl2tpd
+-rwxr-xr-x    1 root     root          6705 Apr 11  2024 xl2tpd-control
+-rwxr-xr-x    1 root     root         57938 Apr 11  2024 xtables-multi

@@ -1,0 +1,52 @@
+also flinched on files, it turns out to be every 5 minute in China knocks for an update.
+catt etc/config/tr069
+ option acs_url 'http://112.12.10.12.13:8091/openacs-client/acs'		
+
+option inform_interval '300'
+
+took the rights to execute from tr069, so as not to climb there, it is unlikely to be updated)
+
+chmod 000 /usr/bin/tr069
+ls -l /usr/bin/tr069
+----------- 1 root root 308133 Mar 31 2022 /usr/bin/tr069
+
+
+UPD. commented on the launch bar in services.init so that there are no errors in the bonds from the non-launching tr069
+sed -i '/tr069/s/^/#/' /etc/init/d/services.init
+Attached image
+Now there
+cat /etc/init.d/services.init | grep tr069
+# start_instance 0 "tr069" "${PATH_UBin}"
+
+reboot
+
+UPD2: If you want to bother, then one can disable the update-ota for modem, it is a little more complicated because the word otata is found several times in the script
+First looking for in which lines there is an ota
+grep -n ota /etc/init.d/services.init
+
+AT%EXE="grep -n ota /etc/init.d/services.init"
+
+AT%EXE="grep -n ota /etc/init.d/services.init"
+
+35: if [ -e /et/config/ota_status ]; Ø
+
+36: echo "cp /etc/config/ota_status to tmp"
+
+37: cp /etc/config/ota_status /tmp/
+
+81: start_instance 0 "ota" "${PATH_UBin}"
+
+see that the launch of the service in 81 lines , so the command for commenting will be
+
+sed -i '81s/^/#/' /etc/init.d/services.init
+after you can check again and make sure that there was a grille # at the beginning of the 81 lines
+and further reboot
+
+UPD: All commands enter as in the photo in the arguments for atexe
+#
+I have also signed the services qos, aoc, audio_if, ims_mgr yourself decide whether you need them or not, I do not need it, but the memory of the modem is eaten and interfere with traffic.
+sed -i '/aoc/s/^/#/' /etc/init.d/services.init
+sed -i '/qos/s/^/#/' /etc/init.d/services.init
+sed -i '/audio_if/s/^/#/' /etc/init.d/services.init
+sed -i '/ims_mgr/s/^/#/' /etc/init/services.init
+

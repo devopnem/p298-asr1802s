@@ -1,0 +1,9 @@
+# Copyright (C) 2023 Notion
+
+#lan static
+config  interface LAN1
+	option ifname eth0
+	option proto dhcp
+	option ipaddr none
+	option netmask none
+	

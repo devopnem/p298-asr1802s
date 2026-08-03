@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * ASR1802S SoC skeleton — RFC.
+ * The real clock/reset/pinctrl/irqchip/timer definitions must come from the
+ * vendor kernel 3.10 sources (ASR/Marvell) before this can boot a mainline
+ * kernel.  What we know from runtime extraction (3.10.33):
+ *   - single Cortex-A9 (arch 0xc07); L1 PIPT/VIPT caches; neon/vfpv3
+ *   - APB bus @0xd4000000, AXI periphs @0xd4200000 (see board DTS)
+ *   - irqbank via on-SoC ICU (IRQs listed in /proc/interrupts)
+ *   - timer: local-timer irq 45; arch timer
+ */
+/dts-v1/;
+/ {
+        #address-cells = <1>;
+        #size-cells = <1>;
+
+        cpus {
+                #address-cells = <1>;
+                #size-cells = <0>;
+                cpu: cpu@0 {
+                        device_type = "cpu";
+                        compatible = "arm,cortex-a9";
+                        reg = <0>;
+                };
+        };
+
+        soc {
+                compatible = "simple-bus";
+                #address-cells = <1>;
+                #size-cells = <1>;
+                /*
+                 * Placeholder for:
+                 *   - clk: asr1802s clock controller
+                 *   - reset: asr1802s reset controller
+                 *   - pinctrl: gpio banks / pinmux
+                 *   - intc: on-SoC ICU interrupt controller (parent of IRQs)
+                 *   - timer: local-timer + arch_timer
+                 * These must replace the vendor fork's marvell/asr primitives.
+                 */
+                #ifdef ASR1802S_UPSTREAM_SOC   /* filled after SoC port lands */
+        };
+};

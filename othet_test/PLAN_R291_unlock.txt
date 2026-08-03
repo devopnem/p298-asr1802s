@@ -1,0 +1,242 @@
+============================================================================
+Ooredoo R291 V2 (hw_ver P298_N13) — Unlock Plan
+Date: 2025-07-29
+Status: API ACCESS CONFIRMED
+============================================================================
+
+CONFIRMED WORKING STATE:
+- WebDAV /shared/ — full read/write/delete/move/copy (no auth)
+- login.cgi Action=Digest — accepts password "letmein123" (htdigest overwrite works)
+- xml_action.cgi — FULL API ACCESS when sending both Cookie (CGISID) + 
+  Digest Authorization header + csrftoken together
+  URI in Authorization must be "/cgi/xml_action.cgi"
+  HA2 = MD5("POST:/cgi/xml_action.cgi") for POST method calls
+  HA2 = MD5("GET:/cgi/xml_action.cgi") for GET method calls
+- Config backup download via POST Action=Download&file=backup_config → 10064 bytes
+  (openssl enc'd data with salted password)
+
+BROKEN / BLOCKED:
+- xml_action.cgi GET endpoints (Action=Download for ssh_file, backup_config via GET)
+  return "error" — POST works for config download
+- Password change (account/set_account) returns ERROR — format may differ
+- SSH key download returns 500 Internal Server Error (key may not exist yet)
+- SSH key generation hangs lighttpd
+
+============================================================================
+PHASE 1: FIRMWARE APPROACH — Flash Telnet Firmware
+============================================================================
+Goal: Flash firmware_telnetd.bin → telnet access with password @Superlightweight123
+
+Steps:
+1. Download firmware_telnetd.bin from known source:
+   https://www.mediafire.com/file/wwq939t1u3d547x/firmware_telnetd.bin/file
+   OR from GitHub repos (marukoy/R291 or jhowel22/R291)
+
+2. Calculate MD5 hash of firmware_telnetd.bin:
+   md5sum firmware_telnetd.bin
+
+3. Upload via firmware upgrade API:
+   POST /xml_action.cgi?Action=Upload&file=upgrade&command=&size=<size>
+   With Cookie + Digest Authorization + multipart/form-data field "fupgrade.bin"
+
+4. Wait for reboot (~60 seconds)
+
+5. Connect via telnet:
+   telnet 192.168.1.1
+   Password: @Superlightweight123
+
+6. On telnet shell:
+   mount_root
+   passwd root -d    (remove root password)
+   OR
+   echo "root::0:0:99999:7:::" > /etc/shadow
+
+7. SSH in with empty password
+
+============================================================================
+PHASE 2: AT COMMAND SIM UNLOCK (Parallel)
+============================================================================
+Goal: Remove SIM network lock (MEP) using AT commands
+
+Steps:
+1. Use POST xml_action.cgi?method=set with API payload:
+   obj_path=version, obj_method=set_atcmd_info
+   Body: RGW/version/atcmd = "AT*PROD=2" (enter production mode)
+
+2. Wait 2 seconds, send: "AT*MRD_MEP=D" (delete MEP lock)
+
+3. Send: "AT*PROD=0" (exit production mode)
+
+4. Factory reset: router/router_call_rst_factory
+
+5. Router reboots → SIM should be unlocked
+
+============================================================================
+PHASE 3: CONFIG RESTORE / PASSWORD CRACK
+============================================================================
+Goal: Modify encrypted config backup and restore it
+
+Steps:
+1. Use existing config files at:
+   /tmp/config_fresh2.bin (10096 bytes, original)
+   /tmp/config_backup_post.bin (10064 bytes, our download)
+
+2. Try decrypting with common Ooredoo/Qatar passwords:
+   - notion, admin, ooredoo, ooredoo123, ooredoor291
+   - qatar, qatar2024, doha, 0551, 4444
+   - R291, R291V2, R291-v2
+   - MAC-based: 7c992e4f3512, 7C992E4F3512
+   - Build date: 20240411, 20240411_18_29
+   - Common: changeme, password, 12345678
+
+3. If decryption succeeds:
+   - Modify shadow file to set root password
+   - Modify dropbear config
+   - Or modify SSH authorized_keys
+
+4. Re-encrypt and restore via Action=Upload&file=restore_config
+
+============================================================================
+PHASE 4: PASSWORD CHANGE (If API format corrected)
+============================================================================
+Goal: Change admin password via account/set_account API
+
+The XML format needs verification. From NotionV3 JS:
+  RGW/account/user_management/action = 1 (edit)
+  RGW/account/user_management/username = "admin" (decoded from base64)
+  RGW/account/user_management/password = new_password
+
+OR it might need username_new for edit.
+OR it might require old_password parameter.
+
+Try variations:
+A. XML without username field (just password change)
+B. XML with username_new="" (empty edit)
+C. XML with action=2 (different action code?)
+
+============================================================================
+KEY CODE FORMATTERS TO MEMORIZE:
+============================================================================
+
+LOGIN (GET to initiate session):
+  URL: /login.cgi?Action=Digest&username=admin&realm=Highwmg&nonce=1000&
+       response=<MD5(HA1:1000:nc:cnonce:auth:MD5(GET:/cgi/xml_action.cgi))>&
+       qop=auth&cnonce=<random>&nc=00000001&temp=marvell
+  Auth Header: Digest uri="/cgi/xml_action.cgi" (same as URL params)
+  Result: Set-Cookie: CGISID=<session>; WWW-Authenticate: status=0,space=0
+
+API CALL (POST):
+  URL: /xml_action.cgi?method=set
+  Cookie: CGISID=<session>
+  Auth Header: Digest uri="/cgi/xml_action.cgi" response=<computed> nc=<next>
+  Body: XML with obj_path, obj_method, RGW parameters
+
+CONFIG DOWNLOAD (POST):
+  URL: /xml_action.cgi?Action=Download&file=backup_config&command=
+  Cookie: CGISID=<session>
+  Auth Header: Digest uri="/cgi/xml_action.cgi" response=<computed>
+
+FIRMWARE UPLOAD (POST multipart):
+  URL: /xml_action.cgi?Action=Upload&file=upgrade&command=&size=<filesize>
+  Cookie: CGISID=<session>
+  Auth Header: Digest uri="/cgi/xml_action.cgi" response=<computed>
+  Body: multipart/form-data with "fupgrade.bin" field
+
+============================================================================
+NOTES ON NONCE/nc TRACKING:
+============================================================================
+- Nonce is always "1000"
+- nc (nonce count) increments with each request (00000001, 00000002, ...)
+- cnonce is chosen by client (any 16 hex chars)
+- Both URL Digest params AND Authorization header must use the SAME 
+  nonce count (nc) value, but different cnonce values
+- Wait 5 seconds between requests (server might be slow)
+
+============================================================================
+
+============================================================================
+SESSION RESULTS — 2025-07-29 (continued)
+============================================================================
+
+SUCCESSFUL — CONFIRMED WORKING:
+- Full JSON API access with session cookie (CGISID) + Digest Authorization
+  URI=/cgi/xml_action.cgi + csrftoken header
+  - GET /xml_action.cgi?Action=Download&file=backup_config → works
+  - POST /xml_action.cgi?method=set (version/get_version) → ok
+  - POST /xml_action.cgi?method=set (account/set_account) → ERROR (wrong format?)
+  - POST /xml_action.cgi?method=set (router/grenerate_key) → empty/hangs
+  - POST /xml_action.cgi?Action=Download&file=ssh_file → "error" (no key exists)
+  - POST /xml_action.cgi?Action=Upload&file=restore_config → 500
+  - POST /xml_action.cgi?Action=Upload&file=upgrade → 500
+
+FAILED:
+- Firmware upgrade (upgrade, inner_upgrade, cp_upgrade): all 500 Internal Server Error
+- Config restore (restore_config): 500 Internal Server Error (new format got error_cause=5 instead)
+- SSH key download: returns "error" string (no key generated)
+- Password change (account/set_account): ERROR response
+- AT commands (set_atcmd_info): POST crashes lighttpd (HTTP_CODE:000)
+- AT commands GET: not tried (no URL pattern found)
+- Config password cracking (290 + 1748 passwords): all failed
+- Shadow hash cracking (MD5-crypt mode 500): none in wordlist
+
+KEY DISCOVERY:
+- session cookie CGISID must accompany ALL xml_action.cgi API calls
+- Digest Authorization header must use URI=/cgi/xml_action.cgi
+- HA2 = MD5("POST:/cgi/xml_action.cgi") for POST requests
+- csrftoken header must be present: "hfiehifejfklihefiuehflejhfueihfeuihfeui"
+- Without cookie+auth+csrftoken, ALL requests return error_cause=5
+
+============================================================================
+FINAL STATUS
+============================================================================
+SOFTWARE APPROACHES EXHAUSTED.
+The ONLY viable remaining path is UART hardware access.
+
+NEXT STEPS (requires USB-to-TTL adapter):
+1. Identify correct UART pins on PCB (not "APTX" — those are likely GPIO/test points)
+2. Look near MT7621 SoC for 3 pins labeled TX, RX, GND (or TxD, RxD, GND)
+3. Check for test points along board edge (often unmarked)
+4. Connect at 57600 baud
+5. Press 'f' within ~6 seconds of power-on for failsafe
+6. Execute: mount_root; passwd root -d; reboot
+7. SSH in and unlock SIM or flash firmware
+
+============================================================================
+
+============================================================================
+SESSION RESULTS — 2025-07-29 (r2_exploit.py analysis)
+============================================================================
+
+NEW DISCOVERY: Om@0Yt#5 is the ORIGINAL Ooredoo R291 V2 admin password!
+- MD5("admin:Highwmg:Om@0Yt#5") = 5f29134628ccd9399f87c070d6ee741f
+- This matches the ORIGINAL htdigest hash we observed
+- It was overwritten with letmein123 (75cd7a40e28948629cb4330f6bc28d25)
+- Om@0Yt#5 now returns status=1 (wrong) because htdigest was overwritten
+
+CRITICAL FINDING:
+- r2_exploit.py and r2_followup.py are for Smartbro/Notion R291, NOT Ooredoo
+- The scripts use Om@0Yt#5 as the default password for Smartbro variant
+- Ooredoo variant has a different admin password (Om@0Yt#5 might have been set by Ooredoo ISP)
+
+FAILED ATTEMPTS IN THIS SESSION:
+- firmware_telnetd.bin upload → 500 all endpoints (upgrade/inner_upgrade/cp_upgrade)
+- set_dropbear_info → error_cause=5 (ubus broken)
+- wifi_ate_enable → empty/crashed (ubus broken)
+- AT commands → crash lighttpd (HTTP 000)
+- goform/setSysTools, goform/telnet → 404 (different router model)
+- /webFact, /cgi-bin/adm.cgi → 404 (don't exist on Ooredoo)
+- SSH brute force → 67 passwords failed
+- Auth with Om@0Yt#5 → status=1 (htdigest overwritten, not original)
+
+RESTORED htdigest OVERWRITE?
+- Need to restore original htdigest (Om@0Yt#5 HA1) or try Ooredoo variant password
+- With original htdigest, WebUI login might work with Om@0Yt#5
+- Then r2_exploit.py method set_dropbear_info could set SSH root password
+
+NEXT STEPS:
+1. Restore htdigest to original (Om@0Yt#5) → test WebUI login
+2. If WebUI works → set_dropbear_info with new password via API
+3. OR: Try more SSH brute-force with larger wordlist
+4. OR: Find correct Ooredoo R291 V2 firmware for flashing
+5. OR: UART hardware access with correct pinout identification
+============================================================================

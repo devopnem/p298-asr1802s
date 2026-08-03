@@ -1,0 +1,22 @@
+# Exclude sensitive binary backup data
+ooredoo_backup/
+# Exclude potential large binary/firmware objects
+*.bin
+*.sqf
+*.img
+*.tar.gz
+*.extracted/
+# Common temp/log files
+*.log
+.tmp/
+# Exclude compressed archives
+*.zip
+*.tar
+*.rar
+*.gz
+# Exclude logs
+*.log
+logs/
+# Python compile cache
+__pycache__/
+*.pyc

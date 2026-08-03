@@ -1,0 +1,38 @@
+
+config system
+	option hostname 'cpe.baseline.com'
+	option zonename 'Asia/Shanghai'
+	option timezone 'GMT-1'
+	option log_file '/etc/logfile'
+	option log_size '16'
+	option idle_timeout '10'
+	option workmode 'router'
+	option bridge '0'
+	option wanmode 'none'
+	option eth_select 'lan'
+	option mwan3 '0'
+	option language 'en'
+
+config timeserver 'ntp'
+	list server 'ntp.fixe-tun.com'
+	list server '1.openwrt.pool.ntp.org'
+	list server '2.openwrt.pool.ntp.org'
+	list server '3.openwrt.pool.ntp.org'
+	option enabled '1'
+	option enable_server '0'
+
+config led 'lan_led'
+	option name 'LAN (blue)'
+	option sysfs 'lan'
+	option trigger 'netdev'
+	option dev 'eth0'
+	option mode 'link tx rx'
+
+config led 'wlan_led'
+	option name 'wlan_led'
+	option sysfs 'wlan'
+
+config led 'wps_led'
+	option name 'wps_led'
+	option sysfs 'wps'
+

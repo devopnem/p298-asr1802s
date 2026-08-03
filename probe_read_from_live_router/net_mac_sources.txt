@@ -1,0 +1,27 @@
+### ifconfig
+### /sys/class/net
+br-lan
+ccinet0
+ccinet1
+ccinet2
+ccinet3
+ccinet4
+ccinet5
+ccinet6
+ccinet7
+embms0
+eth0
+eth0.1
+eth0.2
+gre0
+gretap0
+ip6tnl0
+lo
+teql0
+tunl0
+usbnet0
+wlan0
+wlan0-va0
+wlan1
+wlan1-va0
+/sys/class/ieee80211/phy*/macaddress:

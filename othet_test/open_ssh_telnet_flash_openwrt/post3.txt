@@ -1,0 +1,24 @@
+
+    telnet meron boss
+
+bago ang lahat kunin muna ang AT+CHECKATVALID ng iyong modem.
+• mag login sa ssh/telnet at i-run ang command na
+
+echo 'cat /dev/log_radio|grep "CHECKATVALID">>/tmp/log_radio' >> /etc/rc.local && reboot
+
+• after mag reboot login ulit sa ssh/telnet at i-run ang command na
+
+cat /tmp/log_radio
+
+• i-save ang output ng cat katulad ng ganito
+ex: AT+CHECKATVALID=6961560367461053
+dapat nasa 5 ang mtdblock bago mag flash
+• mag login sa ssh/telnet i-irun ang command na
+
+fw_printenv bootargs
+
+• kung ang mtdblock niya ay nasa 6 kaylangang i-set sa 5 i-run ang command na
+
+fw_setenv bootargs "console=ttyS1,57600n8 root=/dev/mtdblock5"
+
+

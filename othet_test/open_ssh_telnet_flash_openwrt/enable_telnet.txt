@@ -1,0 +1,15 @@
+Here's how to enable telnet with "Modem Command".
+Make sure you turn off the PIPE Mode to complete the command.
+Enter the command below in "Modem Command".
+curl -k https://www.jiwanyuzu.com/download/software/busybox/busybox-armv7l -o /root/busybox
+
+chmod 755 /root/busybox
+
+/root/busybox telnetd -l /bin/ash
+
+20% of the original
+Attached image
+1080 x 2460 (320.2 KB)
+
+20% of the original
+Attached image

@@ -1,0 +1,5 @@
+
+config paras-setting 'cfg'
+	option umts_en '1'
+	option bootset '1'
+

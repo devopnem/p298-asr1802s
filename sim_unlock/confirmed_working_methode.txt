@@ -1,0 +1,38 @@
+enable ssh:
+python /home/void/Downloads/Modems/notion_r291/modular_tests/_root_shell_phase.py
+ssh 192.168.1.1 -o HostKeyAlgorithms=ssh-rsa -o KexAlgorithms=diffie-hellman-group14-sha1 -l root
+19222019
+rm -f /tmp/flag_usb
+python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd ATE1"
+python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT+CFUN=0"
+python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT*PROD=2"
+python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT*MRD_MEP=D"
+python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT+CLCK=PN,0,80822207,16"
+python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT*PROD=0"
+python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT+CFUN=1"
+
+python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "rm -f /tmp/flag_usb && serial_atcmd AT+CPIN? && serial_atcmd AT+COPS?"
+
+------
+:
+/tmp/flag_usb
+كيف جرت العملية بالتدقيق:
+فحص آلية عمل أداة serial_atcmd:
+عند فحص البرنامج عبر strace داخل نظام الراوتر، تبين أن الأداة تقوم قبل تنفيذ أي أمر AT بالتحقق من وجود الملف /tmp/flag_usb باستخدام الدالة access("/tmp/flag_usb", F_OK).
+شرط الحماية:
+إذا كان الملف /tmp/flag_usb موجوداً، تُخرج الأداة عبارة الحظر:
+please unlock the ATCMD firstly!!
+إذا تم حذف الملف، تتجاوز الأداة الشرط وتُرسل أوامر AT مباشرة إلى المودم.
+خطوة النجاح:
+قمنا بحذف هذا الملف المؤقت قبل تنفيذ أمر فك القفل مباشرة:
+rm -f /tmp/flag_usb && serial_atcmd AT+CLCK=PN,0,80822207,16
+فقبل المودم الأمر وأرجع:
+AT+CLCK=PN,0,80822207,16
+OK
+تأكيد فك القفل:
+عند الاستعلام بعد ذلك بـ:
+rm -f /tmp/flag_usb && serial_atcmd AT+CLCK=PN,2
+أرجع المودم:
++CLCK: 0
+OK
+(حيث القيمة 0 تعني أن قفل الشبكة معطّل/مفتوح بنجاح، بينما القيمة 1 كانت تعني أنه مقفل).

@@ -1,0 +1,33 @@
+doas modprobe usbserial vendor=0x2ecc product=0x3012
+doas picocom -b 115200 /dev/ttyACM0
+AT
+OK
+AT+CFUN=0
+AT+CFUN=0
+AT*PROD=2
+AT*MRD_MEP=D
+AT*PROD=0
+
+
+The modem exposes:
+- Interface 0: RNDIS (network)
+- Interface 1: RNDIS data
+- Interface 2: CDC ACM (AT commands) → ttyACM0
+- Interface 3: CDC ACM (second AT port?) → should be ttyACM1 but not bound?
+- Interface 4: 0a 00 ff (vendor specific - diag/debug?)
+- Interface 5: 0a 00 ff (vendor specific - diag/debug?)
+
+
+doas sh -c 'echo "1-1:1.4" > /sys/bus/usb/drivers/usbserial/bind'
+doas sh -c 'echo "1-1:1.5" > /sys/bus/usb/drivers/usbserial/bind'
+ls -la /dev/ttyUSB*
+
+doas picocom -b 115200 /dev/ttyUSB0
+
+doas modprobe usbserial vendor=0x2ecc product=0x3012
+
+AT+CFUN=0
+AT*PROD=2
+AT*MRD_MEP=D
+AT*PROD=0
+AT+CFUN=1

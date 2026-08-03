@@ -1,0 +1,24 @@
+عندي راوتر 192.168.1.1 متصل عبر ethernet notion r291 ooredoo أريد الدخول إلى ssh وتحديث نسخة الراوتر بالنسخة الجديدة notionv3 لكن ssh فيه كلمة سر ولم أعرفها، جربت الكثير من الكلمات ولم تنجح. جربت عمل نسخة احتياطية من config لكنها لا تقبل إضافة ملفات خارج /etc/config ، جربت رفع الملف عبر api /home/void/Downloads/Modems/notion_r291/modular_tests/api_upload.py بعد تسجيل الدخول من  /home/void/Downloads/Modems/notion_r291/modular_tests/api_login.py لكن دائما أحصل على مشكل في الرفع، الملفات التي يمكن رفعها هنا: flashing_files : firmware_telnetd أو bootloader ثم notionv3
+أرجو المساعدة في تحديث الفيرمور، ففي webui عندما أختار النسخة الجديدة يقول updating ولا يحصل أي شيء.
+
+
+Analyzing Approaches
+I've thoroughly studied all methods in the open_ssh_telnet_flash_openwrt directory. Here's the situation:
+File	Method	Status on R291 V2
+c300-1final.pdf	wifi_ate_enable → telnet	❌ FAILED (error_cause=1)
+unlock.txt	Browser console wifi_ate_enable	❌ FAILED (same error)
+yota1337.sh.sh	AT commands + flash firmware	Requires shell access
+enable_telnet.txt	"Modem Command" web UI → busybox telnetd	Feature not in Ooredoo WebUI
+how_to_ssh.txt	Steps after getting shell access	Requires existing shell
+open_ssh1.txt	nc file transfer + tar extract	Requires existing shell
+installopenwrt.txt	Flash OpenWrt via mtd	Requires shell access
+update1.txt	Download & run yota1337.sh	Requires shell access
+acs.txt	TR069/OTA modification	Requires shell access
+
+جربت كل الحلول للحصول على ssh على notion r291 ولم أستطع.
+الآن بقي لي مسار لعله يكون فيه الحل:
+1- نقوم بتحميل ملف الإعدادات ثم نفك تشفيره ثم نعدله (قد نجحنا في ذلك) تجد الكود هنا modular_tests
+2- نقوم بتعديل ملف tr069 ونضع ip الخاص بنا لنعمل CWMP
+3- نقوم بفحص firmware عن كيفية إرسال أوامر acs
+4- نقوم بمحاكاتها ونرسل أوامر لتحميل ملفات فنعرف باسوورد ssh أو نحقن ملفات أخرى لفتح telnetel أو فتح ssh
+

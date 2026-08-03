@@ -1,0 +1,31 @@
+
+config connect-switch 'connect_switch'
+	option proto 'cellular'
+	option dial_switch 'cellular'
+
+config net-mode 'net_mode'
+	option nw_mode '3'
+	option prefer_mode '3'
+	option prefer_lte_type '0'
+
+config bgscan-time 'bgscan_time'
+	option bgscan_time '1'
+
+config profile_conf_type 'profile_conf_name'
+	option actived_profile 'default'
+	list profile_names 'default'
+
+config eng-mode 'eng_mode'
+	option mode '1'
+
+config mtu 'mtu'
+	option mtu '1500'
+
+config roaming-switch 'roaming_switch'
+	option switch '1'
+
+config 0 'getelcom'
+
+config apn-polling-record 'apn_polling_record'
+	option flag '0'
+

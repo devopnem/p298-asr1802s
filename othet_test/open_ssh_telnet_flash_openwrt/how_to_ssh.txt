@@ -1,0 +1,109 @@
+ello, the summer came and I took out of the boot yota c300-1 cabinet, so I use in the country and in hiking with an external antenna.
+Before that, I sat on a yotha firmware with my web mourning.
+But I needed a wi-fi bridge. And it's not in the runoff.
+I decided that it was time to get to openwrt, all the other cars worked on it.
+The process was not trivial. The instructions are scattered and old.
+Here I will write my resume-experience, maybe someone will be easier in the future, so as not to look for information on 2 forums, and to help yourself.
+
+The model part I've already been divided into any simcard.
+I sit on the mac, but all commands can be executed from under wsl2 on windows - https://lumpics.ru/ins...ng-wsl2-in-windows-11/
+All performance operations are better done by cable, and some can only be done on it
+#
+Large instruction on firmware
+SSH access on yota firmware is missing, corrog password and others do not work on default.
+Telnet opened according to the instructions - Routerther by Megafon CPE LTE Cat.6 C300-1 (post marukoy #138785617) But after execution, it is necessary to reload the router so that the port opens.
+We check that the port 23 is open:
+nc -G 2 -vz 192.168.1.1 23
+
+In telnet, reset the sh password:
+ubus call router set_dropbear_info '{"dropbury_mode":"1","dropbury_key_type":"99"}'
+Passwd
+fw_setenv dropbear_password root
+ubus call wireless wifi_ate_date_disabled
+
+Next, you need to stitch the notion_r281-squashfs-factory.bin and from it will be updated to 25 versions.
+Fill the firmware in the time folder of the router:
+scp -O \  
+-oKexAlgorithms=+diffie-helman-group14-sha1 \  
+-hostKeyAlgorithms=+ssh-rsa \  
+-OpobukeyAcceptedAlgorithms=+ssh-rsa \  
+/full way to file/notion_r281-squashfs-factory.bin \  
+root@10.0.0.1:/tmp/
+
+Check that the file is on site and look at the blocks:
+ls -lh /tmp/notion_r281-squashfs-factory.bin
+cat /proc/mtd
+
+We take backup:
+cat /dev/mtd4 > /tmp/mtd4.bin
+
+We're skating on PC backup:
+scp -O \  
+-oKexAlgorithms=+diffie-helman-group14-sha1 \  
+-hostKeyAlgorithms=+ssh-rsa \  
+-OpobukeyAcceptedAlgorithms=+ssh-rsa \  
+root@10.0.0.1:/tmp/mmt4.bin \  
+/Users/Your user/
+
+Sew the firmware in the firmware section and check the web mob at 192.168.1.1 in a few minutes:
+mtd -r write /tmp/notion_r281-squashfs-factory.bin /dev/mmtd4
+
+Logins and password to log in to the openwrt web muzzle:
+root - notion
+
+Openwrt is updated to the latest available assembly
+
+We make a modem part.
+
+On the router on the ssh:
+μdir -p /tmp/cpflash
+
+
+On PC:
+scp -O /path to the image of the modem /P29M29HYOTA_C300-1_SC62_CP_V002-Mod.bin root@192.161.1.1:/tmp/cpflash/
+
+
+Disable PIPE mode
+On the router:
+at_pipe d
+at_pipe s
+at_cmd 'AT+ACONFIG?'
+
+
+Expected result:
+Status: Disabled
+PID=0,VID=0,IMSD=0,PIPE=0,FAST=0,RDUP=0,EEHP=0,SDLG=0
+
+
+Start the firmware of the modem on the router:
+fbfdownloader -b /tmp/cpflash/P29M29HYOTA_C300-1_CC2_CP_V002-Mod.b 2>&1 | tetmp/cpflash/fbf-flash.
+
+
+The process hangs at the waiting for the device. That's okay. We do not complete it, we connect to the router on the ssh in another terminal.
+
+Restart CP-modem:
+echo 1 > /sys/class/gpieo/reset_cp/value
+sleep 1
+echo 0 > /sys/class/gpieo/reset_cp/value
+
+
+After that, the `fbdownloader must continue to work.
+
+grep -n 'Burn Successfully' /tmp/cpflash/fbf-flash.log
+
+
+Return the LTE interface to NCM
+For MTS:
+uci set network.wwan.disabled='0'
+uci set network.wwan.proto= ''ncm'
+uci set network.wwan.device='/dev/ttiACM0'
+uci set network.wwan.apn='internet.mts.ru'
+uci set network.wwan.username='ms
+uci set network.wwan.password='m
+uci set network.wwan.auth='pa'
+uci set network.wwan.pdpptype=''
+uci set network.wwan.delay='10'
+uci Commitation Network
+/etc/init.d/network restart
+
+

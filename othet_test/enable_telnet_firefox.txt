@@ -1,0 +1,54 @@
+// Sends the wifi_ate_enable command to unlock telnet
+const protocol = window.location.protocol;
+const hostname = window.location.hostname;
+const url = `${protocol}//${hostname}/xml_action.cgi`;
+
+const xml = `<?xml version="1.0" encoding="US-ASCII"?>
+<RGW>
+<param>
+<method>call</method>
+<session>000</session>
+<obj_path>wireless</obj_path>
+<obj_method>wifi_ate_enable</obj_method>
+</param>
+</RGW>`;
+
+fetch(url, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/xml; charset=US-ASCII",
+    "Accept": "application/xml,text/plain,*/*"
+  },
+  body: xml,
+  credentials: "include"
+})
+  .then(r => r.text())
+  .then(data => console.log("Response:", data))
+  .catch(err => console.error("Error:", err));
+  
+------------------ OR  
+  
+  const url = "http://192.168.1.1/xml_action.cgi?method=set";
+
+const xml = `<?xml version="1.0" encoding="US-ASCII"?>
+<RGW>
+<param>
+<method>call</method>
+<session>000</session>
+<obj_path>wireless</obj_path>
+<obj_method>wifi_ate_enable</obj_method>
+</param>
+</RGW>`;
+
+fetch(url, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Referer": "http://192.168.1.1/",
+  },
+  body: "xml=" + encodeURIComponent(xml),
+  credentials: "include"
+})
+  .then(r => r.text())
+  .then(data => console.log("Response:", data))
+  .catch(err => console.error("Error:", err));

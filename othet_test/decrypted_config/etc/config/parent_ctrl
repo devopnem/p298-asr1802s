@@ -1,0 +1,3 @@
+config defaults policy
+	option dn_filter_disable '1'
+	option dn_filter_policy 'black'

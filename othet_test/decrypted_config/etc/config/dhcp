@@ -1,0 +1,72 @@
+
+config dnsmasq
+	option domainneeded '1'
+	option boguspriv '1'
+	option filterwin2k '0'
+	option localise_queries '1'
+	option rebind_protection '0'
+	option rebind_localhost '0'
+	option local '/lan/'
+	option domain 'lan'
+	option expandhosts '1'
+	option nonegcache '0'
+	option authoritative '1'
+	option readethers '1'
+	option leasefile '/tmp/dhcp.leases'
+	option resolvfile '/tmp/resolv.conf.auto'
+	option nonwildcard '1'
+	list bogusnxdomain '93.184.216.34'
+	option dhcpscript '/lib/stat/dhcp_action.sh'
+	list addnhosts '/etc/dns_blacklist'
+
+config dhcp 'lan'
+	option interface 'lan'
+	option start '192.168.1.2'
+	option end '192.168.1.254'
+	option limit '253'
+	option leasetime '86400'
+	option dhcpv6 'server'
+	option ra 'relay'
+	option ndp 'relay'
+
+config dhcp 'lan2'
+	option interface 'lan2'
+	option ignore '1'
+
+config dhcp 'wan0'
+	option interface 'wan0'
+	option ignore '1'
+
+config dhcp 'wan1'
+	option interface 'wan1'
+	option ignore '1'
+
+config dhcp 'wan2'
+	option interface 'wan2'
+	option ignore '1'
+
+config dhcp 'wan3'
+	option interface 'wan3'
+	option ignore '1'
+
+config dhcp 'wan4'
+	option interface 'wan4'
+	option ignore '1'
+
+config dhcp 'wan5'
+	option interface 'wan5'
+	option ignore '1'
+
+config dhcp 'wan6'
+	option interface 'wan6'
+	option ignore '1'
+
+config dhcp 'wan7'
+	option interface 'wan7'
+	option ignore '1'
+
+config odhcpd 'odhcpd'
+	option maindhcp '0'
+	option leasefile '/tmp/hosts/odhcpd'
+	option leasetrigger '/usr/sbin/odhcpd-update'
+

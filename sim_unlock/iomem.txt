@@ -1,0 +1,26 @@
+00000000-07ffffff : System RAM
+  00008000-0045449b : Kernel code
+  00496000-0050e9df : Kernel data
+  00a00000-00a00fff : Crash kernel
+80000000-87ffffff : memory-map
+c000c100-c0010fff : /soc/axi@d4200000/usb3-0/dwc31@c0000000
+d100d000-d100f9ff : /soc/sram@0xd100d000
+d4010000-d40100ff : /soc/apb@d4000000/rtc@d4010000
+d4013300-d401333b : /soc/apb@d4000000/thermal@d4013300
+d401b000-d401b02f : /soc/apb@d4000000/spi@d401b000
+d401d000-d401d0ff : /soc/apb@d4000000/acipc@d401d000
+d401e000-d401e32f : pinctrl-single
+d4037000-d403705f : /soc/apb@d4000000/i2c@d4037000
+d403d100-d403d11f : /soc/apb@d4000000/ripc1@d403d100
+d403d300-d403d303 : /soc/apb@d4000000/seh
+d4050210-d4050213 : /soc/apb@d4000000/ripc1@d403d100
+d420b000-d420b4ff : reg-map
+d4210000-d42107ff : pcie2-phy
+d4220000-d42207ff : pcie1-phy
+d4280000-d42801ff : mmc0
+d4281800-d42819ff : /soc/axi@d4200000/asr-eth@0xd4281800
+d4288000-d4288fff : pcie2-config
+d428c000-d428cfff : pcie1-config
+d42a0800-d42a08ff : /soc/axi@d4200000/squ@d42a0800
+d8200000-d820ffff : Realtek WLAN driver
+e0100000-e010ffff : Realtek WLAN driver

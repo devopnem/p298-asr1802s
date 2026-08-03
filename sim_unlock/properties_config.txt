@@ -1,0 +1,80 @@
+
+config 0 'sys'
+	option default__loglevel '8'
+	option cp_load__loglevel '8'
+	option atcmdsrv__loglevel '8'
+	option nvmproxy__loglevel '8'
+	option rild__loglevel '8'
+	option log__option '0'
+	option baseband 'UMTS'
+	option lte__mode 'csfb'
+
+config 0 'ril'
+	option telephony__properties '0'
+	option ecclist '911,112,000,08,110,999,118,119'
+
+config Ooredoo-R291-V2 'EXTERNAL_VERSION'
+
+config P298_N13 'EXTERNAL_HARDWARE_VERSION'
+
+config Ooredoo-R291-V2_INTERNAL_001 'INTERNAL_VERSION'
+
+config P298_N13 'INTERNAL_HARDWARE_VERSION'
+
+config Marvell_Prop 'TR069_MANUFACTURER'
+
+config P298M22I_Ooredoo_Tuni_R2921_1G 'TR069_MODEL'
+
+config 50323A 'TR069_OUI'
+
+config P298_N13 'TR069_HARDWARE_VERSION'
+
+config 1 'TR069_FOTA_ENABLE'
+
+config P298M22I_Ooredoo_Tuni_R2921_1G 'TR069_FOTA_DEVICE_NAME'
+
+config 1 'CM_APN_POLLING_SWITCH'
+
+config 2 'CM_APN_POLLING_DIAL_DELAY'
+
+config 1 'CM_DEFAULT_APN_DIAL_SWITCH'
+
+config 1828 'HARDWARE_PLATFORM'
+
+config 1 'DEVICE_SUPPORT_LED'
+
+config 2 'SSID_NUMBER'
+
+config 128 'DEVICE_DDR_SIZE'
+
+config 128 'DEVICE_FLASH_SIZE'
+
+config CPE 'DEVICE_PRODUCT_TYPE'
+
+config 1 'DEVICE_LAN_SWITCH'
+
+config 0 'DDR_64M_CUT_VERSION'
+
+config 0 '2G_request_option'
+	option sim0__non_ims '3'
+
+config 0 '2G_current_option'
+	option sim0__non_ims '3'
+
+config 0 '3G_request_option'
+	option sim0__non_ims '3'
+
+config 0 '3G_current_option'
+	option sim0__non_ims '3'
+
+config 0 '4G_request_option'
+	option sim0__non_ims '3'
+
+config 0 '4G_current_option'
+	option sim0__non_ims '3'
+
+config 1 'MEDCR_DEFAULT_CID'
+
+config 0 'gsm'
+	option version__rilimpl 'Marvell Ril 1.0'
+
