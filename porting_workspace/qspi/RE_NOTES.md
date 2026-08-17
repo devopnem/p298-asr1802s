@@ -135,6 +135,11 @@ Verified offsets and how the vendor code uses them (reg base `0xd420b000`):
 | `0x16c` | qspi_start_cmd `ldr/str [r3,#364]` | SPTRCLR-like / pointer-clear. (MED) |
 | `0x180` | qspi_host_init `str 0x88000000` | AHB window base (2nd). (MED) |
 | `0x304` | qspi_dump_reg prologue `str [r3,#772]` | Control/trigger (uncertain). (LOW) |
+| `0x118` | qspi_start_cmd/ahb_read | Config / timeout reg. (MED) |
+| `0x140` | qspi_start_cmd | Config reg. (MED) |
+| `0x180/0x184/0x188/0x18c` | qspi_host_init/start_cmd | **SFA1AD/SFA2AD/SFB1AD/SFB2AD** (AHB window flash-address regs) — exact VF610 match. (HIGH) |
+| `0x1c8`/`0x1dc` | qspi_start_cmd/ahb_read | Unknown config. (LOW) |
+| `0x1e0` | qspi_ahb_read, spi_nand_do_write_ops `ldrd [..,#480]` | **DATA port (TBDR/RBDR)**: PIO RX read / TX write. (HIGH) |
 
 ### 7.2 LUT registers
 `0x310`–`0x40c` (4-byte steps): command-sequence LUT table. Programmed by
@@ -143,18 +148,32 @@ either reuse the vendor LUT programming or implement sequence in the IP regs.
 
 ### 7.3 STRONG similarity to Freescale/NXP Vybrid VF610 QuadSPI
 Offsets `0x00`(MCR), `0x08`(IPCR/cmd), `0x0c`(FLSHCR), `0x10`(BUF0CR),
-`0x14`(BUF1CR), `0x100`(SFAR), `0x110`(RBCT), AHB window base regs, `0x180`(SFAxAD)
-match the upstream `drivers/spi/spi-fsl-qspi.c` VF610 register layout almost 1:1
-(the 0x140/0x148 FR/RSER of VF610 appear shifted to 0x15c/0x160/0x164 in this IP).
-**Plan: model `spi-asr1802s-qspi.c` on `spi-fsl-qspi.c`, overriding the few
-shifted registers (STATUS 0x15c, FR 0x160, trigger 0x164) and the LUT range.**
+`0x14`(BUF1CR), `0x100`(SFAR), `0x110`(RBCT), AHB window bases `0x44–0x50`,
+`0x180/0x184/0x188/0x18c`(SFA1AD/SFA2AD/SFB1AD/SFB2AD), and the LUT region all match
+the upstream `drivers/spi/spi-fsl-qspi.c` VF610 register layout almost 1:1. Only a
+few regs are shifted/added vs VF610:
+- STATUS is `0x15c` (VF610 FR is `0x140`), FR flag is `0x160` (VF610 RSER `0x148`),
+  IP trigger `0x164`, SPTRCLR `0x16c`, DATA port `0x1e0` (VF610 TBDR `0x1c0`).
+**Plan: model `spi-asr1802s-qspi.c` on `spi-fsl-qspi.c`, overriding the shifted
+regs (STATUS 0x15c, FR 0x160, trigger 0x164, DATA 0x1e0) and the LUT range
+0x310–0x418.**
 
-### 7.4 Data FIFO / TX-RX buffer register — NOT YET PINNED
-The `spi_nand_do_read_ops`/`spi_nand_do_write_ops` PIO data transfer uses a
-read/write of an unknown register for the FIFO. `qspi_dump_reg` window 0x00–0x190
-implies the data buffer is somewhere in 0x140–0x1a0 (VF610 puts RBDR at 0x200+ /
-TBDR at 0x1c0). **TODO before M1.4:** locate the FIFO data reg in `spi_nand_do_*_ops`
-(the `ldr/str` to `[regs, #0xNNN]` inside the RX/TX copy loop).
+### 7.4 Data FIFO / TX-RX buffer register — RESOLVED (2026-08-17)
+**Data port = `0x1e0`** (offset 480). Confirmed referenced as the data register in
+both `qspi_ahb_read` and `spi_nand_do_write_ops`
+(`ldrd r2, r3, [r1, #480]!  @ 0x1e0`). PIO RX reads from it; PIO TX writes to it
+(VF610 counterpart is TBDR 0x1c0 / RBDR 0x200+ — this IP relocates the port to 0x1e0,
+just past the `qspi_dump_reg` MMIO window which ends at 0x190). AHB/XIP reads use the
+memory-mapped window (0x80000000+) and bypass this port.
+- Full verified register set now (offsets relative to `0xd420b000`):
+  `0x00` MCR, `0x08` IPCR/cmd, `0x0c` FLSHCR(0x202), `0x10` BUF0CR(14), `0x14`
+  BUF1CR(14), `0x30/0x34/0x38` buf thresholds, `0x40` cfg, `0x44/0x48/0x4c/0x50`
+  AHB window bases, `0x54/0x60` enable, `0x68/0x6c` cfg, `0x100` SFAR, `0x104`
+  reset/busy(w0 poll0), `0x108` mode(0/0x20), `0x10c` state, `0x110` RBCT, `0x118`
+  cfg/timeout, `0x140` cfg, `0x150/0x154/0x158` IP-cmd words, `0x15c` STATUS(bit0
+  busy), `0x160` FR(bit6 0x40), `0x164` IP trigger, `0x16c` SPTRCLR, `0x180/0x184/
+  0x188/0x18c` SFA1AD/SFA2AD/SFB1AD/SFB2AD, `0x1c8`/`0x1dc` (unknown), `0x1e0` DATA
+  port, `0x300/0x304` trigger/cfg, LUT `0x310–0x418`.
 
 ## 8. RE status — Technique (objdump Thumb-2) SUCCEEDED
 Ghidra is abandonable for offset extraction. The low-CPU objdump-per-function

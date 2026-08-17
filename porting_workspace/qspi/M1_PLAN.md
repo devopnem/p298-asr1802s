@@ -94,8 +94,8 @@ Deliverable:
 - [x] M1.3  **Register map EXTRACTED** (2026-08-17) via objdump Thumb-2 per-function
             disassembly of `Image.from_gzip` (`qspi_funcs.disasm`, `qspi_exec.disasm`);
             no Ghidra needed. Map in RE_NOTES §7 + VF610-similarity note §7.3.
-- [ ] M1.3b pin data FIFO / TX-RX buffer reg (RE_NOTES §7.4) — disassemble
-            `spi_nand_do_read_ops`/`spi_nand_do_write_ops` RX/TX loops.
+- [x] M1.3b data FIFO / TX-RX buffer reg PINNED = `0x1e0` (RE_NOTES §7.4). Full
+            register set now verified.
 - [x] M1.3c live-trace harness committed (`live_trace/trace_qspi.sh`, sshpass present)
 - [ ] M1.4  `spi-asr1802s-qspi.c` probe + exec_op (PIO) written  ← needs FIFO reg (M1.3b)
 - [ ] M1.5  YAML binding written

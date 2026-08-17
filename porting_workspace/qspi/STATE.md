@@ -15,19 +15,20 @@
       PXA-DMA (DRCMR/DCSR/DSADR/DTADR/DCMD/DDADR), IRQ 45, qspi clock 208→52 MHz,
       full DT-prop table, F35UQA001G params (mfr 0xcd, quad 0x6b, blk 0x20000, pg 0x800, ecc 4)
 - [x] **Register map EXTRACTED** via objdump Thumb-2 per-function disassembly (NO Ghidra needed).
-      Reg base = struct field #12; MMIO `0x00`–`0x190`, LUT `0x310`–`0x40c`. Key regs:
+      Reg base = struct field #12; MMIO `0x00`–`0x190`, DATA port `0x1e0`, LUT `0x310`–`0x418`.
+      Key regs:
       - `0x08` cmd/opcode, `0x0c` FLSHCR(0x202), `0x10/0x14` BUF timings(14),
         `0x44–0x50` AHB window bases (0x80000000..0x98000000), `0x54/0x60` enable,
       - `0x100` SFAR, `0x104` reset/busy-clear (write0 poll0), `0x108` mode, `0x110` RBCT,
       - `0x150/0x154/0x158` IP-cmd words, `0x15c` STATUS(bit0 busy), `0x160` FR(bit6 0x40),
-        `0x164` IP trigger, `0x180` AHB base2.
+        `0x164` IP trigger, `0x180/0x184/0x188/0x18c` SFAxAD (VF610 match), `0x1e0` DATA port.
       - **STRONG match to Freescale VF610 QuadSPI (`spi-fsl-qspi.c`)** → model driver on it,
-        overriding shifted regs (STATUS 0x15c, FR 0x160, trigger 0x164) + LUT range.
+        overriding shifted regs (STATUS 0x15c, FR 0x160, trigger 0x164, DATA 0x1e0) + LUT range.
+- [x] **M1.3b DONE** — data FIFO / TX-RX buffer reg PINNED = `0x1e0` (RE_NOTES §7.4).
+      Full register set verified.
 
-## Remaining RE TODO (small)
-- [ ] M1.3b pin the data FIFO / TX-RX buffer reg (RE_NOTES §7.4) — disassemble
-      `spi_nand_do_read_ops` / `spi_nand_do_write_ops` RX/TX copy loops (the `ldr/str` to
-      `[regs,#0xNNN]` inside the data transfer). Likely in 0x140–0x1a0 window.
+## Remaining RE TODO
+- (none outstanding — register map complete; proceed to driver writing M1.4)
 
 ## Live RE notes (router was online 2026-08-17)
 - SSH (works): `sshpass -p <pw> ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no
