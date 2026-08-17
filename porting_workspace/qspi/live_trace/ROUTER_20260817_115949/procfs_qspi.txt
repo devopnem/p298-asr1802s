@@ -1,0 +1,7 @@
+Warning: Permanently added '192.168.1.1' (RSA) to the list of known hosts.
+== /proc/asr-qspi ==
+== /sys/kernel/debug/asr-qspi ==
+== /proc/driver/qspi ==
+qspi_erase_times(block/sector)	: 14
+qspi_write_times(page)	: 384
+== END ==
