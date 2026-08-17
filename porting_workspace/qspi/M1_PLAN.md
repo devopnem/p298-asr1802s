@@ -109,12 +109,13 @@ Deliverable:
             `drivers/mtd/nand/spi/core.c` mfr 0xcd entry only if needed.
 - [ ] M1.7  QSPI clock gate added to M0 clk driver (post-M0) — driver uses
             `devm_clk_get_optional` so it builds/boots without it.
-- [x] M1.8  OpenWrt patches **COMMITTED to the openwrt fork** (branch `asr1802s-kagu-wip`,
-            commit `b3a50fae`): `0008-dt-bindings-spi-asr1802s-qspi.yaml.patch` +
-            `0009-drivers-spi-spi-asr1802s-qspi.c.patch`. config-6.12 has
-            `CONFIG_SPI_ASR1802S_QSPI=y` appended but is still uncommitted (mixed with the
-            clock/EMAC target edits) — commit it with the target config so the driver builds.
-            checkpatch + dtc: TODO (run before pushing PR #24614).
+- [x] M1.8  OpenWrt patches COMMITTED + **PUSHED** to the openwrt fork
+            (branch `asr1802s-kagu-wip`): `0008-dt-bindings-spi-asr1802s-qspi.yaml.patch`
+            + `0009-drivers-spi-spi-asr1802s-qspi.c.patch` (commit `b3a50fae`), and
+            `config-6.12` now has `CONFIG_SPI_ASR1802S_QSPI=y` committed
+            (commit `1463d78c`) so the driver builds. Branch pushed → PR #24614 updated
+            (also carries clock `cef81089` + EMAC `f483cbf5` work). checkpatch + dtc:
+            TODO (run before merge).
 - [ ] M1.9  hand off to M4 boot test (rootfs mount = success)
 
 ## Dependency graph (relevant)
