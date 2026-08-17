@@ -97,12 +97,21 @@ Deliverable:
 - [x] M1.3b data FIFO / TX-RX buffer reg PINNED = `0x1e0` (RE_NOTES §7.4). Full
             register set now verified.
 - [x] M1.3c live-trace harness committed (`live_trace/trace_qspi.sh`, sshpass present)
-- [ ] M1.4  `spi-asr1802s-qspi.c` probe + exec_op (PIO) written  ← needs FIFO reg (M1.3b)
-- [ ] M1.5  YAML binding written
-- [ ] M1.6  F35UQA001G spi-nand entry added if mfr 0xcd missing
-- [ ] M1.7  QSPI clock gate added to M0 clk driver (post-M0)
-- [ ] M1.8  OpenWrt patches 0006/0007 + config-6.12; build + checkpatch + dtc clean
-- [ ] M1.9  hand off to M4 boot test
+- [x] M1.4  `spi-asr1802s-qspi.c` written (probe + spi_mem exec_op PIO + AHB dirmap,
+            modelled on `spi-fsl-qspi.c`; compiled clean vs 6.12). As OpenWrt patch
+            `target/linux/asr1802s/patches-6.12/0009-drivers-spi-spi-asr1802s-qspi.c.patch`.
+            NOTE: IP command trigger (0x164) + descriptor words (0x150/0x154/0x158)
+            are reconstructed from disasm — need HW bring-up tuning.
+- [x] M1.5  DT binding `asr,asr1802s-qspi.yaml` written. As OpenWrt patch
+            `0008-dt-bindings-spi-asr1802s-qspi.yaml.patch`.
+- [ ] M1.6  F35UQA001G spi-nand entry: likely handled by generic spi-nand core via ONFI
+            autodetect (vendor has `spi_nand_detect_onfi`); verify on first boot, add
+            `drivers/mtd/nand/spi/core.c` mfr 0xcd entry only if needed.
+- [ ] M1.7  QSPI clock gate added to M0 clk driver (post-M0) — driver uses
+            `devm_clk_get_optional` so it builds/boots without it.
+- [ ] M1.8  config-6.12 bump `CONFIG_SPI_ASR1802S_QSPI=y` appended (uncommitted in fork;
+            commit with the target commit). Build + checkpatch + dtc clean (TODO).
+- [ ] M1.9  hand off to M4 boot test (rootfs mount = success)
 
 ## Dependency graph (relevant)
 ```
