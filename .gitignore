@@ -20,3 +20,9 @@ logs/
 # Python compile cache
 __pycache__/
 *.pyc
+
+# --- nested repository ---
+# findings/ is its own git repo -> devopnem/r291-asr1802s-findings
+# It is the single source of truth for that repo; never track it from here.
+# Sync with:  git -C findings pull  /  git -C findings push
+/findings/
