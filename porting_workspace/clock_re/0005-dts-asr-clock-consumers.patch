@@ -1,0 +1,44 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Patch (worktree, NOT yet committed/force-pushed) — Phase 1.5
+ *
+ * Fixes the RFC v3 clock consumers to reference the documented
+ * ASR1802S_CLK_* identifiers instead of the placeholder <0>
+ * that was used in the skeleton.
+ *
+ * Apply on top of the RFC series (7ee061a) in a follow-up commit:
+ *   git apply 0005-dts-asr-clock-consumers.patch
+ *   git commit --amend? no — new commit, 1 clean commit later:
+ *   git add -A && git commit -m "ARM: dts: asr: wire ASR1802S clock cells to consumers"
+ */
+diff --git a/arch/arm/boot/dts/asr/asr1802s.dtsi b/arch/arm/boot/dts/asr/asr1802s.dtsi
+index 23d24c4..PLACEHOLDER 100644
+--- a/arch/arm/boot/dts/asr/asr1802s.dtsi
++++ b/arch/arm/boot/dts/asr/asr1802s.dtsi
+@@
+ 		timer: timer@d4014000 {
+ 			compatible = "mrvl,mmp-timer";
+ 			reg = <0xd4014000 0xd0>;
+ 			interrupts = <13 14>;
++			clocks = <&clk_apb ASR1802S_CLK_BACLK>;	/* APB clock */
+ 			marvell,timer-fastclk-frequency = <0x319750>;
+ 			marvell,timer-apb-frequency = <0x632ea00>;
+ 		};
+
+ 		...
+
+ 		gpio: gpio@d4019000 {
+ 			compatible = "marvell,mmp-gpio";
+ 			reg = <0xd4019000 0x1000>;
+ 			gpio-controller;
+ 			#gpio-cells = <2>;
+ 			interrupts = <49>;
+ 			interrupt-names = "gpio_mux";
+ 			interrupt-controller;
+ 			#interrupt-cells = <2>;
+-			clocks = <&clk_apb 0>;
++			clocks = <&clk_apb ASR1802S_CLK_BACLK>; /* was <0> = pll0 */
+ 		};
+
+Add to the dtsi include header (top of the file):
+  #include <dt-bindings/clock/marvell,asr1802s.h>

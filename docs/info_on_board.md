@@ -26,3 +26,11 @@ RPN42.08
 2321 4 
 
 
+RB47
+P61089B
+    شريحة P61089B هي شريحة حماية كهربائية تسمى:     Dual Line Programmable Transient Voltage Suppressor (Thyristor)[1].
+    
+when plug usb:
+idVendor=2ecc, idProduct=3002, Product: KSTR, Manufacturer: ASR
+.blf (Boot Loader File): هو ملف نصي (بصيغة شبيهة بـ XML أو كود توصيف نصي).
+

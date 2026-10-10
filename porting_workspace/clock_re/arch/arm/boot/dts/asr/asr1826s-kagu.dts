@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: GPL-2.0
+/dts-v1/;
+#include "asr1802s.dtsi"
+
+/ {
+	compatible = "asr,asr1826s-kagu";
+	model = "ASR 1826s(KAGU) Board EVB";
+
+	aliases { serial0 = &uart0; };
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs = "console=ttyS0,115200 earlyprintk rootfstype=squashfs root=/dev/mtdblock15 mem=128M@0x0";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x08000000>;
+	};
+
+	cpus {
+		#address-cells = <1>; #size-cells = <0>;
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a7";
+			reg = <0>;
+			clocks = <&clk_apb ASR1802S_CLK_BACLK>;
+		};
+	};
+
+	reserved-memory {
+		#address-cells = <1>; #size-cells = <1>; ranges;
+		cpmem: buffer@6000000 {
+			reg = <0x6000000 0x2000000>; reusable; no-map;
+		};
+		mmplog: region@1800000 {
+			reg = <0x1800000 0x100000>; no-map;
+		};
+	};
+};

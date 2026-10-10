@@ -1,0 +1,500 @@
+            0x00000000      fff76cfb       bl 0xfffff6dc
+            0x00000004      0028           cmp r0, 0
+       ┌──< 0x00000006      17db           blt 0x38
+       │    0x00000008      2046           mov r0, r4
+       │    0x0000000a      2946           mov r1, r5
+       │    0x0000000c      1822           movs r2, 0x18
+       │    0x0000000e      43f21023       movw r3, 0x3210             ; '\x102'
+       │    0x00000012      fff763fb       bl 0xfffff6dc
+       │    0x00000016      0028           cmp r0, 0
+      ┌───< 0x00000018      0edb           blt 0x38
+      ││    0x0000001a      2046           mov r0, r4
+      ││    0x0000001c      2946           mov r1, r5
+      ││    0x0000001e      1922           movs r2, 0x19
+      ││    0x00000020      47f25463       movw r3, 0x7654             ; 'Tv'
+      ││    0x00000024      fff75afb       bl 0xfffff6dc
+      ││    0x00000028      00eae070       and.w r0, r0, r0, asr 31
+     ┌────< 0x0000002c      20b9           cbnz r0, 0x38
+     │││    0x0000002e      0136           adds r6, 1
+     │││    0x00000030      072e           cmp r6, 7
+     │││┌─< 0x00000032      7ff419af       bne.w 0xfffffe68
+     ││││   0x00000036      f8bd           pop {r3, r4, r5, r6, r7, pc}
+     └└└──> 0x00000038      f8bd           pop {r3, r4, r5, r6, r7, pc}
+        │   0x0000003a      00bf           nop
+        │   0x0000003c      0129           cmp r1, 1
+        │   0x0000003e      0cbf           ite eq
+        │   0x00000040      2520           movs r0, 0x25               ; '%'
+        │   0x00000042      6ff05e00       mvn r0, 0x5e
+        │   0x00000046      7047           bx lr
+        │   0x00000048      4ff40c70       mov.w r0, 0x230
+        │   0x0000004c      7047           bx lr
+        │   0x0000004e      7047           bx lr
+        │   0x00000050      10b5           push {r4, lr}
+        │   0x00000052      0346           mov r3, r0
+        │   0x00000054      d0f8c410       ldr.w r1, [r0, 0xc4]
+        │   0x00000058      d1f80021       ldr.w r2, [r1, 0x100]
+        │   0x0000005c      bff34f8f       dsb sy
+        │   0x00000060      d0f8d810       ldr.w r1, [r0, 0xd8]
+        ┌─< 0x00000064      11b1           cbz r1, 0x6c
+       ││   0x00000066      42f00402       orr r2, r2, 4
+       ┌──< 0x0000006a      01e0           b 0x70
+       │└─> 0x0000006c      22f00402       bic r2, r2, 4
+       └──> 0x00000070      d3f8dc10       ldr.w r1, [r3, 0xdc]
+        │   0x00000074      6429           cmp r1, 0x64
+        ┌─< 0x00000076      0bd0           beq 0x90
+       ││   0x00000078      b1f57a7f       cmp.w r1, 0x3e8             ; 1000
+       ┌──< 0x0000007c      05d0           beq 0x8a
+      │││   0x0000007e      0a29           cmp r1, 0xa
+      ┌───< 0x00000080      08d0           beq 0x94
+     ││││   0x00000082      0e48           ldr r0, [0x000000bc]        ; [0xbc:4]=0xc03cc653
+     ││││   0x00000084      92f6a6fc       bl 0xffe929d4
+     ┌────< 0x00000088      16e0           b 0xb8
+     ││└──> 0x0000008a      42f00202       orr r2, r2, 2
+     ││┌──< 0x0000008e      01e0           b 0x94
+     │││└─> 0x00000090      42f00102       orr r2, r2, 1
+     │└└──> 0x00000094      bff34e8f       dsb st
+     │  │   0x00000098      d3f8c410       ldr.w r1, [r3, 0xc4]
+     │  │   0x0000009c      c1f80021       str.w r2, [r1, 0x100]
+     │  │   0x000000a0      074a           ldr r2, [0x000000c0]        ; [0xc0:4]=0xc03cbca6
+     │  │   0x000000a2      d3f8d840       ldr.w r4, [r3, 0xd8]
+     │  │   0x000000a6      d3f8dc10       ldr.w r1, [r3, 0xdc]
+     │  │   0x000000aa      064b           ldr r3, [0x000000c4]        ; [0xc4:4]=0xc03cbca1
+     │  │   0x000000ac      0648           ldr r0, [0x000000c8]        ; [0xc8:4]=0xc03cc667
+     │  │   0x000000ae      002c           cmp r4, 0
+     │  │   0x000000b0      18bf           it ne
+     │  │   0x000000b2      1a46           mov r2, r3
+     │  │   0x000000b4      92f68efc       bl 0xffe929d4
+     └────> 0x000000b8      0020           movs r0, 0
+        │   0x000000ba      10bd           pop {r4, pc}
+        │   0x000000bc      53c6           stm r6!, {r0, r1, r4, r6}
+        │   0x000000be      3cc0           stm r0!, {r2, r3, r4, r5}
+        │   0x000000c0      a6bc           pop {r1, r2, r5, r7}
+        │   0x000000c2      3cc0           stm r0!, {r2, r3, r4, r5}
+        │   0x000000c4      a1bc           pop {r0, r5, r7}
+        │   0x000000c6      3cc0           stm r0!, {r2, r3, r4, r5}
+        │   0x000000c8      67c6           stm r6!, {r0, r1, r2, r5, r6}
+        │   0x000000ca      3cc0           stm r0!, {r2, r3, r4, r5}
+        │   0x000000cc      10b5           push {r4, lr}
+        │   0x000000ce      0346           mov r3, r0
+        │   0x000000d0      c06a           ldr r0, [r0, 0x2c]
+        │   0x000000d2      10f00100       ands r0, r0, 1
+        ┌─< 0x000000d6      05d0           beq 0xe4
+       ││   0x000000d8      1248           ldr r0, [0x00000124]        ; [0x124:4]=0xc03cc6a4
+       ││   0x000000da      92f67bfc       bl 0xffe929d4
+       ││   0x000000de      6ff00f00       mvn r0, 0xf
+       ││   0x000000e2      10bd           pop {r4, pc}
+        └─> 0x000000e4      a1f12e04       sub.w r4, r1, 0x2e
+        │   0x000000e8      01f11202       add.w r2, r1, 0x12
+        │   0x000000ec      b4f57c6f       cmp.w r4, 0xfc0             ; 4032
+        ┌─< 0x000000f0      05d9           bls 0xfe
+       ││   0x000000f2      0d48           ldr r0, [0x00000128]        ; [0x128:4]=0xc03cc6c9
+       ││   0x000000f4      92f66efc       bl 0xffe929d4
+       ││   0x000000f8      6ff01500       mvn r0, 0x15
+       ││   0x000000fc      10bd           pop {r4, pc}
+        └─> 0x000000fe      b2f5806f       cmp.w r2, 0x400             ; 1024
+        │   0x00000102      02d8           bhi 0x10a
+        │   0x00000104      4ff48062       mov.w r2, 0x400
+        │   0x00000108      06e0           b 0x118
+        │   0x0000010a      b2f5006f       cmp.w r2, 0x800             ; 2048
+        │   0x0000010e      94bf           ite ls
+        │   0x00000110      4ff40062       mov.w r2, 0x800
+        │   0x00000114      4ff48052       mov.w r2, 0x1000
+        │   0x00000118      c3f8e025       str.w r2, [r3, 0x5e0]
+        │   0x0000011c      c3f80411       str.w r1, [r3, 0x104]
+        │   0x00000120      10bd           pop {r4, pc}
+        │   0x00000122      00bf           nop
+        │   0x00000124      a4c6           stm r6!, {r2, r5, r7}
+        │   0x00000126      3cc0           stm r0!, {r2, r3, r4, r5}
+        │   0x00000128      c9c6           stm r6!, {r0, r3, r6, r7}
+        │   0x0000012a      3cc0           stm r0!, {r2, r3, r4, r5}
+        │   0x0000012c      2de9f041       push.w {r4, r5, r6, r7, r8, lr}
+        │   0x00000130      0d46           mov r5, r1
+        │   0x00000132      8469           ldr r4, [r0, 0x18]
+        │   0x00000134      1746           mov r7, r2
+        │   0x00000136      9846           mov r8, r3
+        │   0x00000138      04f10806       add.w r6, r4, 8
+        │   0x0000013c      3046           mov r0, r6
+        │   0x0000013e      7ff670fb       bl 0xffe7f822
+        │   0x00000142      bff34e8f       dsb st
+        │   0x00000146      d4f8c400       ldr.w r0, [r4, 0xc4]
+        │   0x0000014a      c0f8a481       str.w r8, [r0, 0x1a4]
+        │   0x0000014e      07f01f07       and r7, r7, 0x1f
+        │   0x00000152      05f01f05       and r5, r5, 0x1f
+        │   0x00000156      6ff00041       mvn r1, 0x80000000
+        │   0x0000015a      45ea4715       orr.w r5, r5, r7, lsl 5
+        │   0x0000015e      04f50477       add.w r7, r4, 0x210
+        │   0x00000162      45f40045       orr r5, r5, 0x8000
+        │   0x00000166      3846           mov r0, r7
+        │   0x00000168      abf64cfa       bl 0xffeab604
+        │   0x0000016c      bff34e8f       dsb st
+        │   0x00000170      d4f8c430       ldr.w r3, [r4, 0xc4]
+        │   0x00000174      c3f8a051       str.w r5, [r3, 0x1a0]
+        │   0x00000178      d4f8c430       ldr.w r3, [r4, 0xc4]
+        │   0x0000017c      d3f8a051       ldr.w r5, [r3, 0x1a0]
+        │   0x00000180      bff34f8f       dsb sy
+        │   0x00000184      c5f3c035       ubfx r5, r5, 0xf, 1
+        │   0x00000188      002d           cmp r5, 0
+        │   0x0000018a      f5d1           bne 0x178
+        │   0x0000018c      3846           mov r0, r7
+        │   0x0000018e      4ff0ff31       mov.w r1, -1
+        │   0x00000192      abf637fa       bl 0xffeab604
+        │   0x00000196      3046           mov r0, r6
+        │   0x00000198      7ff6cffa       bl 0xffe7f73a
+        │   0x0000019c      2846           mov r0, r5
+        │   0x0000019e      bde8f081       pop.w {r4, r5, r6, r7, r8, pc}
+        │   0x000001a2      f8b5           push {r3, r4, r5, r6, r7, lr}
+        │   0x000001a4      1646           mov r6, r2
+        │   0x000001a6      8469           ldr r4, [r0, 0x18]
+        │   0x000001a8      06f01f06       and r6, r6, 0x1f
+        │   0x000001ac      0f46           mov r7, r1
+        │   0x000001ae      07f01f07       and r7, r7, 0x1f
+        │   0x000001b2      04f10805       add.w r5, r4, 8
+        │   0x000001b6      47ea4617       orr.w r7, r7, r6, lsl 5
+        │   0x000001ba      04f50476       add.w r6, r4, 0x210
+        │   0x000001be      47f40447       orr r7, r7, 0x8400
+        │   0x000001c2      2846           mov r0, r5
+        │   0x000001c4      7ff62dfb       bl 0xffe7f822
+        │   0x000001c8      3046           mov r0, r6
+        │   0x000001ca      6ff00041       mvn r1, 0x80000000
+        │   0x000001ce      abf619fa       bl 0xffeab604
+        │   0x000001d2      bff34e8f       dsb st
+        │   0x000001d6      0022           movs r2, 0
+        │   0x000001d8      d4f8c430       ldr.w r3, [r4, 0xc4]
+        │   0x000001dc      c3f8a421       str.w r2, [r3, 0x1a4]
+        │   0x000001e0      bff34e8f       dsb st
+        │   0x000001e4      d4f8c430       ldr.w r3, [r4, 0xc4]
+        │   0x000001e8      c3f8a071       str.w r7, [r3, 0x1a0]
+        │   0x000001ec      d4f8c430       ldr.w r3, [r4, 0xc4]
+        │   0x000001f0      d3f8a021       ldr.w r2, [r3, 0x1a0]
+        │   0x000001f4      bff34f8f       dsb sy
+        │   0x000001f8      c2f3c032       ubfx r2, r2, 0xf, 1
+        │   0x000001fc      d4f8c430       ldr.w r3, [r4, 0xc4]
+        │   0x00000200      002a           cmp r2, 0
+        │   0x00000202      f5d1           bne 0x1f0
+        │   0x00000204      d3f8a441       ldr.w r4, [r3, 0x1a4]
+        │   0x00000208      bff34f8f       dsb sy
+        │   0x0000020c      4ff0ff31       mov.w r1, -1
+        │   0x00000210      3046           mov r0, r6
+        │   0x00000212      abf6f7f9       bl 0xffeab604
+        │   0x00000216      2846           mov r0, r5
+        │   0x00000218      7ff68ffa       bl 0xffe7f73a
+        │   0x0000021c      2046           mov r0, r4
+        │   0x0000021e      f8bd           pop {r3, r4, r5, r6, r7, pc}
+        │   0x00000220      38b5           push {r3, r4, r5, lr}
+        │   0x00000222      0123           movs r3, 1
+        │   0x00000224      d0f8a456       ldr.w r5, [r0, 0x6a4]
+        │   0x00000228      1046           mov r0, r2
+        │   0x0000022a      4b60           str r3, [r1, 4]
+        │   0x0000022c      4ff40c71       mov.w r1, 0x230
+        │   0x00000230      1446           mov r4, r2
+        │   0x00000232      7df633fb       bl 0xffe7d89c
+        │   0x00000236      0023           movs r3, 0
+        │   0x00000238      5a19           adds r2, r3, r5
+        │   0x0000023a      1168           ldr r1, [r2]
+        │   0x0000023c      bff34f8f       dsb sy
+        │   0x00000240      e150           str r1, [r4, r3]
+        │   0x00000242      0433           adds r3, 4
+        │   0x00000244      402b           cmp r3, 0x40
+        │   0x00000246      f7d1           bne 0x238
+        │   0x00000248      0023           movs r3, 0
+        │   0x0000024a      05f58075       add.w r5, r5, 0x100
+        │   0x0000024e      ea18           adds r2, r5, r3
+        │   0x00000250      1168           ldr r1, [r2]
+        │   0x00000252      bff34f8f       dsb sy
+        │   0x00000256      e218           adds r2, r4, r3
+        │   0x00000258      0433           adds r3, 4
+        │   0x0000025a      b3f5f87f       cmp.w r3, 0x1f0
+        │   0x0000025e      1164           str r1, [r2, 0x40]
+        │   0x00000260      f5d1           bne 0x24e
+        │   0x00000262      38bd           pop {r3, r4, r5, pc}
+        │   0x00000264      2de9f04f       push.w {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+        │   0x00000268      85b0           sub sp, 0x14
+        │   0x0000026a      066f           ldr r6, [r0, 0x70]
+        │   0x0000026c      0546           mov r5, r0
+        │   0x0000026e      876f           ldr r7, [r0, 0x78]
+        │   0x00000270      d0f88c10       ldr.w r1, [r0, 0x8c]
+        │   0x00000274      d0f80090       ldr.w sb, [r0]
+        │   0x00000278      07eb4617       add.w r7, r7, r6, lsl 5
+        │   0x0000027c      dff8e8a0       ldr.w sl, [0x00000368]      ; [0x368:4]=-1 ; 872
+        │   0x00000280      dff8e8b0       ldr.w fp, [0x0000036c]      ; [0x36c:4]=-1 ; 876
+        │   0x00000284      0391           str r1, [sp, 0xc]
+        │   0x00000286      3b68           ldr r3, [r7]
+        │   0x00000288      002b           cmp r3, 0
+        │   0x0000028a      64d1           bne 0x356
+        │   0x0000028c      40f64200       movw r0, 0x842
+        │   0x00000290      aff018f8       bl 0xaf2c4
+        │   0x00000294      18b9           cbnz r0, 0x29e
+        │   0x00000296      3248           ldr r0, [0x00000360]        ; [0x360:4]=-1 ; 864
+        │   0x00000298      92f69cfb       bl 0xffe929d4
+        │   0x0000029c      5be0           b 0x356
+        │   0x0000029e      d0f8ac30       ldr.w r3, [r0, 0xac]
+        │   0x000002a2      d0f8b820       ldr.w r2, [r0, 0xb8]
+        │   0x000002a6      4233           adds r3, 0x42
+        │   0x000002a8      c0f8ac30       str.w r3, [r0, 0xac]
+        │   0x000002ac      039b           ldr r3, [sp, 0xc]
+        │   0x000002ae      4232           adds r2, 0x42
+        │   0x000002b0      c0f8b820       str.w r2, [r0, 0xb8]
+        │   0x000002b4      4361           str r3, [r0, 0x14]
+        │   0x000002b6      3860           str r0, [r7]
+        │   0x000002b8      3a61           str r2, [r7, 0x10]
+        │   0x000002ba      a7f81890       strh.w sb, [r7, 0x18]
+        │   0x000002be      d5f8bc30       ldr.w r3, [r5, 0xbc]
+        │   0x000002c2      13f11000       adds.w r0, r3, 0x10
+        │   0x000002c6      06d0           beq 0x2d6
+        │   0x000002c8      d3f85031       ldr.w r3, [r3, 0x150]
+        │   0x000002cc      2549           ldr r1, [0x00000364]        ; [0x364:4]=-1 ; 868
+        │   0x000002ce      002b           cmp r3, 0
+        │   0x000002d0      08bf           it eq
+        │   0x000002d2      0b46           mov r3, r1
+        │   0x000002d4      00e0           b 0x2d8
+        │   0x000002d6      234b           ldr r3, [0x00000364]        ; [0x364:4]=-1 ; 868
+        │   0x000002d8      dbf80040       ldr.w r4, [fp]
+        │   0x000002dc      4ff00008       mov.w r8, 0
+        │   0x000002e0      02f10141       add.w r1, r2, -0x7f000000
+        │   0x000002e4      c2f30b02       ubfx r2, r2, 0, 0xc
+        │   0x000002e8      240b           lsrs r4, r4, 0xc
+        │   0x000002ea      c4eb1131       rsb r1, r4, r1, lsr 12
+        │   0x000002ee      0224           movs r4, 2
+        │   0x000002f0      8de81001       stm.w sp, {r4, r8}
+        │   0x000002f4      1c69           ldr r4, [r3, 0x10]
+        │   0x000002f6      daf80030       ldr.w r3, [sl]
+        │   0x000002fa      03eb4111       add.w r1, r3, r1, lsl 5
+        │   0x000002fe      4b46           mov r3, sb
+        │   0x00000300      a047           blx r4
+        │   0x00000302      0021           movs r1, 0
+        │   0x00000304      c7e90201       strd r0, r1, [r7, 8]
+        │   0x00000308      1021           movs r1, 0x10
+        │   0x0000030a      2c6e           ldr r4, [r5, 0x60]
+        │   0x0000030c      04eb0614       add.w r4, r4, r6, lsl 4
+        │   0x00000310      0136           adds r6, 1
+        │   0x00000312      2046           mov r0, r4
+        │   0x00000314      7df6c2fa       bl 0xffe7d89c
+        │   0x00000318      bb68           ldr r3, [r7, 8]
+        │   0x0000031a      a360           str r3, [r4, 8]
+        │   0x0000031c      a388           ldrh r3, [r4, 4]
+        │   0x0000031e      3a8b           ldrh r2, [r7, 0x18]
+        │   0x00000320      62f30b03       bfi r3, r2, 0, 0xc
+        │   0x00000324      a380           strh r3, [r4, 4]
+        │   0x00000326      e378           ldrb r3, [r4, 3]
+        │   0x00000328      03f0bf03       and r3, r3, 0xbf
+        │   0x0000032c      68f34513       bfi r3, r8, 5, 1
+        │   0x00000330      e370           strb r3, [r4, 3]
+        │   0x00000332      eb6e           ldr r3, [r5, 0x6c]
+        │   0x00000334      9e42           cmp r6, r3
+        │   0x00000336      01bf           itttt eq
+        │   0x00000338      e379           ldrb r3, [r4, 7]
+        │   0x0000033a      4646           mov r6, r8
+        │   0x0000033c      43f00403       orr r3, r3, 4
+        │   0x00000340      ffffffff       invalid
+        │   0x00000344      ffffffff       invalid
+        │   0x00000348      ffffffff       invalid
+        │   0x0000034c      ffffffff       invalid
+        │   0x00000350      ffffffff       invalid
+        │   0x00000354      ffffffff       invalid
+        │   0x00000358      ffffffff       invalid
+        │   0x0000035c      ffffffff       invalid
+        │   0x00000360      ffffffff       invalid
+        │   0x00000364      ffffffff       invalid
+        │   0x00000368      ffffffff       invalid
+        │   0x0000036c      ffffffff       invalid
+        │   0x00000370      ffffffff       invalid
+        │   0x00000374      ffffffff       invalid
+        │   0x00000378      ffffffff       invalid
+        │   0x0000037c      ffffffff       invalid
+        │   0x00000380      ffffffff       invalid
+        │   0x00000384      ffffffff       invalid
+        │   0x00000388      ffffffff       invalid
+        │   0x0000038c      ffffffff       invalid
+        │   0x00000390      ffffffff       invalid
+        │   0x00000394      ffffffff       invalid
+        │   0x00000398      ffffffff       invalid
+        │   0x0000039c      ffffffff       invalid
+        │   0x000003a0      ffffffff       invalid
+        │   0x000003a4      ffffffff       invalid
+        │   0x000003a8      ffffffff       invalid
+        │   0x000003ac      ffffffff       invalid
+        │   0x000003b0      ffffffff       invalid
+        │   0x000003b4      ffffffff       invalid
+        │   0x000003b8      ffffffff       invalid
+        │   0x000003bc      ffffffff       invalid
+        │   0x000003c0      ffffffff       invalid
+        │   0x000003c4      ffffffff       invalid
+        │   0x000003c8      ffffffff       invalid
+        │   0x000003cc      ffffffff       invalid
+        │   0x000003d0      ffffffff       invalid
+        │   0x000003d4      ffffffff       invalid
+        │   0x000003d8      ffffffff       invalid
+        │   0x000003dc      ffffffff       invalid
+        │   0x000003e0      ffffffff       invalid
+        │   0x000003e4      ffffffff       invalid
+        │   0x000003e8      ffffffff       invalid
+        │   0x000003ec      ffffffff       invalid
+        │   0x000003f0      ffffffff       invalid
+        │   0x000003f4      ffffffff       invalid
+        │   0x000003f8      ffffffff       invalid
+        │   0x000003fc      ffffffff       invalid
+        │   0x00000400      ffffffff       invalid
+        │   0x00000404      ffffffff       invalid
+        │   0x00000408      ffffffff       invalid
+        │   0x0000040c      ffffffff       invalid
+        │   0x00000410      ffffffff       invalid
+        │   0x00000414      ffffffff       invalid
+        │   0x00000418      ffffffff       invalid
+        │   0x0000041c      ffffffff       invalid
+        │   0x00000420      ffffffff       invalid
+        │   0x00000424      ffffffff       invalid
+        │   0x00000428      ffffffff       invalid
+        │   0x0000042c      ffffffff       invalid
+        │   0x00000430      ffffffff       invalid
+        │   0x00000434      ffffffff       invalid
+        │   0x00000438      ffffffff       invalid
+        │   0x0000043c      ffffffff       invalid
+        │   0x00000440      ffffffff       invalid
+        │   0x00000444      ffffffff       invalid
+        │   0x00000448      ffffffff       invalid
+        │   0x0000044c      ffffffff       invalid
+        │   0x00000450      ffffffff       invalid
+        │   0x00000454      ffffffff       invalid
+        │   0x00000458      ffffffff       invalid
+        │   0x0000045c      ffffffff       invalid
+        │   0x00000460      ffffffff       invalid
+        │   0x00000464      ffffffff       invalid
+        │   0x00000468      ffffffff       invalid
+        │   0x0000046c      ffffffff       invalid
+        │   0x00000470      ffffffff       invalid
+        │   0x00000474      ffffffff       invalid
+        │   0x00000478      ffffffff       invalid
+        │   0x0000047c      ffffffff       invalid
+        │   0x00000480      ffffffff       invalid
+        │   0x00000484      ffffffff       invalid
+        │   0x00000488      ffffffff       invalid
+        │   0x0000048c      ffffffff       invalid
+        │   0x00000490      ffffffff       invalid
+        │   0x00000494      ffffffff       invalid
+        │   0x00000498      ffffffff       invalid
+        │   0x0000049c      ffffffff       invalid
+        │   0x000004a0      ffffffff       invalid
+        │   0x000004a4      ffffffff       invalid
+        │   0x000004a8      ffffffff       invalid
+        │   0x000004ac      ffffffff       invalid
+        │   0x000004b0      ffffffff       invalid
+        │   0x000004b4      ffffffff       invalid
+        │   0x000004b8      ffffffff       invalid
+        │   0x000004bc      ffffffff       invalid
+        │   0x000004c0      ffffffff       invalid
+        │   0x000004c4      ffffffff       invalid
+        │   0x000004c8      ffffffff       invalid
+        │   0x000004cc      ffffffff       invalid
+        │   0x000004d0      ffffffff       invalid
+        │   0x000004d4      ffffffff       invalid
+        │   0x000004d8      ffffffff       invalid
+        │   0x000004dc      ffffffff       invalid
+        │   0x000004e0      ffffffff       invalid
+        │   0x000004e4      ffffffff       invalid
+        │   0x000004e8      ffffffff       invalid
+        │   0x000004ec      ffffffff       invalid
+        │   0x000004f0      ffffffff       invalid
+        │   0x000004f4      ffffffff       invalid
+        │   0x000004f8      ffffffff       invalid
+        │   0x000004fc      ffffffff       invalid
+        │   0x00000500      ffffffff       invalid
+        │   0x00000504      ffffffff       invalid
+        │   0x00000508      ffffffff       invalid
+        │   0x0000050c      ffffffff       invalid
+        │   0x00000510      ffffffff       invalid
+        │   0x00000514      ffffffff       invalid
+        │   0x00000518      ffffffff       invalid
+        │   0x0000051c      ffffffff       invalid
+        │   0x00000520      ffffffff       invalid
+        │   0x00000524      ffffffff       invalid
+        │   0x00000528      ffffffff       invalid
+        │   0x0000052c      ffffffff       invalid
+        │   0x00000530      ffffffff       invalid
+        │   0x00000534      ffffffff       invalid
+        │   0x00000538      ffffffff       invalid
+        │   0x0000053c      ffffffff       invalid
+        │   0x00000540      ffffffff       invalid
+        │   0x00000544      ffffffff       invalid
+        │   0x00000548      ffffffff       invalid
+        │   0x0000054c      ffffffff       invalid
+        │   0x00000550      ffffffff       invalid
+        │   0x00000554      ffffffff       invalid
+        │   0x00000558      ffffffff       invalid
+        │   0x0000055c      ffffffff       invalid
+        │   0x00000560      ffffffff       invalid
+        │   0x00000564      ffffffff       invalid
+        │   0x00000568      ffffffff       invalid
+        │   0x0000056c      ffffffff       invalid
+        │   0x00000570      ffffffff       invalid
+        │   0x00000574      ffffffff       invalid
+        │   0x00000578      ffffffff       invalid
+        │   0x0000057c      ffffffff       invalid
+        │   0x00000580      ffffffff       invalid
+        │   0x00000584      ffffffff       invalid
+        │   0x00000588      ffffffff       invalid
+        │   0x0000058c      ffffffff       invalid
+        │   0x00000590      ffffffff       invalid
+        │   0x00000594      ffffffff       invalid
+        │   0x00000598      ffffffff       invalid
+        │   0x0000059c      ffffffff       invalid
+        │   0x000005a0      ffffffff       invalid
+        │   0x000005a4      ffffffff       invalid
+        │   0x000005a8      ffffffff       invalid
+        │   0x000005ac      ffffffff       invalid
+        │   0x000005b0      ffffffff       invalid
+        │   0x000005b4      ffffffff       invalid
+        │   0x000005b8      ffffffff       invalid
+        │   0x000005bc      ffffffff       invalid
+        │   0x000005c0      ffffffff       invalid
+        │   0x000005c4      ffffffff       invalid
+        │   0x000005c8      ffffffff       invalid
+        │   0x000005cc      ffffffff       invalid
+        │   0x000005d0      ffffffff       invalid
+        │   0x000005d4      ffffffff       invalid
+        │   0x000005d8      ffffffff       invalid
+        │   0x000005dc      ffffffff       invalid
+        │   0x000005e0      ffffffff       invalid
+        │   0x000005e4      ffffffff       invalid
+        │   0x000005e8      ffffffff       invalid
+        │   0x000005ec      ffffffff       invalid
+        │   0x000005f0      ffffffff       invalid
+        │   0x000005f4      ffffffff       invalid
+        │   0x000005f8      ffffffff       invalid
+        │   0x000005fc      ffffffff       invalid
+        │   0x00000600      ffffffff       invalid
+        │   0x00000604      ffffffff       invalid
+        │   0x00000608      ffffffff       invalid
+        │   0x0000060c      ffffffff       invalid
+        │   0x00000610      ffffffff       invalid
+        │   0x00000614      ffffffff       invalid
+        │   0x00000618      ffffffff       invalid
+        │   0x0000061c      ffffffff       invalid
+        │   0x00000620      ffffffff       invalid
+        │   0x00000624      ffffffff       invalid
+        │   0x00000628      ffffffff       invalid
+        │   0x0000062c      ffffffff       invalid
+        │   0x00000630      ffffffff       invalid
+        │   0x00000634      ffffffff       invalid
+        │   0x00000638      ffffffff       invalid
+        │   0x0000063c      ffffffff       invalid
+        │   0x00000640      ffffffff       invalid
+        │   0x00000644      ffffffff       invalid
+        │   0x00000648      ffffffff       invalid
+        │   0x0000064c      ffffffff       invalid
+        │   0x00000650      ffffffff       invalid
+        │   0x00000654      ffffffff       invalid
+        │   0x00000658      ffffffff       invalid
+        │   0x0000065c      ffffffff       invalid
+        │   0x00000660      ffffffff       invalid
+        │   0x00000664      ffffffff       invalid
+        │   0x00000668      ffffffff       invalid
+        │   0x0000066c      ffffffff       invalid
+        │   0x00000670      ffffffff       invalid
+        │   0x00000674      ffffffff       invalid
+        │   0x00000678      ffffffff       invalid
+        │   0x0000067c      ffffffff       invalid
+        │   0x00000680      ffffffff       invalid
+        │   0x00000684      ffffffff       invalid
+        │   0x00000688      ffffffff       invalid
+        │   0x0000068c      ffffffff       invalid
+        │   0x00000690      ffffffff       invalid

@@ -11,8 +11,8 @@ requests.packages.urllib3.disable_warnings()
 ROUTER_IP = "192.168.1.1"
 ROUTER_URL = f"http://{ROUTER_IP}"
 USER = "admin"
-PASS = "Om@0Yt#5"
-
+PASS = "Lj%5Qp$1"
+# Lj%5Qp$1 Om@0Yt#5
 sess = requests.Session()
 sess.verify = False
 sess.timeout = 15

@@ -1,0 +1,86 @@
+نعم، يمكنك اختصار الوقت، ولكن هناك تفاصيل تقنية حول كيفية عمل نظام بناء OpenWrt
+يجب فهمها، بالإضافة إلى السبب الحقيقي الذي جعل البناء يفشل عندك.
+
+1. بخصوص سؤالك: هل يمكن تجاوز الحزم السابقة واختصار الوقت؟
+
+الأمر الذي قمت بكتابته:
+
+make package/kernel/mac80211/compile V=s
+
+هو بالفعل الأمر المباشر والمخصص لبناء هذه الحزمة وحدها، ولم يقم ببناء كامل
+النظام. لكن ما حدث في السجل يرجع للأسباب التالية:
+
+1.  الاعتماديات (Dependencies): حزمة mac80211 تعتمد على النواة (Kernel) وعلى حزم
+    التشفير وucode وnetifd... إلخ. نظام OpenWrt يمر إجبارياً على هذه الحزم
+    للتأكد من أنها جاهزة (تحقق سطحي وسريع، كما تلاحظ استغرق أجزاءً من الثانية
+    مثل time: 0.15s).
+2.  المرة القادمة ستكون أسرع بكثير: طالما أنك لم تقم بعمل make clean، فإن النواة
+    والحزم السابقة تم حزمها وتوليد ملفات الختم (stamp files) الخاصة بها،
+    وبالتالي في المحاولة التالية سيتخطاها Make مباشرة ويذهب فوراً إلى mac80211.
+3.  لإعادة تجربة بناء mac80211 وحدها دون غيرها: إذا قمت بتعديل شيء وأردت حذف
+    ناتج هذه الحزمة فقط وإعادة بنائها:
+    make package/kernel/mac80211/clean
+    make package/kernel/mac80211/compile V=s
+    هذا الأمر سيحذف مجلد بناء mac80211 فقط دون المساس بالنواة أو الحزم الأخرى،
+    ثم يبدأ فوراً بتجميعها.
+
+2. سبب فشل البناء عندك (المشكلة الحقيقية)
+
+الخطأ الذي أوقف البناء هو:
+
+ERROR: module '/home/void/.../mac80211-regular/backports-6.18.39/net/mac80211/mac80211.ko' is missing.
+
+هذا يعني أن مرحلة تجميع (backports) انتهت، ولكن ملف mac80211.ko لم يتم إنتاجه
+أصلاً!
+
+إذا دققت في السجل الذي أرفقته، ستجد تحذيرات متكررة من النواة قبل الفشل مباشرة:
+
+WARNING: kmod-crypto-cmac is not available in the kernel config - generating empty package
+WARNING: kmod-crypto-hmac is not available in the kernel config - generating empty package
+WARNING: kmod-crypto-rng is not available in the kernel config - generating empty package
+WARNING: kmod-crypto-geniv is not available in the kernel config - generating empty package
+WARNING: kmod-crypto-seqiv is not available in the kernel config - generating empty package
+WARNING: kmod-crypto-sha3 is not available in the kernel config - generating empty package
+WARNING: kmod-crypto-sha512 is not available in the kernel config - generating empty package
+
+ما الذي يحدث هنا؟
+
+حزمة mac80211 تعتمد اعتماداً كلياً على خوارزميات التشفير في النواة (مثل HMAC,
+CMAC, SHA, RNG, GenIV). نظراً لأن إعدادات النواة الخاصة بهدفك (asr1802s) تفتقر
+لتفعيل هذه الميزات في الكيرنل:
+
+1.  أنتج نظام البناء حزم تشفير فارغة (generating empty package).
+2.  عندما دخل البناء إلى backports-6.18.39، وجد أن النواة لا تدعم التشفير
+    المطلوب، فقام تلقائياً بإلغاء تفعيل بناء mac80211.ko.
+3.  عندما جاء دور تثبيت وتجميع ملفات الـ APK، لم يجد ملف الموديول mac80211.ko،
+    ففشل البناء.
+
+3. الحل المقترح لإصلاح المشكلة
+
+1.  تفعيل وحدات التشفير في النواة: قم بالدخول إلى إعدادات الكيرنل:
+
+    make kernel_menuconfig
+
+    توجه إلى قسم: Cryptographic API ---> وقم بتفعيل الخوارزميات الناقصة إما كـ
+    Built-in [*] أو كموديولات [M]:
+
+      - HMAC
+      - CMAC
+      - SHA224 and SHA256 / SHA384 and SHA512 / SHA3
+      - Random number generation (RNG)
+      - User-space interface for hash algorithms
+
+2.  التحقق من إعدادات اللاسلكي في الكيرنل: في نفس القائمة، تأكد من تفعيل دعم
+    الشبكات اللاسلكية: [*] Networking support --->  [*] Wireless --->  <M>
+    cfg80211 - wireless configuration API  <M> Generic IEEE 802.11 Networking
+    Stack (mac80211) (إذا كنت تستخدم backports، فعادة ما يُفضل ضبط هذه الإعدادات
+    وفق ما يطلبه ملف target/linux/asr1802s/config-*).
+
+3.  إعادة التجربة بسرعة: بعد حفظ الإعدادات والخروج:
+
+    make target/linux/compile
+    make package/kernel/mac80211/clean
+    make package/kernel/mac80211/compile V=s
+
+(ملاحظة إضافية: لديك أيضاً خطأ تبعية دائرية بسيط في librespeed-cli-rust وlibrespeed-common في ملف التكوين، يُفضل حله لاحقاً لتفادي مشاكل menuconfig).
+

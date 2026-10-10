@@ -1,13 +1,37 @@
 enable ssh:
-python /home/void/Downloads/Modems/notion_r291/modular_tests/_root_shell_phase.py
+edit: /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/modular_tests/api_login.py
+edit correct admin password
+
+python /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/modular_tests/_root_shell_phase.py enable
+python /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/modular_tests/acs_tr069.py root-check
+
 ssh 192.168.1.1 -o HostKeyAlgorithms=ssh-rsa -o KexAlgorithms=diffie-hellman-group14-sha1 -l root
+79476268
+
 19222019
+83099569
+16953087
+
+85719364
 rm -f /tmp/flag_usb
+strings /dev/mtd1 | tail -20
+MEP.bin ← 0101 ← 67813811
+67813811
+04716855
+69334158
+serial_atcmd AT+CLCK=PN,0,69334158,16
+serial_atcmd AT+CLCK=PN,2
+ 
+ set new pass:
+ passwd root
+ cat /etc/shadow
+ ------
+ 
 python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd ATE1"
 python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT+CFUN=0"
 python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT*PROD=2"
 python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT*MRD_MEP=D"
-python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT+CLCK=PN,0,80822207,16"
+python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT+CLCK=PN,0,04716855,16"
 python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT*PROD=0"
 python3 /home/void/Downloads/Modems/notion_r291/modular_tests/acs_tr069.py root-shell --command "serial_atcmd AT+CFUN=1"
 
@@ -36,3 +60,26 @@ rm -f /tmp/flag_usb && serial_atcmd AT+CLCK=PN,2
 +CLCK: 0
 OK
 (حيث القيمة 0 تعني أن قفل الشبكة معطّل/مفتوح بنجاح، بينما القيمة 1 كانت تعني أنه مقفل).
+
+---change web ui password
+NEWPASS="bis"
+HASH=$(printf "admin:Highwmg:%s" "$NEWPASS" | md5sum | cut -d' ' -f1)
+echo "admin:Highwmg:$HASH" > /www/data/pswd.htdigest
+
+-----
+root@cpe:~# cat /proc/cmdline
+rootfstype=squashfs init=/etc/preinit noinitrd console=ttyS0,115200 panic_debug crashkernel=4k@0x00A00000 RDCA=0x00A00400 rootsize=0xF00000 force_pm80x_fg mem=128M@0x0 cpmem=32M@0x6000000 ddr_mode=1 APMF=1 nocpload=0x6000000 lcd_type=0 PROD=0 IMSD=1 FAST=47574c33 MACA=00014328 MACB=802a0000 root=/dev/mtdblock16 system=b quiet
+root@cpe:~# 
+root@cpe:~# dmesg | grep -i tty
+[    2.188842] pxa2xx-uart.0: ttyS0 at MMIO 0xd4017000 (irq = 59) is a UART1
+[    2.282165] console [ttyS0] enabled
+[    3.002532] Pseudo CI TTY driver v1.0
+[    3.011352] cidatatty0 is created
+[    8.076202] cidatatty0: port:6, init: 1!
+root@cpe:~# 
+root@cpe:~# cat /proc/tty/driver/serial
+cat: can't open '/proc/tty/driver/serial': No such file or directory
+
+fw_printenv bootdelay          
+fw_setenv bootdelay 10
+

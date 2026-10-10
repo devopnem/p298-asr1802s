@@ -1,0 +1,1 @@
+obj-$(CONFIG_COMMON_CLK_ASR1802S) += clk-asr1802s.o

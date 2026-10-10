@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * ASR1826s (KAGU) clock controller + shared peripherals.
+ */
+/dts-v1/;
+#include <dt-bindings/clock/marvell,asr1802s.h>
+
+/ {
+	clk_apb: clock-controller@c0100000 {
+		compatible = "marvell,asr1802s-clock";
+		reg = <0xc0100000 0x1000>;
+		#clock-cells = <1>;
+	};
+
+	timer: timer@d4014000 {
+		compatible = "mrvl,mmp-timer";
+		reg = <0xd4014000 0xd0>;
+		interrupts = <13 14>;
+		clocks = <&clk_apb ASR1802S_CLK_BACLK>;
+		marvell,timer-fastclk-frequency = <0x319750>;
+		marvell,timer-apb-frequency = <0x632ea00>;
+	};
+
+	gpio: gpio@d4019000 {
+		compatible = "marvell,mmp-gpio";
+		reg = <0xd4019000 0x1000>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		interrupts = <49>;
+		interrupt-names = "gpio_mux";
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		clocks = <&clk_apb ASR1802S_CLK_BACLK>;
+	};
+
+	uart0: serial@d4017000 {
+		compatible = "mrvl,pxa2xx-uart", "ns16550a";
+		reg = <0xd4017000 0x20>;
+		interrupts = <59>;
+		clocks = <&clk_apb ASR1802S_CLK_PERIPH>;
+		status = "okay";
+	};
+};

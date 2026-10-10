@@ -1,0 +1,150 @@
+Build guide
+
+1. Setup Environment
+# Install dependencies
+sudo apt update && sudo apt install -y \
+  git build-essential libncurses5-dev gawk flex bison \
+  libssl-dev libelf-dev python3 python3-distutils \
+  rsync unzip wget curl ccache \
+  qemu-user-static binfmt-support \
+  podman docker.io
+
+# Enable binfmt for multi-arch
+sudo systemctl enable --now binfmt-support
+2. Clone & Setup Repository
+# Clone your fork
+cd ~
+git clone https://github.com/devopnem/openwrt-fork.git
+cd openwrt-fork
+git checkout asr1802s-kagu-wip
+
+# Update feeds
+./scripts/feeds update -a
+./scripts/feeds install -a
+3. Configure Minimal Build
+# Use your existing config-6.12 as base
+cp target/linux/asr1802s/config-6.12 .config
+
+# Append minimal kernel config
+cat >> .config << 'EOF'
+CONFIG_ASR_EMAC=y
+CONFIG_YT921X=y
+CONFIG_PHY_YT9215=y
+CONFIG_RTL8XXXU=y
+CONFIG_PCIE_ASR_KAGU=y
+CONFIG_PCIE_DW_HOST=y
+CONFIG_PCIE_DW=y
+CONFIG_PCIE_REALTEK=y
+CONFIG_MAC80211=y
+CONFIG_WLAN_VENDOR_REALTEK=y
+EOF
+
+# Apply minimal package selection
+cat >> .config << 'EOF'
+# Base system
+CONFIG_PACKAGE_busybox=y
+CONFIG_PACKAGE_dropbear=y
+CONFIG_PACKAGE_uci=y
+CONFIG_PACKAGE_base-files=y
+
+# LuCI
+CONFIG_PACKAGE_luci=y
+CONFIG_PACKAGE_luci-base=y
+CONFIG_PACKAGE_luci-mod-admin-full=y
+CONFIG_PACKAGE_luci-theme-bootstrap=y
+
+# Network
+CONFIG_PACKAGE_uboot-envtools=y
+CONFIG_PACKAGE_kmod-asr-emac=y
+CONFIG_PACKAGE_kmod-y921x=y
+CONFIG_PACKAGE_kmod-phy-yt9215=y
+CONFIG_PACKAGE_kmod-rtl8xxxu=y
+CONFIG_PACKAGE_rtl8xxxu-firmware=y
+
+# PCIe
+CONFIG_PACKAGE_kmod-pcie-asr-kagu=y
+CONFIG_PACKAGE_kmod-pcie-dw-host=y
+CONFIG_PACKAGE_kmod-rtl8xxxu=y
+EOF
+
+# Generate full config
+make defconfig
+
+4. Build Kernel + Modules
+# Prepare (applies patches)
+make target/linux/prepare TARGET=asr1802s -j$(nproc) V=s
+
+# Compile kernel + modules
+make target/linux/compile TARGET=asr1802s -j$(nproc) V=s
+
+5. Build Userspace Packages
+# Base system
+make package/base-files/compile V=s
+make package/dropbear/compile V=s
+make package/uci/compile V=s
+
+# LuCI
+make package/luci/compile V=s
+make package/luci-base/compile V=s
+make package/luci-mod-admin-full/compile V=s
+make package/luci-theme-bootstrap/compile V=s
+
+# Network
+make package/kmod-asr-emac/compile V=s
+make package/kmod-y921x/compile V=s
+make package/kmod-phy-yt9215/compile V=s
+
+# WiFi
+make package/kmod-rtl8xxxu/compile V=s
+make package/rtl8xxxu-firmware/compile V=s
+
+# PCIe
+make package/kmod-pcie-asr-kagu/compile V=s
+make package/kmod-pcie-dw-host/compile V=s
+make package/kmod-rtl8xxxu/compile V=s
+
+6. Build Full Image (Kernel + DTIM + Rootfs)
+# Generate complete flashable images
+make target/linux/install TARGET=asr1802s V=s
+
+Output images in bin/targets/asr1802s/generic/:
+openwrt-*-notion_r291-squashfs-kernel.bin (5MB, kernel+DTB)
+openwrt-*-notion_r291-squashfs-rootfs.bin (20MB, rootfs)
+openwrt-*-notion_r291-squashfs-sysupgrade.bin (combined)
+
+6. Flash to Device
+# On your host (Void Linux or wherever you flash):
+# 1. Flash kernel (mtd13)
+scp bin/targets/asr1802s/generic/openwrt-*-kernel.bin root@192.168.1.1:/tmp/
+ssh root@192.168.1.1 "mtd write /tmp/openwrt-*-kernel.bin kernel-a"
+
+# 2. Flash rootfs (mtd15)
+scp bin/targets/asr1802s/generic/openwrt-*-rootfs.bin root@192.168.1.1:/tmp/
+ssh root@192.168.1.1 "mtd write /tmp/openwrt-*-rootfs.bin rootfs-a"
+
+# 3. Flash DTIM (mtd7) - REQUIRED for boot
+# The build generates dtim automatically; if not, rebuild:
+python3 r291_delivery_phase1/dtim-rebuild.py \
+  r291_delivery_phase1/mtd7.stock \
+  bin/targets/asr1802s/generic/openwrt-*-kernel.bin \
+  bin/targets/asr1802s/generic/openwrt-*-rootfs.bin \
+  /tmp/dtim-a.rebuilt.bin
+scp /tmp/dtim-a.rebuilt.bin root@192.168.1.1:/tmp/
+ssh root@192.168.1.1 "mtd write /tmp/dtim-a.rebuilt.bin dtim-a"
+One-Line Quick Build (All-in-One)
+# From distrobox/Debian container:
+cd ~/openwrt-fork &&
+make target/linux/prepare TARGET=asr1802s -j$(nproc) V=s &&
+make target/linux/compile TARGET=asr1802s -j$(nproc) V=s &&
+make package/luci/compile package/dropbear/compile package/rtl8xxxu-firmware/compile \
+     package/kmod-rtl8xxxu/compile package/kmod-asr-emac/compile \
+     package/kmod-y921x/compile package/kmod-phy-yt9215/compile \
+     package/kmod-pcie-asr-kagu/compile package/kmod-pcie-dw-host/compile V=s &&
+make target/linux/install TARGET=asr1802s V=s
+Key Points
+Purpose
+Apply patches
+Build kernel + modules
+Build userspace packages
+Build DTIM + Rootfs + Images
+No host tool issues in Debian container - all tools built cleanly in container.

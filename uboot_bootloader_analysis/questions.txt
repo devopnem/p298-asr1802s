@@ -1,0 +1,43 @@
+this @mtd11.bin is the original bootloader of notion r291 asr kagu
+i have made a custom openwrt for this router and i need to test it
+1. i hope that you extract this image to this working folder
+2. then i need you to analyse it to determinate:
+3. is there tftp server working in it?
+4. if yes: how to access it?
+5. how to flash safelly the file openwrt-asr1802s-generic-notion_r291-initramfs-kernel.bin to this router via uart?
+6. how to transfere the file? via uart? is it slow? or via uart ethernet? is ethernet enabled in uar mode?
+
+
+what is the difference between mtd0.bin whchi is bootloader amd mtd11 whichi is ubbot?
+
+Over SSH, set bootdelay=10 so the 1-second autoboot window stops being a problem.
+Verify your TTL adapter at 115200 8N1, 3.3V — you should see Hit any key to stop autoboot: 10, then Marvell>>.
+At the prompt run printenv and bdinfo — this gives us RAM base/size and confirms bootdelay took effect.
+
+fw_printenv bootdelay          
+fw_setenv bootdelay 10
+
+3. fw_setenv bootdelay 10         # persists; env partition only
+4. reboot
+5. TTL adapter 115200 8N1 3.3V → expect "Hit any key to stop autoboot: 10"
+6. press a key → "Marvell>>"
+7. > fastboot                    # does this work with no args? UNCONFIRMED
+8. PC: fastboot devices          # expect the router to appear
+9. fastboot download 0x8000000 5473240   # address provisional — confirm w/ bdinfo
+10. > bootz 0x8000000            # hand-boot, since fastboot 'boot' expects Android bootimg
+
+
+4. Type fastboot at the Marvell>> prompt. I confirmed a fastboot command name exists in the binary near fastboot.c.
+5. On your PC, verify with fastboot devices.
+
+Phase 3 — RAM boot (read-only, fully reversible)
+6. fastboot download 0x8000000 5473240 — stage the image in DDR.
+7. md 0x8000000 20 to sanity-check the bytes arrived.
+8. bootz 0x8000000 — the confirmed bootz command.
+
+Load address needs confirming at runtime. I'll read the actual RAM layout from bdinfo at Phase 1 rather than trusting the DTB, because the memory node (base 0x4000000, size 0x8000000) and U-Boot's own mem=512M@0x%x strings don't agree on the total. 0x8000000 is provisional.
+Fastboot boot is the wrong command here. It expects an Android boot image (ANDROID! magic); yours is a raw zImage + appended DTB. Hence staging via download then hand-booting with bootz.
+
+    هل يُحفظ دائماً؟ نعم، لأن أداة fw_setenv تقوم بالكتابة المباشرة في شريحة التخزين (Flash / eMMC / SD Card) المخصصة لبيئة U-Boot، ويبقى الخيار محفوظاً حتى بعد قطع الكهرباء.
+
+    (ملاحظة: يتطلب هذا أن يكون ملف الإعداد /etc/fw_env.config مهيئاً ومضبوطاً مسبقاً ليعرف النظام مكان ذاكرة U-Boot في جهازك).

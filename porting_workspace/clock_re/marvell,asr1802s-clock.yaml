@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/clock/marvell,asr1802s.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Marvell ASR1802S Clock Controller
+
+maintainers:
+  - Devon Openheim <devopenm@proton.me>
+
+description: |
+  The ASR1802S (PXA1826 family) clock controller programs the CPU PLL
+  mux and dividers (pclk, l2clk, pdclk, baclk, periphclk), the DDR clock
+  and the AXI clock.
+
+  The register layout and the frequency-change (GO/FC) sequence were
+  recovered by reverse-engineering the vendor kernel that ships on
+  Ooredoo R291 v2 / ASR 1826s ("KAGU") gateways, since no public hardware
+  manual exists.
+
+  Clock identifiers are defined in
+  <include/dt-bindings/clock/marvell,asr1802s.h>.
+
+properties:
+  compatible:
+    const: marvell,asr1802s-clock
+
+  reg:
+    description:
+      Base and size of the clock controller register file.
+      The controller lives in the SoC "dmcu" (clock management unit)
+      at 0xc0100000 and spans 0x880 bytes.
+    maxItems: 1
+
+  reg-names:
+    description:
+      Logical name of the register window.
+    const: dmcu
+
+  '#clock-cells':
+    description:
+      The clock cell indexes the clock identifier in
+      marvell,asr1802s.h.  Consumers should use the symbolic
+      ASR1802S_CLK_* defines rather than hard-coded numbers.
+    const: 1
+
+  clocks:
+    description:
+      Optional external parent clocks (PLLs / references) if the
+      controller is fed by discrete sources.
+    maxItems: 1
+
+  clock-names:
+    maxItems: 1
+
+required:
+  - compatible
+  - reg
+  - '#clock-cells'
+
+additionalProperties: false
+
+examples:
+  - |
+    clocks {
+        #address-cells = <1>;
+        #size-cells = <1>;
+
+        clk_apb: clock-controller@c0100000 {
+            compatible = "marvell,asr1802s-clock";
+            reg = <0xc0100000 0x880>;
+            reg-names = "dmcu";
+            #clock-cells = <1>;
+        };
+    };
+
+    // GPIO consumes the back-door (APB) clock domain:
+    gpio: gpio@d4019000 {
+        compatible = "marvell,mmp-gpio";
+        reg = <0xd4019000 0x1000>;
+        clocks = <&clk_apb ASR1802S_CLK_BACLK>;
+        gpio-controller;
+        #gpio-cells = <2>;
+    };
+//</devicetree>
+
+description-parsed-note: |
+  On the live Ooredoo R291 v2 (vendor 3.10.33) clk_summary reports the
+  boot frequencies as: cpu 1248 MHz (sel 6), ddr 533 MHz (idx 1, parent
+  dpll_1066), axi 312 MHz (sel 1, div 0).  After cpufreq/thermal governor
+  downclock the cpu shows 312 MHz (sel 1) -- the driver re-reads 0x110 on
+  every recalc so /sys/kernel/debug/clk/clk_summary reflects it.

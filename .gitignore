@@ -1,28 +1,55 @@
-# Exclude sensitive binary backup data
-ooredoo_backup/
-# Exclude potential large binary/firmware objects
-*.bin
-*.sqf
-*.img
-*.tar.gz
-*.extracted/
-# Common temp/log files
-*.log
-.tmp/
-# Exclude compressed archives
-*.zip
-*.tar
-*.rar
-*.gz
-# Exclude logs
-*.log
-logs/
-# Python compile cache
-__pycache__/
-*.pyc
+# =====================================================================
+# Local-only content. This repository tracks DOCS, SCRIPTS and SOURCES.
+# Device data lives in findings/ (its own repo) or is ignored here.
+# =====================================================================
+
+# --- external checkout, not part of this repo ---
+# The OpenWrt fork lives at ~/Downloads/openwrt/openwrt-fork and is worked on
+# in its own repository (branch asr1802s-kagu-wip, PR openwrt/openwrt#24614).
+/openwrt-fork
 
 # --- nested repository ---
 # findings/ is its own git repo -> devopnem/r291-asr1802s-findings
 # It is the single source of truth for that repo; never track it from here.
 # Sync with:  git -C findings pull  /  git -C findings push
 /findings/
+
+# --- vendor flashing tools ---
+# Proprietary Marvell/ASR binaries, 182 MB. Tool names, versions, checksums
+# and our own config files live in findings/tooling/flashing-tools/.
+/flashing_tools/
+
+# --- local-only data ---
+# data/unit2-20250822/       a SECOND physical unit; deliberately not published
+# data/extracted-rootfs/     derivative of the squashfs rootfs
+# data/unsanitised/          env_strings.txt with live IMEI/IMSI/MAC — never push
+/data/
+
+# --- finished snapshots, kept for reference only ---
+/archive/
+
+# --- large binaries and derived artefacts ---
+*.bin
+*.sqf
+*.squashfs
+*.img
+*.tar.gz
+*.extracted/
+*.disasm
+*.stock
+Image.from_gzip
+vmlinux.extracted
+ooredoo_backup/
+
+# --- compressed archives ---
+*.zip
+*.tar
+*.rar
+*.gz
+
+# --- logs and scratch ---
+*.log
+logs/
+.tmp/
+__pycache__/
+*.pyc
