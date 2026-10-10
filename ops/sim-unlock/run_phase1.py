@@ -7,8 +7,8 @@ import sys
 import os
 import time
 
-# Add modular_tests to python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../modular_tests")))
+# Add ops/api to python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../ops/api")))
 
 import api_login
 import api_ssh

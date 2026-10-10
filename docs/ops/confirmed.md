@@ -156,7 +156,7 @@ python3 acs_tr069.py arm-root-pw      # (دالة جديدة: تكتب shadow ro
 هذا راوتر notion r291 ip - 192.168.1.1 مجلد النسخة الاحتياطية : ooredoo_backup
 هذا الملف: probe فيه بعض البيانات من داخل الراوتر
 هذا الملف: archive/openwrt_port/DEVICE_PROFILE.md فيه معلومات الجهاز (قديم — المصدر المحدث:
-porting_workspace/ + docs/)
+docs/ + porting/
 
 ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no \
     -o KexAlgorithms=diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa \

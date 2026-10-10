@@ -1,8 +1,8 @@
 # M1 QSPI — current state (saved 2026-08-17, updated after register-map RE)
 
 ## Where we are
-- M1 plan + milestones: `porting_workspace/qspi/M1_PLAN.md` (M1.3 register map DONE)
-- RE notes: `porting_workspace/qspi/RE_NOTES.md` (architecture + VERIFIED register map §7)
+- M1 plan + milestones: `porting/reverse/qspi/M1_PLAN.md` (M1.3 register map DONE)
+- RE notes: `porting/reverse/qspi/RE_NOTES.md` (architecture + VERIFIED register map §7)
 - Vendor kernel extracted: `extract_vmlinux.py` → `Image.from_gzip` (5 MB ARM/Thumb-2 Image)
 - Per-function Thumb-2 disassembly: `qspi_funcs.disasm`, `qspi_exec.disasm`, `qspi_core.disasm`
 - Live router captures: `live_trace/ROUTER_20260817_115949/` (kallsyms 42671 ln, iomem,

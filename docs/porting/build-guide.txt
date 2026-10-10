@@ -124,8 +124,8 @@ ssh root@192.168.1.1 "mtd write /tmp/openwrt-*-rootfs.bin rootfs-a"
 
 # 3. Flash DTIM (mtd7) - REQUIRED for boot
 # The build generates dtim automatically; if not, rebuild:
-python3 r291_delivery_phase1/dtim-rebuild.py \
-  r291_delivery_phase1/mtd7.stock \
+python3 porting/delivery/dtim-rebuild.py \
+  porting/delivery/mtd7.stock \
   bin/targets/asr1802s/generic/openwrt-*-kernel.bin \
   bin/targets/asr1802s/generic/openwrt-*-rootfs.bin \
   /tmp/dtim-a.rebuilt.bin

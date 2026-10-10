@@ -12,8 +12,8 @@ SSHPASS="79476268"
 SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o KexAlgorithms=diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o ConnectTimeout=5"
 echo "=== Uploading to /tmp ==="
 sshpass -p "$SSHPASS" scp $SSHOPT "$MTD7" "$ZIMAGE" "$ROOTFS" "$ROUTER:/tmp/"
-sshpass -p "$SSHPASS" scp $SSHOPT /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/r291_delivery_phase1/mtderase 2>&1 | head
-if [ ! -f /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/r291_delivery_phase1/mtderase ]; then
+sshpass -p "$SSHPASS" scp $SSHOPT /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/porting/delivery/mtderase 2>&1 | head
+if [ ! -f /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/porting/delivery/mtderase ]; then
   echo "mtderase not found in delivery, using /tmp/mtderase on router if exists"
 fi
 echo "=== Flashing slot-a (mtd7, mtd13, mtd15) ==="

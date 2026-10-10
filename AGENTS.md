@@ -20,7 +20,7 @@ Before ANY `git reset --soft` chain rebuild, rebase, or `push --force`:
 4. Verify per-commit bisect: `git log --stat HEAD~5..HEAD` — each commit's file list must match its message.
 5. Abort push if any check fails. Never force-push a chain that deletes target files silently.
 
-Reference: `docs/flashing_and_failsafe_guide.md` and `BRINGUP_MILESTONES.md`.
+Reference: `docs/recovery/flashing_and_failsafe_guide.md` and `docs/porting/BRINGUP_MILESTONES.md`.
 
 ## OpenWrt Build Rules (from CI review regressions)
 
@@ -81,12 +81,32 @@ Reference: `docs/flashing_and_failsafe_guide.md` and `BRINGUP_MILESTONES.md`.
 
 ## Workspace Layout
 
-- **Working dir (notion-r291)**: `~/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/` — documentation, porting notes, need_to_push.md
+- **Working dir (notion-r291)**: `~/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/` — docs, porting, ops
+- **findings/**: nested git repository -> `devopnem/r291-asr1802s-findings`.
+  Primary-source device data (probes, NAND dumps, firmware backup, PCB photos, flash tooling).
+  Gitignored by the parent repo. Sync with `git -C findings pull` / `git -C findings push`.
+  Single source of truth for that repo; never track or edit it from the parent.
+- **data/**: local-only, never pushed. Second unit, unsanitised probes, extracted rootfs.
+  Contains a file with live IMEI/IMSI/MAC. See `data/README.md`.
+- **recovery** -> symlink to `flashing_tools/`, vendor flashing tools plus the working set
+- **hardware** -> symlink to `findings/board`
+- **docs/**: `docs/{hardware,bootloader,recovery,porting,ops}/`
+- **porting/**: `porting/reverse/` (qspi, clock_re, emac_re), `porting/delivery/`
+- **ops/**: `ops/api/` (TR-069/ACS), `ops/sim-unlock/`
+- **RFC series**: `devopnem/linux-asr1802s-rfc` (5-patch series; the old in-tree copy under
+  `porting_workspace/linux_kernel_patch/` was removed after confirming the remote was up to date)
 - **OpenWrt fork**: `~/Downloads/openwrt/openwrt-fork/` — branch `asr1802s-kagu-wip`, remote `origin` = `devopnem/openwrt`
 - **PR**: openwrt/openwrt#24614 (from `devopnem/openwrt:asr1802s-kagu-wip`)
 - **Target**: `target/linux/asr1802s/` — ARM Cortex-A7, v6.12 kernel, musl
 - **Patches**: `target/linux/asr1802s/patches-6.12/` — quilt series, 0001–0012
-- **need_to_push.md**: tracks commits on `asr1802s-kagu-wip` not yet pushed to origin
+- **docs/ops/need_to_push.md**: tracks commits on `asr1802s-kagu-wip` not yet pushed to origin
+
+### Binary data rule
+
+Every MTD dump, kernel, rootfs and probe used here is a **symlink into
+`findings/`**, not a copy. Do not re-create duplicates - link instead, and
+verify the hash matches before discarding anything.
+`findings/nand-dumps/` and `findings/firmware-backup/` hold the only real copies.
 
 ## Patch Validation (before every commit)
 

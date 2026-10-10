@@ -1,7 +1,7 @@
 # M1 — QSPI SPI-NAND driver (`asr,qspi`) bring-up plan
 
 > Workspace: /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13
-> Parent milestone: BRINGUP_MILESTONES.md §M1 (MOST CRITICAL — blocks rootfs)
+> Parent milestone: docs/porting/BRINGUP_MILESTONES.md §M1 (MOST CRITICAL — blocks rootfs)
 > Owner: this AI (M1 worker). M0 (clock) owned by same AI, lands first.
 > Router for live RE: 192.168.1.1 (online during session 2026-08-17; saved captures in
 > `live_trace/ROUTER_20260817_115949/`. Live ftrace NOT available. Exact SSH opts in STATE.md.)
@@ -55,16 +55,16 @@ Deliverable:
 
 ### Phase 0 — Register-map RE
 - **0a (NOW, no router):** dump-based RE.
-  - Extract vmlinux from `oem_backup/kernel-a.bin` (zImage piggy) via
-    `porting_workspace/qspi/extract_vmlinux.py`.
+  - Extract vmlinux from `findings/firmware-backup/kernel-a.bin` (zImage piggy) via
+    `porting/reverse/qspi/extract_vmlinux.py`.
   - Pull `qspi_*` symbols from embedded kallsyms; confirm via `arm-linux-gnueabihf-objdump`.
   - Recover register offsets + read/erase/program sequencing from decompiled code.
   - Fetch a public Marvell 3.10 / MMP3 / PXA1928 tree for its `mv_qspi` reference
     (Technique A) to cross-check offsets. (Network download — dependency.)
-  - Output: `porting_workspace/qspi/RE_NOTES.md` (mirror `clock_re/RE_NOTES.md`).
+  - Output: `porting/reverse/qspi/RE_NOTES.md` (mirror `clock_re/RE_NOTES.md`).
 - **0b (router connected LATER):** run prepared `ftrace`/`kprobe` harness on
   `qspi_*` during a real read/erase to log exact register writes; fold into RE_NOTES.
-  - Harness: `porting_workspace/qspi/live_trace/` (ftrace set_ftrace_filter +
+  - Harness: `porting/reverse/qspi/live_trace/` (ftrace set_ftrace_filter +
     kprobe on qspi register accesses + a trigger that reads a NAND partition).
 
 ### Phase 1 — Driver `drivers/spi/spi-asr1802s-qspi.c`

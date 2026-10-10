@@ -88,7 +88,7 @@
 - للدمج لاحقاً: drivers/clk/mmp/Kconfig + Makefile (`MARVELL_ASR1802S_CLK`، ملف `clk-asr1802s.o`) + توثيق YAML جديد + جعل عقدة `clock-controller@c0100000` تستهلك `clocks` عبر الخلايا.
 
 ## ملاحظة حية من الجهاز (live SSH)
-ملف: `probe_read_from_live_router/live_ssh_session/dump.txt` (kernel 3.10.33، 2026-05-26).
+ملف: `findings/probes/live_ssh_session/dump.txt` (kernel 3.10.33، 2026-05-26).
 - **clk_summary يؤكد كل معدلات البوت بالضبط**: dpll_1066→ddr 533MHz، pll1_208→axi 208MHz (بوت)، pll1_312→cpu 312MHz. ملاحظة: cpu بدأ عند 1248 (dmesg: "CPU boot up @1248000000HZ") ثم **downclock إلى 312 بواسطة الـ governor** — يعني البوت 0x110 sel=6 ثم انتقل sel=1 في الوقت الفعلي. درايفرنا يعالجها (recalc يقرأ 0x110).
 - **kallsyms يطابق أسماء RE تماماً**: `clk_cpu_setrate`, `clk_cpu_recalc_rate`, `clk_ddr_init`, `clk_ddr_fc_seq`, `asr1802s_get_fc_spinlock` — توثيق أن منطقنا مستمد من نفس الفئة الثنائية. (ملاحظة: العناوين c01fxxxx ≠ kernel-decomp.bin @0x1ec840 — الصورة في الـ dump اختلاف إصدار بناء بسيط؛ clk_summary هو المرجع الأدق.)
 - **CONFIG_STRICT_DEVMEM يحظر /dev/mem على 0xc0100000** (dd أعطى بيانات غير صالحة) — اعتمدنا على clk_summary + dmesg بدلاً من reads مباشرة.

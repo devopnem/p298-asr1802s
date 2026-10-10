@@ -137,5 +137,5 @@
 - **OTA daemon** و **TR-069 daemon** موقوفين في services.init
 
 > ملاحظة تحديث: فتح SSH root أصبح ممكناً لاحقاً عبر
-> `modular_tests/` (`acs_tr069.py`) + تثبيت dropbear password من U-Boot env —
-> راجع `docs/ssh_open.md` و`docs/solution.md`.
+> `ops/api/` (`acs_tr069.py`) + تثبيت dropbear password من U-Boot env —
+> راجع `docs/ops/ssh_open.md` و`docs/recovery/solution.md`.

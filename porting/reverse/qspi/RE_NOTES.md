@@ -1,7 +1,7 @@
 # M1 — QSPI SPI-NAND RE NOTES (ASR1802S `asr,qspi`)
 
 Recovered from the vendor `kernel-a.bin` (zImage, 3.10.33) by extracting the
-embedded kernel `Image` (`porting_workspace/qspi/extract_vmlinux.py` →
+embedded kernel `Image` (`porting/reverse/qspi/extract_vmlinux.py` →
 `Image.from_gzip`) and mining its string table + disassembly. This is the
 authoritative source until Ghidra decompile or live kallsyms/ftrace (router
 reconnect) give exact register offsets.
@@ -102,7 +102,7 @@ offset as `fileoff = addr - 0xc0008000` (kernel load base = PAGE_OFFSET 0xc00000
 --disassembler-options=force-thumb -D --start-address=<foff-0x20>
 --stop-address=<foff+0x700>`. Disassembling each function individually (objdump
 has no symbol names) gives clean Thumb-2. Output saved in
-`porting_workspace/qspi/qspi_funcs.disasm` + `qspi_exec.disasm`.
+`porting/reverse/qspi/qspi_funcs.disasm` + `qspi_exec.disasm`.
 
 Register window: two spaces — MMIO `0x00`–`0x190` (4-byte step, emitted by
 `qspi_dump_reg` as `offset[0x%03x]`) and LUT `0x310`–`0x40c` (emitted as
@@ -185,14 +185,14 @@ TODO: (a) pin the data FIFO reg (§7.4) by disassembling `spi_nand_do_read_ops` 
 is the authoritative source.
 
 ## 9. Files produced in this RE pass
-- `porting_workspace/qspi/extract_vmlinux.py` — zImage → Image extractor.
-- `porting_workspace/qspi/Image.from_gzip` — decompressed vendor kernel Image.
-- `porting_workspace/qspi/Image.disasm` — objdump -D (ARM-view; partial, superseded).
-- `porting_workspace/qspi/qspi_core.disasm` — objdump Thumb-2 of qspi cluster.
-- `porting_workspace/qspi/qspi_funcs.disasm` — objdump Thumb-2 per-function (qspi_*+spi_nand_*).
-- `porting_workspace/qspi/qspi_exec.disasm` — objdump of qspi_start_cmd/do_read_ops/do_write_ops.
-- `porting_workspace/qspi/live_trace/ROUTER_20260817_115949/` — kallsyms.txt (42671 ln),
+- `porting/reverse/qspi/extract_vmlinux.py` — zImage → Image extractor.
+- `porting/reverse/qspi/Image.from_gzip` — decompressed vendor kernel Image.
+- `porting/reverse/qspi/Image.disasm` — objdump -D (ARM-view; partial, superseded).
+- `porting/reverse/qspi/qspi_core.disasm` — objdump Thumb-2 of qspi cluster.
+- `porting/reverse/qspi/qspi_funcs.disasm` — objdump Thumb-2 per-function (qspi_*+spi_nand_*).
+- `porting/reverse/qspi/qspi_exec.disasm` — objdump of qspi_start_cmd/do_read_ops/do_write_ops.
+- `porting/reverse/qspi/live_trace/ROUTER_20260817_115949/` — kallsyms.txt (42671 ln),
   qspi_kallsyms.txt (77 syms), iomem/interrupts/cmdline/dmesg/procfs (stats only).
-- `porting_workspace/qspi/RE_NOTES.md` — this file.
-- `porting_workspace/qspi/M1_PLAN.md` — M1 plan/checklist.
-- `porting_workspace/qspi/live_trace/trace_qspi.sh` — live trace harness (run later).
+- `porting/reverse/qspi/RE_NOTES.md` — this file.
+- `porting/reverse/qspi/M1_PLAN.md` — M1 plan/checklist.
+- `porting/reverse/qspi/live_trace/trace_qspi.sh` — live trace harness (run later).

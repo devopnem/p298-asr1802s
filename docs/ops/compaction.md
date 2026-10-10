@@ -36,4 +36,4 @@ target/linux/asr1802s/patches-6.12/0003-ARM-dts-asr-Add-ASR1802S-SoC-and-ASR1826
 target/linux/asr1802s/config-6.12 — kernel config (PCI options enabled)
 target/linux/asr1802s/image/Makefile — image build (needs pad-rootfs)
 package/firmware/linux-firmware/ — contains rtlwifi/rtl8192fufw.bin for RTL8192FR
-docs/flashing_and_failsafe_guide.md — updated with architecture note, build commands, failsafe plan
+docs/recovery/flashing_and_failsafe_guide.md — updated with architecture note, build commands, failsafe plan

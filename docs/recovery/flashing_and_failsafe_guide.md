@@ -11,6 +11,24 @@
 > mismatch, `flash_slot_a.sh` has scp/`basename` bugs (use §5b inline instead),
 > `openwrt_r291` password via `uci-defaults` unverified, UART level likely
 > **1.8 V not 3.3 V** (measure before driving pins).
+>
+> **Rev 2026-10-10 — read this first.** Path references were updated during the
+> workspace reorganisation, but the *technical* content below pre-dates a month
+> of further work and some of it is now known to be wrong or superseded. Known
+> corrections and additions:
+>
+> | Section | Status |
+> |---|---|
+> | §3 "Prepare Flash Images", §5 "Flash Slot A" | The stated hashes only match if DTIM in mtd7/mtd8 is rebuilt. That rebuild is still **unsolved**. See [`../bootloader/REPORT.md`](../bootloader/REPORT.md) §2. |
+> | §5 "Flash Slot A" | Assumes a **booted** unit with SSH. The unit is now bricked; this route is unavailable until the flash is restored. |
+> | §7 "Failsafe Mode" | Still accurate, including that failsafe is UART-only here. |
+> | §10 "MTD Partition Reference" | Superseded by the verified map in [`../../findings/tooling/blf/flash-map.md`](../../findings/tooling/blf/flash-map.md), which also records that **all A/B slots are byte-identical** on a factory unit and that mtd5/mtd6 are zero length. |
+> | §11 (RAM boot / TFTP) | TFTP is impossible on this bootloader — see [`../bootloader/TFTP_AND_FAILSAFE.md`](../bootloader/TFTP_AND_FAILSAFE.md). |
+> | — | **U-Boot does have Fastboot**, over USB via DWC3 gadget. It needs no TFTP and bypasses the DTIM hash problem entirely, but only once U-Boot is running. See [`../bootloader/bootloader_analyse.md`](../bootloader/bootloader_analyse.md). |
+> | — | The SWDownloader USB write path is analysed in [`swdownloader_blf_findings.md`](swdownloader_blf_findings.md) and is currently **blocked**. |
+>
+> The stock `mtd7.stock` referred to in §1 is byte-identical to `mtd7.bin`; it is
+> a convenience name, not a distinct template.
 
 ---
 
@@ -37,9 +55,9 @@
 | Router stock firmware running | SSH accessible at `192.168.1.1` |
 | `sshpass` installed on host | `sudo xbps-install sshpass` (Void Linux) |
 | Python 3 | For `dtim-rebuild.py` |
-| `dtim-rebuild.py` | In `r291_delivery_phase1/` |
-| `mtderase` static ARM binary | In `r291_delivery_phase1/` |
-| Stock mtd7 template | `r291_delivery_phase1/mtd7.stock` |
+| `dtim-rebuild.py` | In `porting/delivery/` |
+| `mtderase` static ARM binary | In `porting/delivery/` |
+| Stock mtd7 template | `porting/delivery/mtd7.stock` |
 
 ### SSH Options (stock firmware)
 
@@ -194,8 +212,8 @@ EOF
 ```bash
 cd /path/to/Notion_R291_ASR1802S_P298_N13
 
-python3 r291_delivery_phase1/dtim-rebuild.py \
-  r291_delivery_phase1/mtd7.stock \
+python3 porting/delivery/dtim-rebuild.py \
+  porting/delivery/mtd7.stock \
   /tmp/openwrt-zImage-dtb \
   /tmp/openwrt-rootfs.bin \
   /tmp/dtim-a.rebuilt.bin
@@ -224,7 +242,7 @@ sshpass -p '79476268' ssh $SSHOPT root@192.168.1.1 '
   ls -la /tmp/bak/'
 ```
 
-> Note: `r291_delivery_phase1/mtd*.bin` copies are dated 2026-09-05 — re-run
+> Note: `porting/delivery/mtd*.bin` copies are dated 2026-09-05 — re-run
 > this backup live, don't rely on the old copies alone. `mtd22 cust_info`
 > added to the loop; `mtd23 rootfs_data` (UBI) and `mtd24 MRVL_BBM` are left
 > untouched.
@@ -232,15 +250,15 @@ sshpass -p '79476268' ssh $SSHOPT root@192.168.1.1 '
 Pull to host:
 
 ```bash
-mkdir -p r291_delivery_phase1/backup_stock
+mkdir -p porting/delivery/backup_stock
 sshpass -p '79476268' scp $SSHOPT \
   root@192.168.1.1:/tmp/bak/*.bin \
-  r291_delivery_phase1/backup_stock/
+  porting/delivery/backup_stock/
 ```
 
 **Verify sha256 after pull:**
 ```bash
-cd r291_delivery_phase1/backup_stock
+cd porting/delivery/backup_stock
 sha256sum *.bin
 ```
 
@@ -262,7 +280,7 @@ sha256sum *.bin
 
 ```bash
 sshpass -p '79476268' scp $SSHOPT \
-  /path/to/r291_delivery_phase1/mtderase \
+  /path/to/porting/delivery/mtderase \
   /tmp/openwrt-zImage-dtb \
   /tmp/openwrt-rootfs.bin \
   /tmp/dtim-a.rebuilt.bin \
@@ -665,7 +683,7 @@ slots disagree.
   shifter), GND common, RX/TX crossed, **VCC unconnected**. Then try 115200n8
   on ttyS0 (`pxa2xx-uart @ d4017000`); 57600/ttyS1 is an unconfirmed old note.
 - Pinout is not yet documented — candidate is the unpopulated 3–4 pin header
-  near the SoC/edge (see `board_pictures/PXL_20260727_*`). Confirm with
+  near the SoC/edge (see `hardware/pictures/PXL_20260727_*`). Confirm with
   continuity (GND) + idle-high (TX) before soldering.
 
 ### 11b. initramfs RAM-boot (zero flash risk)

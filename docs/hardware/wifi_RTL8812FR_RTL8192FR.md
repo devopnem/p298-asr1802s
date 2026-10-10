@@ -260,7 +260,7 @@ The current OpenWrt port is focused on getting basic networking working. WiFi is
 
 ## What can be probed from live router (with original firmware + SSH)
 
-**YES** — we already have significant data from `probe_read_from_live_router/`. Additional probes possible with SSH access:
+**YES** — we already have significant data from `findings/probes/`. Additional probes possible with SSH access:
 
 | Data | Available? | Source | Useful for |
 |------|------------|--------|------------|
@@ -304,11 +304,11 @@ iw phy
 
 ## References
 
-- Stock driver: `Notion_R291_ASR1802S_P298_N13/oem_backup/extracted_rootfs/lib/modules/3.10.33/rtl8192cd.ko`
+- Stock driver: `Notion_R291_ASR1802S_P298_N13/findings/firmware-backup/extracted_rootfs/lib/modules/3.10.33/rtl8192cd.ko`
 - Realtek Jungle SDK: GPL source (CVE-2026-36355)
 - rtw88: `drivers/net/wireless/realtek/rtw88/`
 - rtl8xxxu: `drivers/net/wireless/realtek/rtl8xxxu/`
 - rtw89: `drivers/net/wireless/realtek/rtw89/`
 - OpenWrt wireless packages: `package/kernel/mac80211/`
-- Live router probe: `probe_read_from_live_router/`
-- OEM dmesg: `probe_read_from_live_router/modem_wifi_dmesg.txt`
+- Live router probe: `findings/probes/`
+- OEM dmesg: `findings/probes/modem_wifi_dmesg.txt`

@@ -151,7 +151,7 @@ route is closed.
 
 ## 5. Flash map (still valid, still useful)
 
-From `probe_read_from_live_router/proc_partitions.txt`; the 25 partitions sum to
+From `findings/probes/proc_partitions.txt`; the 25 partitions sum to
 exactly 128 MiB = `0x8000000`, so the layout is contiguous:
 
 ```
@@ -170,6 +170,6 @@ mtd23 0x06080000 25344K              mtd24 0x07940000  6912K  MRVL_BBM
                                   end 0x08000000 = 128 MiB
 ```
 
-> The original `flash.blf` draft had `FlashAddr=0x000C0000` for U-Boot. That
+> The original `findings/tooling/blf/flash_recovery.blf` draft had `FlashAddr=0x000C0000` for U-Boot. That
 > lands **inside `mtd7` (DTIM)** and would destroy the TIM tables. Correct value
 > is `0x01F80000`.

@@ -31,7 +31,7 @@ Goal: kernel sees F35UQA001G → MTD → /dev/mtdblock15 → rootfs mount. No dr
 - ✅ RE (Technique C, binary): vmlinux extracted (`qspi/extract_vmlinux.py` → `Image.from_gzip`); driver = **Marvell PXA3xx-derived QSPI** + `pxa3xx_bbm`; architecture confirmed in `qspi/RE_NOTES.md` (IP-cmd + LUT + AHB/XIP + FR/SR regs, PXA-DMA DRCMR 0x63/0x61, IRQ 45, qspi_fclk 208→52 MHz, F35UQA001G mfr 0xcd quad 0x6b blk 0x20000 pg 0x800 ecc 4).
 - ✅ Live-trace harness ready: `qspi/live_trace/trace_qspi.sh` (Technique B — run when router reconnects).
 - ⛔ **BLOCKED: exact register offsets** — Image is Thumb-2; Ghidra headless script `qspi/ExtractQspi.java` written, run aborted (CPU load). Decision: prefer **live tracing** first, Ghidra as offline fallback (~6 min CPU).
-- Detailed sub-milestones M1.0–M1.9: `porting_workspace/qspi/M1_PLAN.md` (+ `STATE.md`).
+- Detailed sub-milestones M1.0–M1.9: `porting/reverse/qspi/M1_PLAN.md` (+ `STATE.md`).
 - Deliverable: `drivers/spi/spi-asr1802s-qspi.c` (spi-mem + spi-nand) + DT binding; checkpatch/dtc clean.
 
 ## M2 — EMAC Ethernet (asr,asr-eth-v2)  [RE COMPLETE ✅, DRIVER NEXT]

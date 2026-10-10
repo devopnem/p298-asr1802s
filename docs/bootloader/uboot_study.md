@@ -2,7 +2,7 @@
 
 > التاريخ: 2026-08-13 | الجهاز: Ooredoo R291 V2 (Notion R291, HW: P298_N13)
 > SoC: ASR Microelectronics ASR1802S (ARM Cortex-A7 — سليل Marvell PXA1826/MMP)
-> المراجع: `bootloader_analysis/REPORT.md`، `confirmed.md`، `mainlin.md`، `porting_workspace/PORTING_PLAN.md`
+> المراجع: `REPORT.md`، `../ops/confirmed.md`، `../porting/mainlin.md`، RFC series: devopnem/linux-asr1802s-rfc
 
 ---
 

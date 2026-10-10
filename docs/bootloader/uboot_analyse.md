@@ -1,7 +1,7 @@
 # U-Boot (mtd11) Analysis — Notion R291 ASR1802S "Kagu"
 
 Analysis date: 2026-10-06
-Artifact: `mtd11.bin` (copied from `../oem_backup/dumps/mtd11.bin`, hash-verified identical)
+Artifact: `mtd11.bin` (copied from `../findings/nand-dumps/mtd11.bin`, hash-verified identical)
 
 | Property | Value |
 |---|---|
@@ -234,7 +234,7 @@ an Android boot image (`FAILNot zImage, use bootsp oem cmd to boot special app`)
 
 ## 7. RAM topology
 
-From the vendor DTB (`../oem_backup/vendor_dtb_extracted/vendor.dtb`):
+From the vendor DTB (`../findings/firmware-backup/vendor_dtb_extracted/vendor.dtb`):
 
 ```
 memory { reg = <0x4000000 0x8000000>; };    /* base 64 MB, size 128 MB */
@@ -262,7 +262,7 @@ dwc31@c0000000 {
 
 The port is a **USB gadget/device** port, not a host port. It is **not** the
 modem: both PCIe ports are occupied by WiFi (RTL8812FE `10ec:f812` and
-RTL8192FR `10ec:818c`), per this project's own `PCIe_PHY_DRIVER_PLAN.md`.
+RTL8192FR `10ec:818c`), per this project's own `docs/porting/PCIe_PHY_DRIVER_PLAN.md`.
 
 The `marvell,88pm80x-usb` nodes in the PMIC subtree are charger/VBUS-detect
 logic (`vbus-detect`, `get-vbus`, `vchg-from-exton`) and that node is

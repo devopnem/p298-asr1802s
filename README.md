@@ -1,45 +1,109 @@
-# Notion R291 (Ooredoo R291 V2) — ASR1802S — Workspace
+# Notion R291 / Ooredoo R291 V2 — ASR1802S (P298_N13, KAGU)
 
-راوتر Ooredoo R291 V2 (HW: P298_N13, board KAGU / ASR1826s) — SoC: **ASR Microelectronics ASR1802S**
-(ARM Cortex-A7، مشتق Marvell MMP). الهدف: فتح الجهاز (root) ثم porting OpenWrt + mainlining kernel.
+Linux mainlining, OpenWrt port, and primary-source hardware findings for the
+**Notion R291** router (sold by Ooredoo as **R291 V2**, HW `P298_N13`, board
+codename **KAGU / ASR1826s**) with an **ASR1802S** SoC — ARM Cortex-A7,
+Marvell-MMP-derived, 128 MB RAM, 128 MiB SPI-NAND, 25 MTD partitions.
 
-## بنية المجلد
+---
 
-| المجلد/الملف | الوظيفة |
-|--------------|---------|
-| `confirmed.md` | **المرجع الأول** — معلومات مؤكدة عن الجهاز والـ SoC والـ API |
-| `info.md` | بيانات الدخول (admin/SSH) + الرقاقات الفيزيائية |
-| `flashing_guide.md` | دليل التفليش (slot-a + تراجع) — **اقرأه قبل أي فلاش** |
-| `mainlin.md` | ملخص mainlining نواة Linux (سلسلة RFC) |
-| `openwrtr291ooredoo.md` | ملخص porting OpenWrt + حالة الـ PR |
-| `docs/` | توثيق مفصّل: `api-rgw.md` (API xml_action.cgi)، `ssh_open.md`، `solution.md`، `info_on_board.md` |
-| `ooredoo_backup/` | **النسخ الاحتياطية الأصلية** (rootfs-a.bin، kernel-a.bin، overlay، rootfs مستخرج، DTB) — لا تُمس |
-| `bootloader_analysis/` | dumps كاملة لـ mtd0-24 (127MB) + تقارير U-Boot/TFTP |
-| `probe_read_from_live_router/` | أدلة من الجهاز الحي (dmesg، /proc/iomem، /proc/mtd، /proc/interrupts) — مصدر التحقق |
-| `porting_workspace/` | **عمل mainlining**: `linux_kernel_patch/` (سلسلة RFC + submission_package)، `clock_re/` (هندسة عكسية clk)، PORTING_PLAN.md |
-| `modular_tests/` | أدوات API النشطة (acs_tr069.py، api_login، api_ssh، api_upload...) + logs |
-| `sim_unlock/` | أعمال فك SIM (mep) |
-| `modem/` | ملاحظات واجهة المودم AT |
-| `board_pictures/` | صور اللوحة |
-| `archive/` | **أرشيف** — أعمال قديمة/تجريبية غير نشطة (othet_test، openwrt_port، probing_workspace، logs) — لا تحذف، تُستشار فقط عند الحاجة |
+## Where things are
 
-## أين أبدأ؟
+| path | what |
+|---|---|
+| **`findings/`** | **Primary-source device data** — probes, NAND dumps, firmware backup, PCB photos, flash tooling. Its **own git repository**, tracked at [devopnem/r291-asr1802s-findings](https://github.com/devopnem/r291-asr1802s-findings). Read [`findings/README.md`](findings/README.md). |
+| **`docs/`** | All written documentation, by subject (see below) |
+| **`porting/`** | Mainline porting work — `reverse/` (hardware reverse engineering), `delivery/` (flashing and bring-up scripts) |
+| **`ops/`** | Work performed against a live unit — `api/` (TR-069/ACS), `sim-unlock/` |
+| **`hardware`** | → `findings/board` (chip markings, PCB photos) |
+| **`recovery`** | → `flashing_tools/` — vendor flashing tools and the current recovery working set |
+| **`data/`** | **Local only, never pushed.** A second physical unit, unsanitised probes, extracted rootfs, and one file containing live IMEI/IMSI/MAC. Read [`data/README.md`](data/README.md). |
+| **`tools/`** | Standalone helper scripts |
+| **`archive/`** | Finished snapshots kept for reference |
 
-- معلومات الجهاز المؤكدة → `confirmed.md`
-- خطة التفليش → `flashing_guide.md`
-- حالة الـ OpenWrt PR → `openwrtr291ooredoo.md`
-- حالة الـ mainlining → `mainlin.md` + `porting_workspace/PORTING_PLAN.md`
-- أدوات فتح root → `modular_tests/` (`python3 acs_tr069.py root-check`)
+Cloning this repository alone is not enough: `findings/` is a separate
+repository, and several paths here are symlinks into it.
 
-## روابط خارجية
+```bash
+git clone git@github.com:devopnem/notion-r291.git
+git clone git@github.com:devopnem/r291-asr1802s-findings.git   # sibling
+```
 
-- PR OpenWrt: https://github.com/openwrt/openwrt/pull/24614 (فرع `asr1802s-kagu-wip`)
-- RFC repo: https://github.com/devopnem/linux-asr1802s-rfc
-- شجرة OpenWrt المحلية: `/home/void/Downloads/openwrt/openwrt-fork/`
-- مصدر kernel 6.12 المحلي: `/home/void/ow_kernel/linux-6.12.94/`
+### Sync
 
-## تحذيرات
+`findings/` is the single source of truth for the findings repository, so
+local and GitHub cannot drift:
 
-- `bootloader_analysis/dumps/` و`ooredoo_backup/` نسخ فريدة من NAND — لا تعدّلها.
-- لا تكتب NAND دون تراجع مؤكد (راجع flashing_guide.md).
-- كلمات المرور هنا (admin، SSH root `19222019`) خاصة بجهاز المستخدم — لا تشاركها.
+```bash
+git -C findings pull
+git -C findings push
+```
+
+### Disk layout is de-duplicated
+
+Every MTD dump, kernel, rootfs and probe used by this repository is a
+**symlink into `findings/`** rather than a second copy. `findings/nand-dumps/`
+and `findings/firmware-backup/` are the only real copies.
+
+---
+
+## Documentation index
+
+| file | subject |
+|---|---|
+| [`docs/hardware/asr_and_marvell.md`](docs/hardware/asr_and_marvell.md) | ASR's acquisition of Marvell's modem division, and the PXA1802 / ASR1802S lineage |
+| [`docs/hardware/info_on_board.md`](docs/hardware/info_on_board.md) | What is physically on the board |
+| [`docs/hardware/wifi_RTL8812FR_RTL8192FR.md`](docs/hardware/wifi_RTL8812FR_RTL8192FR.md) | The RTL8812FR / RTL8192FR PCIe Wi-Fi pair |
+| [`docs/bootloader/REPORT.md`](docs/bootloader/REPORT.md) | **Start here.** OBM, DTIM, U-Boot, A/B, RSA secure boot, the full boot chain |
+| [`docs/bootloader/uboot_analyse.md`](docs/bootloader/uboot_analyse.md) | U-Boot internals, TIM/DTIM structure, verified hashes |
+| [`docs/bootloader/bootloader_analyse.md`](docs/bootloader/bootloader_analyse.md) | Where Fastboot lives (it does — over USB/DWC3), why TFTP does not |
+| [`docs/bootloader/TFTP_AND_FAILSAFE.md`](docs/bootloader/TFTP_AND_FAILSAFE.md) | Why TFTP is impossible on this bootloader, and how failsafe really behaves |
+| [`docs/recovery/flashing_and_failsafe_guide.md`](docs/recovery/flashing_and_failsafe_guide.md) | Flashing OpenWrt, failsafe, A/B slot switching *(pre-dates the reorganisation; some paths were rewritten, some statements are superseded — see its header)* |
+| [`docs/recovery/swdownloader_blf_findings.md`](docs/recovery/swdownloader_blf_findings.md) | How far the SWDownloader route got and why it stopped |
+| [`findings/tooling/blf/swdownloader-blf-spec.md`](findings/tooling/blf/swdownloader-blf-spec.md) | The recovered `.blf` format, as a reference spec |
+| [`findings/tooling/blf/flash-map.md`](findings/tooling/blf/flash-map.md) | Verified 128 MiB SPI-NAND map |
+| [`docs/porting/mainlin.md`](docs/porting/mainlin.md) | Mainlining status |
+| [`docs/porting/BRINGUP_MILESTONES.md`](docs/porting/BRINGUP_MILESTONES.md) | Milestones |
+| [`docs/porting/PCIe_PHY_DRIVER_PLAN.md`](docs/porting/PCIe_PHY_DRIVER_PLAN.md) | PCIe PHY driver |
+| [`docs/porting/BUILDCI.md`](docs/porting/BUILDCI.md) | CI and build rules |
+| [`docs/ops/api-rgw.md`](docs/ops/api-rgw.md), [`docs/ops/ssh_open.md`](docs/ops/ssh_open.md) | Remote management / SSH access |
+| [`docs/ops/confirmed.md`](docs/ops/confirmed.md) | What is confirmed versus assumed |
+
+---
+
+## External work
+
+| | |
+|---|---|
+| Linux RFC series | [devopnem/linux-asr1802s-rfc](https://github.com/devopnem/linux-asr1802s-rfc) |
+| OpenWrt port | [openwrt/openwrt#24614](https://github.com/openwrt/openwrt/pull/24614), branch `asr1802s-kagu-wip` |
+| Device data | [devopnem/r291-asr1802s-findings](https://github.com/devopnem/r291-asr1802s-findings) |
+
+The OpenWrt fork is a separate checkout at `~/Downloads/openwrt/openwrt-fork`
+(symlinked here as `openwrt-fork`, gitignored). Target is
+`target/linux/asr1802s/` — kernel 6.12, musl.
+
+---
+
+## Current state
+
+**The device is bricked.** All LEDs solid, no boot. It enumerates as
+`2ecc:3002` (ASR ROM boot mode) when the `USB_BOOT` test point is asserted.
+
+* The SWDownloader write path is **blocked** — it needs Marvell-internal
+  `WTMI` and `TZII` blobs that are not part of any MTD partition and are not
+  obtainable. See [`findings/tooling/blf/swdownloader-blf-spec.md`](findings/tooling/blf/swdownloader-blf-spec.md) §6.
+* A **read-only** flash-dump path exists and needs none of those. Config
+  templates are in [`findings/tooling/blf/`](findings/tooling/blf/).
+* **UART over the test points is still the highest-value next step** and costs
+  nothing: if `Marvell>>` appears, the flash is intact and most of this is
+  unnecessary. 1.8 V, 115200, GND, cross TX/RX, do not connect VCC.
+
+## ⚠️ Privacy
+
+`findings/` is public. Its **text files are sanitised** (`[REDACTED]` for
+IMEI, IMSI, MACs, passwords) but the **binary dumps ship as read** and contain
+this unit's NVM/calibration data. Treat them as private unit data.
+
+`data/` is **never** pushed and contains the unsanitised originals, including
+a file with this unit's live IMEI, IMSI and MAC addresses.

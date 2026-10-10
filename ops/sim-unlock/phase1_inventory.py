@@ -2,7 +2,7 @@
 """
 Phase 1: Inventory & Backup script for Notion R291 (Ooredoo)
 Executes system reconnaissance via SSH root shell and dumps critical partitions (mtd1, mtd2, mtd3, mtd5)
-to the sim_unlock/ directory for offline analysis.
+to the ops/sim-unlock/ directory for offline analysis.
 """
 
 import os

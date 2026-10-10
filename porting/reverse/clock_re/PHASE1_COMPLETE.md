@@ -12,7 +12,7 @@
 | 4 | **checkpatch --strict** | — | ✅ 0 أخطاء، 0 تحذيرات | CHECK spinlock فقط (مقبول). |
 | 5 | **Kconfig/Makefile scaffolding** | `PHASE1_COMPLETE.md` | ✅ مُحدد | نموذج على COMMON_CLK_PXA1908. |
 | 6 | **توثيق consumer wiring** | `PHASE1_COMPLETE.md` | ✅ مكتمل | gpio+timer: `clocks = <&clk_apb ASR1802S_CLK_BACLK>;`. |
-| 7 | **Ground-truth من الجهاز الحي** | `probe_read_from_live_router/live_ssh_session/dump.txt` (63KB) | ✅ محفوظ | clk_summary مؤكد OPPs؛ kallsyms يطابق أسماء RE. |
+| 7 | **Ground-truth من الجهاز الحي** | `findings/probes/live_ssh_session/dump.txt` (63KB) | ✅ محفوظ | clk_summary مؤكد OPPs؛ kallsyms يطابق أسماء RE. |
 
 > **كيف تم التحقق**: من البوت الحي على الـ R291 (kernel 3.10.33) — clk_summary يعرض `ddr 533 MHz @ dpll_1066`، `axi 208 MHz @ pll1_208`، `cpu 312 MHz @ pll1_312` (مع إشارة that cpu boot@1248 ثم downclock — الـ driver يدعم كليهما). كل الـ OPP tables من RE مصدقة.
 > **ملحوظة**: `/dev/mem` محظور على 0xc0100000 (STRICT_DEVMEM) — الاعتماد على clk_summary كافٍ.
@@ -88,4 +88,4 @@ obj-$(CONFIG_COMMON_CLK_ASR1802S) += clk-asr1802s.o
 3. تجميع الـ series الكامل (binding → clock → dts consumers → peripherals) كـ patches منفصلة.
 4. إرسال RFC2 / v1 محدث للـ ML.
 
-(الملفات WIP موجودة في `porting_workspace/clock_re/` — جاهزة للنقل إلى الـ tree عند بدء المرحلة 2.)
+(الملفات WIP موجودة في `porting/reverse/clock_re/` — جاهزة للنقل إلى الـ tree عند بدء المرحلة 2.)

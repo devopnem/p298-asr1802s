@@ -111,7 +111,7 @@ for p in ports:
     at_output = exec_cmd(t, f"python3 {remote_script_path}")
     print(at_output)
 
-    # Save output to sim_unlock/at_test_results.txt
+    # Save output to ops/sim-unlock/at_test_results.txt
     res_path = os.path.join(OUT_DIR, "at_test_results.txt")
     with open(res_path, "w", encoding="utf-8") as f:
         f.write(at_output)

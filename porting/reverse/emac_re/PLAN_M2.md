@@ -33,7 +33,7 @@
 
 ## Phase 1 — Binary RE of kernel-a.bin
 
-1. `scripts/extract-vmlinux oem_backup/kernel-a.bin > porting_workspace/emac_re/kernel-decomp.bin`
+1. `scripts/extract-vmlinux findings/firmware-backup/kernel-a.bin > porting/reverse/emac_re/kernel-decomp.bin`
 2. Locate emac code:
    - String xrefs (`r2` izz/axt): "emac_reset_hw", "emac set tx dline",
      "emac set rx dline", "clk_phase_rgmii_set", "emac mii", "find fixed
@@ -44,7 +44,7 @@
    descriptor ring layout ("dline" regs), INT_CAUSE/MASK bits, MDIO
    addr/data/ctrl sequence, NAPI/IRQ handling.
 4. Cross-check descriptor format vs mainline pxa168_eth.c (build tree).
-5. Write porting_workspace/emac_re/RE_NOTES.md.
+5. Write porting/reverse/emac_re/RE_NOTES.md.
 
 ## Phase 2 — Driver
 

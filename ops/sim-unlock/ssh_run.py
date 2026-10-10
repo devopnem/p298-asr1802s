@@ -3,7 +3,7 @@
 Generic SSH runner for the Notion R291 router.
 Usage: python3 ssh_run.py "command" [--save filename] [--timeout N]
 Connects via paramiko with legacy kex, runs the command, prints output,
-optionally saves raw output into sim_unlock/.
+optionally saves raw output into ops/sim-unlock/.
 """
 import os
 import sys
@@ -56,7 +56,7 @@ def exec_cmd(t, cmd, wait=0.6, timeout=30):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", nargs="+", help="command to run on the router")
-    ap.add_argument("--save", default=None, help="save output to this file (in sim_unlock)")
+    ap.add_argument("--save", default=None, help="save output to this file (in ops/sim-unlock)")
     ap.add_argument("--wait", type=float, default=0.6)
     ap.add_argument("--timeout", type=float, default=20)
     args = ap.parse_args()

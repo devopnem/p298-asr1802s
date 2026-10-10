@@ -1,7 +1,7 @@
 # OBM / mtd0 "Bootloader" Analysis — and OBM vs U-Boot (mtd11)
 
 Analysis date: 2026-10-06
-Artifact: `mtd0.bin` (copied from `../oem_backup/dumps/mtd0.bin`, hash-verified identical)
+Artifact: `mtd0.bin` (copied from `../findings/nand-dumps/mtd0.bin`, hash-verified identical)
 
 | Property | Value |
 |---|---|
@@ -240,7 +240,7 @@ inspection and recovery point.**
 
 ## 7. Artifacts saved to this folder
 
-Copied from `../oem_backup/dumps/` and verified byte-identical:
+Copied from `../findings/nand-dumps/` and verified byte-identical:
 
 | File | Size | SHA-256 (first 16) | Role |
 |---|---|---|---|

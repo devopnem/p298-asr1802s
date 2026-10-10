@@ -4,7 +4,7 @@
 # read-only tracing + a NAND read/erase trigger. Run AFTER the router is
 # physically reconnected (192.168.1.1, root/19222019).
 #
-# Technique B from BRINGUP_MILESTONES.md M1. Highest-confidence RE source for
+# Technique B from docs/porting/BRINGUP_MILESTONES.md M1. Highest-confidence RE source for
 # the exact QSPI register offsets + IP-command program order.
 #
 # Output: trace_qspi_<timestamp>.log saved locally (scp'd back).
@@ -57,4 +57,4 @@ $SSH 'ROOT=/sys/kernel/debug/tracing; echo 0 > $ROOT/tracing_on; cat $ROOT/trace
 $SSH 'cat /proc/asr-qspi/dump 2>/dev/null || echo "no procfs dump"' >> "$OUT" 2>&1
 
 echo "=== done; saved to $OUT ===" | tee -a "$OUT"
-echo "Copy this file into porting_workspace/qspi/live_trace/ for analysis."
+echo "Copy this file into porting/reverse/qspi/live_trace/ for analysis."
