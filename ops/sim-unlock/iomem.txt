@@ -1,1 +1,1 @@
-../findings/probes/proc_iomem.txt
+../../findings/probes/proc_iomem.txt
