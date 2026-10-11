@@ -1,4 +1,4 @@
-# Project: Notion R291 ASR1802S — OpenWrt port (KAGU)
+# Project: Notion P298 ASR1802S — OpenWrt port (KAGU)
 
 ## Strict Rule: asr1802s target completeness (MUST NOT REGRESS)
 
@@ -36,7 +36,7 @@ Reference: `docs/recovery/flashing_and_failsafe_guide.md` and `docs/porting/BRIN
 - Set `DEVICE_DTS_DIR` if DTS lives in a subdirectory (e.g. `$(DTS_DIR)/asr`).
 - Variable names: `KERNEL_LOADADDR` (not KERNEL_LOAD_ADDR), no `KERNEL_INITRAMFS := 1`.
 - Must end with `$(eval $(call BuildImage))`.
-- **R291 needs**: `IMAGES := kernel.bin rootfs.bin`, `IMAGE/kernel.bin`, `IMAGE/rootfs.bin`, `KERNEL_SIZE := 5120k`, `IMAGE_SIZE := 20480k`, `FILESYSTEMS := squashfs` — without these, no firmware images are produced.
+- **P298 needs**: `IMAGES := kernel.bin rootfs.bin`, `IMAGE/kernel.bin`, `IMAGE/rootfs.bin`, `KERNEL_SIZE := 5120k`, `IMAGE_SIZE := 20480k`, `FILESYSTEMS := squashfs` — without these, no firmware images are produced.
 
 ### Kernel patch format (patches-6.12/)
 - Use `git format-patch` mbox format (a/...b/... prefixes), never quilt dump.
@@ -81,8 +81,8 @@ Reference: `docs/recovery/flashing_and_failsafe_guide.md` and `docs/porting/BRIN
 
 ## Workspace Layout
 
-- **Working dir (notion-r291)**: `~/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/` — docs, porting, ops
-- **findings/**: nested git repository -> `devopnem/r291-asr1802s-findings`.
+- **Working dir (notion-p298)**: `~/Downloads/Modems/Notion_P298_ASR1802S/` — docs, porting, ops
+- **findings/**: nested git repository -> `devopnem/p298-asr1802s-findings`.
   Primary-source device data (probes, NAND dumps, firmware backup, PCB photos, flash tooling).
   Gitignored by the parent repo. Sync with `git -C findings pull` / `git -C findings push`.
   Single source of truth for that repo; never track or edit it from the parent.
