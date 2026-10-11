@@ -1,10 +1,10 @@
-# Ooredoo R291 V2 (Notion R291) — معلومات مؤكدة
+# Ooredoo P298 (Notion P298) — معلومات مؤكدة
 
 ## معلومات الجهاز
 | الخاصية | القيمة |
 |---------|--------|
-| الموديل | Ooredoo R291 V2 (HW: P298_N13) |
-| النسخة الحالية | Ooredoo-R291-V2 (build 20240411_18_29) |
+| الموديل | Ooredoo P298 (HW: P298_N13) |
+| النسخة الحالية | Ooredoo P298 (build 20240411_18_29) |
 | الجهاز الشبيه | **Megafon C300-1 / Yota C300-1** — نفس اللوحة تماماً |
 | العائلة | ASR1802S — **ARM Cortex-A7** (تصحيح: استنتاج "MT7621 MIPS" المبكر كان خاطئاً — مؤكد من dmesg الجهاز الحي: `CPU: ARMv7 Processor [410fc073]`) |
 
@@ -105,7 +105,7 @@ $Passworld143, Passworld143, passworld143, P@ssw0rd, 7icF3j8W,
 ooredoo, Ooredoo, MTK7621, mtk7621, Zte521, ZTE, zte,
 user, guest, (فارغ), admin123, root123, toor, notion,
 IMEI 868139070652232, Serial R291240826015571, wifirp90&$MM,
-marvell, Marvell, PXA1826, ASR, R291, r291,
+marvell, Marvell, PXA1826, ASR, P298, p298,
 Superlightweight123, 123456789, qwerty, letmein
 
 > ✅ **الحل الفعلي**: كلمة المرور موجودة في U-Boot env (`dropbear_password`،
@@ -153,7 +153,7 @@ python3 acs_tr069.py arm-root-pw      # (دالة جديدة: تكتب shadow ro
 
 # على جهازك (void) الآن — ssh لا يعلق
 
-هذا راوتر notion r291 ip - 192.168.1.1 مجلد النسخة الاحتياطية : ooredoo_backup
+هذا راوتر notion p298 ip - 192.168.1.1 مجلد النسخة الاحتياطية : ooredoo_backup
 هذا الملف: probe فيه بعض البيانات من داخل الراوتر
 هذا الملف: archive/openwrt_port/DEVICE_PROFILE.md فيه معلومات الجهاز (قديم — المصدر المحدث:
 docs/ + porting/

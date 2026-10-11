@@ -1,10 +1,10 @@
 Port OpenWrt to Notion R291 ASR1802S/ASR1826s LTE gateway by adding PCIe host controller driver (asr,pcie-kagu) for dual-port DesignWare PCIe to enable WiFi (RTL8812FE + RTL8192FR) and complete flashable image with minimal system (LuCI + SSH + Ethernet + WiFi)
 Important Details
-Device: Notion R291 ASR (ASR1802S SoC = ASR1826s P298 board) — ARMv7 Cortex-A7, 128 MiB RAM, 128 MiB SPI-NAND
+Device: Notion P298 ASR (ASR1802S SoC = ASR1826s P298 board) — ARMv7 Cortex-A7, 128 MiB RAM, 128 MiB SPI-NAND
 PCIe: Dual-port DesignWare (asr,pcie-kagu) — Gen1 x1, ports at PHY 0xd4220000/0xd4210000, config 0xd428c000/0xd4288000, ICU IRQ 51/50
 WiFi: RTL8812FE (5GHz, port 0) + RTL8192FR (2.4GHz, port 1) behind ASR bridges (1e5d:3002/1e5d:3001)
 Build environment: distrobox Debian (openwrt-ci), NOT Void Linux — host toolchain issues fixed
-Architecture: SoC = ASR1802S (same as ASR1826s), board = ASR1826s-r291 (P298); "1806s" was typo, correct is 1826s
+Architecture: SoC = ASR1802S (same as ASR1826s), board = ASR1826s-p298 (P298); "1806s" was typo, correct is 1826s
 Clock driver: Patch 0005 provides ASR1802S_CLK_PERIPH (9), ASR1802S_CLK_AXI (11)
 Minimal test goal: SSH + Ethernet + WiFi (2.4GHz RTL8192FR) + kernel working; LuCI later
 Work State
@@ -32,7 +32,7 @@ For production: use openwrt-ci (distrobox/Debian) for reproducible builds
 Relevant Files
 target/linux/asr1802s/patches-6.12/0014-pci-asr-kagu-add-pcie-host-controller-driver.patch — PCIe driver + Kconfig + Makefile
 target/linux/asr1802s/patches-6.12/0013-dt-bindings-pci-asr,pcie-kagu.yaml.patch — DT binding
-target/linux/asr1802s/patches-6.12/0003-ARM-dts-asr-Add-ASR1802S-SoC-and-ASR1826s-R291-board.patch — DTS with PCIe node, clocks, interrupt-map
+target/linux/asr1802s/patches-6.12/0003-ARM-dts-asr-Add-ASR1802S-SoC-and-ASR1826s-P298-board.patch — DTS with PCIe node, clocks, interrupt-map
 target/linux/asr1802s/config-6.12 — kernel config (PCI options enabled)
 target/linux/asr1802s/image/Makefile — image build (needs pad-rootfs)
 package/firmware/linux-firmware/ — contains rtlwifi/rtl8192fufw.bin for RTL8192FR

@@ -1,6 +1,6 @@
-# Notion R291 ASR1802S — OpenWrt Flash & Failsafe Guide
+# Notion P298 ASR1802S — OpenWrt Flash & Failsafe Guide
 
-> **Consolidated guide** for flashing OpenWrt onto the Notion R291 (ASR1802S/ASR1826s).
+> **Consolidated guide** for flashing OpenWrt onto the Notion P298 (ASR1802S/ASR1826s).
 > Replaces `flashing_guide.md` and `FLASH_TEST_PLAN.md`.
 >
 > **Rev 2026-09-11:** SSH-only findings incorporated — live unit boots `system=b`
@@ -51,7 +51,7 @@
 
 | Item | Notes |
 |------|-------|
-| Host PC connected to R291 LAN | Via Ethernet switch port (lan1–lan4) |
+| Host PC connected to P298 LAN | Via Ethernet switch port (lan1–lan4) |
 | Router stock firmware running | SSH accessible at `192.168.1.1` |
 | `sshpass` installed on host | `sudo xbps-install sshpass` (Void Linux) |
 | Python 3 | For `dtim-rebuild.py` |
@@ -131,9 +131,9 @@ make target/linux/compile TARGET=asr1802s -j$(nproc) V=s
 ```
 
 Output appears in `bin/targets/asr1802s/generic/`:
-- `openwrt-...-notion_r291-squashfs-kernel.bin` (~3.2 MiB, raw zImage + DTB) → NAND `kernel` partition (5 MiB, fits)
-- `openwrt-...-notion_r291-squashfs-rootfs.bin` (~2.5 MiB, squashfs) → NAND `rootfs` partition (20 MiB, fits)
-- `openwrt-...-notion_r291-initramfs-kernel.bin` (~5.2 MiB / 5,473,240 B, kernel + rootfs in RAM) → **RAM-boot only via UART+TFTP (§11), NEVER `mtd write`**: it is larger than the 5,242,880 B kernel partition and would truncate.
+- `openwrt-...-asr1826s_p298-squashfs-kernel.bin` (~3.2 MiB, raw zImage + DTB) → NAND `kernel` partition (5 MiB, fits)
+- `openwrt-...-asr1826s_p298-squashfs-rootfs.bin` (~2.5 MiB, squashfs) → NAND `rootfs` partition (20 MiB, fits)
+- `openwrt-...-asr1826s_p298-initramfs-kernel.bin` (~5.2 MiB / 5,473,240 B, kernel + rootfs in RAM) → **RAM-boot only via UART+TFTP (§11), NEVER `mtd write`**: it is larger than the 5,242,880 B kernel partition and would truncate.
 
 `CONFIG_TARGET_ROOTFS_INITRAMFS=y` is already enabled — no `menuconfig` change needed for initramfs output.
 
@@ -167,7 +167,7 @@ All patches are included in `target/linux/asr1802s/patches-6.12/` and applied au
 
 ```bash
 cd bin/targets/asr1802s/generic/
-ls -la openwrt-*-notion_r291-squashfs-*.bin
+ls -la openwrt-*-asr1826s_p298-squashfs-*.bin
 ```
 
 You need:
@@ -200,9 +200,9 @@ def pad_ff(src, dst, size):
     assert len(d) <= size, (src, len(d), size)
     open(dst, 'wb').write(d + b'\xff' * (size - len(d)))
     print(dst, hex(len(d)), '->', hex(size))
-pad_ff('openwrt-asr1802s-generic-notion_r291-squashfs-kernel.bin',
+pad_ff('openwrt-asr1802s-generic-asr1826s_p298-squashfs-kernel.bin',
        '/tmp/openwrt-zImage-dtb', 5 * 1024 * 1024)
-pad_ff('openwrt-asr1802s-generic-notion_r291-squashfs-rootfs.bin',
+pad_ff('openwrt-asr1802s-generic-asr1826s_p298-squashfs-rootfs.bin',
        '/tmp/openwrt-rootfs.bin', 20 * 1024 * 1024)
 EOF
 ```
@@ -210,7 +210,7 @@ EOF
 ### 3d. Rebuild DTIM (mtd7) with new hashes
 
 ```bash
-cd /path/to/Notion_R291_ASR1802S_P298_N13
+cd /path/to/Notion_P298_ASR1802S
 
 python3 porting/delivery/dtim-rebuild.py \
   porting/delivery/mtd7.stock \
@@ -387,7 +387,7 @@ OpenWrt has a preinit-based failsafe system:
 3. If present, waits N seconds for user to press `f` on serial console
 4. If triggered: drops to root ash shell on UART, blinks LED
 
-**Limitation on R291:** `pi_ifname=` and `fs_failsafe_ifname=` are empty — failsafe only works via UART serial console, NOT over LAN. The reset button does NOT trigger failsafe.
+**Limitation on P298:** `pi_ifname=` and `fs_failsafe_ifname=` are empty — failsafe only works via UART serial console, NOT over LAN. The reset button does NOT trigger failsafe.
 
 ### 7b. Enabling failsafe via bootargs (⚠️ DANGEROUS — skip on SSH-only units)
 
@@ -690,9 +690,9 @@ slots disagree.
 
 ```
 # On host: serve bin/targets/asr1802s/generic/
-#   openwrt-asr1802s-generic-notion_r291-initramfs-kernel.bin via TFTP.
+#   openwrt-asr1802s-generic-asr1826s_p298-initramfs-kernel.bin via TFTP.
 # At mrvlboot prompt (hit key during bootdelay=1):
-tftpboot 0x8000 openwrt-asr1802s-generic-notion_r291-initramfs-kernel.bin
+tftpboot 0x8000 openwrt-asr1802s-generic-asr1826s_p298-initramfs-kernel.bin
 bootz 0x8000
 ```
 

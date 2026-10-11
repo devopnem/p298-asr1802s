@@ -1,4 +1,4 @@
-# SWDownloader `.blf` — findings for Notion R291 / ASR1802S (PXA1802)
+# SWDownloader `.blf` — findings for Notion P298 / ASR1802S (PXA1802)
 
 Date: 2026-10-10 · Binary: `Marvell_SWDownloader_v4.8.8.2/swdl_linux` (ELF32 i386, static, not stripped, has `debug_info`)
 

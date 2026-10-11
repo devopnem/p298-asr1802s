@@ -1,4 +1,4 @@
-# U-Boot (mtd11) Analysis — Notion R291 ASR1802S "Kagu"
+# U-Boot (mtd11) Analysis — Notion P298 ASR1802S "Kagu"
 
 Analysis date: 2026-10-06
 Artifact: `mtd11.bin` (copied from `../findings/nand-dumps/mtd11.bin`, hash-verified identical)

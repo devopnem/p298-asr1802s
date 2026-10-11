@@ -1,4 +1,4 @@
-# دراسة البوتلودر — Ooredoo R291 V2 (ASR1802S / KAGU)
+# دراسة البوتلودر — Ooredoo P298 (ASR1802S / KAGU)
 
 > تاريخ النسخ: 2026-08-06 | المصدر: الجهاز الحي 192.168.1.1 (root SSH)
 > النسخ الاحتياطية الخام: `bootloader_analysis/dumps/` (كل الـ 25 partition)

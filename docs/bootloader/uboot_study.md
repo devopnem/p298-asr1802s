@@ -1,6 +1,6 @@
-# دراسة: إمكانية عمل نسخة U-Boot مخصصة لـ R291 (ASR1802S / KAGU P298)
+# دراسة: إمكانية عمل نسخة U-Boot مخصصة لـ P298 (ASR1802S / KAGU P298)
 
-> التاريخ: 2026-08-13 | الجهاز: Ooredoo R291 V2 (Notion R291, HW: P298_N13)
+> التاريخ: 2026-08-13 | الجهاز: Ooredoo P298 (Notion P298, HW: P298_N13)
 > SoC: ASR Microelectronics ASR1802S (ARM Cortex-A7 — سليل Marvell PXA1826/MMP)
 > المراجع: `REPORT.md`، `../ops/confirmed.md`، `../porting/mainlin.md`، RFC series: devopnem/linux-asr1802s-rfc
 
@@ -89,7 +89,7 @@ mtd15/16  rootfs-a/b — squashfs (OpenWrt Barrier Breaker 14.07 / kernel 3.10.3
 | 1 | **مصدر ASR/Marvell مغلق نهائياً** | الكوميت `5f745ec` غير موجود في upstream (GitHub API 422)؛ `MarvellEmbeddedProcessors/u-boot-marvell` (فروع 2013.01→2020.10) كلها Armada/mvebu بلا أي MMP/88AP | استحالة إعادة بناء نسخة مطابقة من المصدر |
 | 2 | **OBM يهيّئ DDR** | سلاسل `DDR Mode/Vendor/Size`، `DDR size not right` في mtd0.bin | u-boot مخصص لا يحتاج DDR init |
 | 3 | **رأس mtd11 يحدد عنوان التحميل** | 0x12345678 + 0x30008000 + أطوال | أي u-boot مخصص يجب أن يُربط عند 0x30008000 بهذا الرأس (أو ما يثبته التجريب) |
-| 4 | **مرجع mach-mmp في upstream الحالي** | `arch/arm/mach-mmp/board.c` لـ PXA1908 (Samsung coreprimevelte، 2024): timer عبر APBC 0xd4015064/COUNTER 0xd4101000 | نفس منطقة سجلات R291 (ttyS0 @0xd4017000، pxa910-squ) — قاعدة انطلاق قابلة للنسخ |
+| 4 | **مرجع mach-mmp في upstream الحالي** | `arch/arm/mach-mmp/board.c` لـ PXA1908 (Samsung coreprimevelte، 2024): timer عبر APBC 0xd4015064/COUNTER 0xd4101000 | نفس منطقة سجلات P298 (ttyS0 @0xd4017000، pxa910-squ) — قاعدة انطلاق قابلة للنسخ |
 | 5 | **دليل ميداني على قبول OBM لـ u-boot خارجي** | أدوات المجتمع تفلش `uboot.bin` (312KB، md5 707b4f4c…) مع TFTP وقلع ناجح (REPORT.md بند 6) | استبدال الـ u-boot ممهد وموثق سلوكياً |
 | 6 | **USB download كشبكة أمان** | `[Non-Prod]Wait for download…`، `bootMode=`، PROD=0 عندنا | حتى تعطل mtd0/mtd11 كلياً يُستعاد عبر Marvell SWDownloader (.blf) أو NAND clip |
 | 7 | **u-boot الحالي بلا شبكة** | فحص سلاسل كامل: صفر أوامر TFTP/eth | TFTP = ميزة u-boot المخصص الأول (كما فعل المجتمع) |
@@ -130,7 +130,7 @@ mtd15/16  rootfs-a/b — squashfs (OpenWrt Barrier Breaker 14.07 / kernel 3.10.3
 
 ### المسار B — u-boot مخصص على أساس ثنائي مجتمعي (TFTP + إزالة الفحص)
 - ماذا يوجد: `uboot.bin` (312KB، md5 `707b4f4c5f2cee77affcbd7d0cc731ec`) يُفلشه
-  `flash.bat` لأدوات الفتح (r291-tunisia-unlock.exe…)، و`uboot.img` (132KB،
+  `flash.bat` لأدوات الفتح (p298-tunisia-unlock.exe…)، و`uboot.img` (132KB،
   ببانات U-Boot 1.1.3) بنسخة أقدم/أصغر.
 - إجراءات:
   1. الحصول على الثنائيات (من أدوات المجتمع/تيليجرام/فيديوهات الفلاش).
@@ -222,10 +222,10 @@ mtd15/16  rootfs-a/b — squashfs (OpenWrt Barrier Breaker 14.07 / kernel 3.10.3
   - `cross-arm-none-eabi-gcc`
   - (إن رغبت بأداة مصحح/فك: `rizin`/`radare2` أو Ghidra عبر xbps — نطلبها عند الحاجة)
 - مجلدات العمل:
-  - مجلد الدراسة والوثائق: `/home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/`
+  - مجلد الدراسة والوثائق: `/home/void/Downloads/Modems/Notion_P298_ASR1802S/`
   - قاعدة المصدر: شجرة u-boot الحالية `/home/void/Downloads/openwrt/u-boot`
-    (ملاحظة: clone سطحي بكوميت واحد و`.config` لـ ath79 — سننشئ fork/فرع جديد `kagu-r291`
-    أو clone كامل نحته للـ R291، ونربطه بمجلد العمل عبر symlink `u-boot` كما هو حاصل
+    (ملاحظة: clone سطحي بكوميت واحد و`.config` لـ ath79 — سننشئ fork/فرع جديد `kagu-p298`
+    أو clone كامل نحته للـ P298، ونربطه بمجلد العمل عبر symlink `u-boot` كما هو حاصل
     مع `openwrt-fork`).
 
 ---

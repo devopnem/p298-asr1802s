@@ -13,7 +13,8 @@ YT9215RB
 model M221
 2024082106
 S/N M22IN3124082415806
-الشركة المصنعة: شركة Shanghai Nuoxing Information Technology Co., Ltd. (بالصينية: 上海诺行信息技术有限公司 - وتعرف أيضاً بالعلامة Nuoxing أو Notion)[1][3].
+
+company: Shanghai Nuoxing Information Technology Co., Ltd. (in chines: 上海诺行信息技术有限公司 - also knows as: Nuoxing أو Notion)[1][3].
 
 RTL8812FR
 01EX3P1 G006
@@ -25,15 +26,15 @@ M11SQH2 GH10
 
 = Wifi 2.4 ghz
 
-hardware version
-P298_N13
-
 MxL
 SLLU3
 RPN42.08
 2321 4 
 
 = telephony
+
+hardware version
+P298_N13
 
 RB47
 P61089B

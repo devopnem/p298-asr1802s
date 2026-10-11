@@ -1,7 +1,7 @@
-# R291 ASR1802S (Notion R291 / KAGU) — OpenWrt + kernel bring-up milestones
+# P298 ASR1802S (Notion P298 / KAGU) — OpenWrt + kernel bring-up milestones
 
-> Workspace: /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13
-> Findings (mirror): https://github.com/devopnem/r291-asr1802s-findings
+> Workspace: /home/void/Downloads/Modems/Notion_P298_ASR1802S
+> Findings (mirror): https://github.com/devopnem/p298-asr1802s-findings
 > OpenWrt fork: /home/void/Downloads/openwrt/openwrt-fork  (branch asr1802s-kagu-wip @ 74a3dc6b = PR #24614)
 > Kernel RFC: https://github.com/devopnem/linux-asr1802s-rfc
 > Strict rule: `AGENTS.md` — target completeness check before any `push --force`.
@@ -21,7 +21,7 @@
 1. ✅ `clk-asr1802s.c` `of_device_id` aligned: `asr,asr1802s-clock` + `marvell,asr1802s-clock`.
 2. ✅ Patch `0005` (clk driver, 869→868 lines after 2026-08-22 header trim): driver + Kconfig + Makefile + dt-bindings.
 3. ✅ `config-6.12`: `CONFIG_COMMON_CLK_ASR1802S=y`, cleaned 7 unreachable lines (`SND_*`/`VIDEO`/`ARM_APPENDED_DTB`), moved to `430fb917` so bisect passes (430fb917..74a3dc6b all have config).
-4. ✅ `.config` device symbol fixed (`notion_r291`). `0001-0004` subjects normalized to bare `[PATCH]`, `0008` maintainer + `unevaluatedProperties`, `0009` distinct hash.
+4. ✅ `.config` device symbol fixed (`asr1826s_p298`). `0001-0004` subjects normalized to bare `[PATCH]`, `0008` maintainer + `unevaluatedProperties`, `0009` distinct hash.
 5. ⏳ Local build: toolchain NOT installed → **build via CI** (CI `Build asr1802s` now runs again after 74a3dc6b).
 6. ✅ PR branch at `74a3dc6b` (forced from `8bd7c651`), 4 review nits fixed, target completeness verified (`AGENTS.md` strict rule added).
 7. ⏳ Mirror series to `linux-asr1802s-rfc` (pending).
@@ -71,4 +71,4 @@ DTIM hash RE (parallel) ──> M4
 ## Risks
 - Blind dev until M4 (no live feedback) — mitigated by live kprobes on stock router + Marvell public sources + full dumps.
 - DTIM hash formula is the hard gate for M4.
-- DELETE old delivery scripts (`flash_r291_slot_a.sh`, `install_openwrt_r291.sh`) — they write uImage + raw DTB to mtd7 = brick method.
+- DELETE old delivery scripts (`flash_slot_a.sh (formerly flash_r291_slot_a.sh)`, `install_openwrt_p298.sh`) — they write uImage + raw DTB to mtd7 = brick method.

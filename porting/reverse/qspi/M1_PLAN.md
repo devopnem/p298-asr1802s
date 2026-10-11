@@ -1,6 +1,6 @@
 # M1 — QSPI SPI-NAND driver (`asr,qspi`) bring-up plan
 
-> Workspace: /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13
+> Workspace: /home/void/Downloads/Modems/Notion_P298_ASR1802S
 > Parent milestone: docs/porting/BRINGUP_MILESTONES.md §M1 (MOST CRITICAL — blocks rootfs)
 > Owner: this AI (M1 worker). M0 (clock) owned by same AI, lands first.
 > Router for live RE: 192.168.1.1 (online during session 2026-08-17; saved captures in
@@ -33,7 +33,7 @@ Deliverable:
   `page_size=0x800`, `bitflip_threshold=4`. `qspi: set qspi bus clock to 52MHz`.
   `use_intr=1 en_tx_dma=1 use_xip=1`.
 - clk_summary: `qspi_fclk` 208 MHz → `qspi` 52 MHz.
-- DTS already wired: `asr1802s.dtsi` has the node; `asr1826s-r291.dts` `&qspi`
+- DTS already wired: `asr1802s.dtsi` has the node; `asr1826s-p298.dts` `&qspi`
   has 25 partitions + `spi-nand` child. `config-6.12` has SPI_MASTER/SPI_MEM/MTD_SPI_NAND=y.
 
 ## Open unknowns (the RE work)

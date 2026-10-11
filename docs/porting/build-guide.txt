@@ -108,9 +108,9 @@ make package/kmod-rtl8xxxu/compile V=s
 make target/linux/install TARGET=asr1802s V=s
 
 Output images in bin/targets/asr1802s/generic/:
-openwrt-*-notion_r291-squashfs-kernel.bin (5MB, kernel+DTB)
-openwrt-*-notion_r291-squashfs-rootfs.bin (20MB, rootfs)
-openwrt-*-notion_r291-squashfs-sysupgrade.bin (combined)
+openwrt-*-asr1826s_p298-squashfs-kernel.bin (5MB, kernel+DTB)
+openwrt-*-asr1826s_p298-squashfs-rootfs.bin (20MB, rootfs)
+openwrt-*-asr1826s_p298-squashfs-sysupgrade.bin (combined)
 
 6. Flash to Device
 # On your host (Void Linux or wherever you flash):

@@ -14,7 +14,7 @@
 | 6 | **توثيق consumer wiring** | `PHASE1_COMPLETE.md` | ✅ مكتمل | gpio+timer: `clocks = <&clk_apb ASR1802S_CLK_BACLK>;`. |
 | 7 | **Ground-truth من الجهاز الحي** | `findings/probes/live_ssh_session/dump.txt` (63KB) | ✅ محفوظ | clk_summary مؤكد OPPs؛ kallsyms يطابق أسماء RE. |
 
-> **كيف تم التحقق**: من البوت الحي على الـ R291 (kernel 3.10.33) — clk_summary يعرض `ddr 533 MHz @ dpll_1066`، `axi 208 MHz @ pll1_208`، `cpu 312 MHz @ pll1_312` (مع إشارة that cpu boot@1248 ثم downclock — الـ driver يدعم كليهما). كل الـ OPP tables من RE مصدقة.
+> **كيف تم التحقق**: من البوت الحي على الـ P298 (kernel 3.10.33) — clk_summary يعرض `ddr 533 MHz @ dpll_1066`، `axi 208 MHz @ pll1_208`، `cpu 312 MHz @ pll1_312` (مع إشارة that cpu boot@1248 ثم downclock — الـ driver يدعم كليهما). كل الـ OPP tables من RE مصدقة.
 > **ملحوظة**: `/dev/mem` محظور على 0xc0100000 (STRICT_DEVMEM) — الاعتماد على clk_summary كافٍ.
 
 ## 📁 مواقع الملفات النهائية (للـ tree)
@@ -84,7 +84,7 @@ obj-$(CONFIG_COMMON_CLK_ASR1802S) += clk-asr1802s.o
 
 ## 📋 خطة المرحلة 2 (عند الاتفاق)
 1. استخراج باقي الـ drivers (serial/timer/IRQ/mmc/usb) من vendor zImage (أو source إن توافر).
-2. boot test على الـ R291 — توثيق الـ clock divider fields المتبقية.
+2. boot test على الـ P298 — توثيق الـ clock divider fields المتبقية.
 3. تجميع الـ series الكامل (binding → clock → dts consumers → peripherals) كـ patches منفصلة.
 4. إرسال RFC2 / v1 محدث للـ ML.
 

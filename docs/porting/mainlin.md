@@ -7,7 +7,7 @@
 
 ## 1) الجهاز والـ SoC
 
-- **الراوتر:** Ooredoo R291 v2 — SoC **ASR1802S** (شركة ASR Microelectronics، انبثقت من Marvell)، نواة **ARM Cortex-A7**، لوحة **KAGU / ASR1826s**.
+- **الراوتر:** Ooredoo P298 v2 — SoC **ASR1802S** (شركة ASR Microelectronics، انبثقت من Marvell)، نواة **ARM Cortex-A7**، لوحة **KAGU / ASR1826s**.
 - **Stock firmware:** OpenWrt Barrier Breaker 14.07 على kernel 3.10.33 — أي أن المصنّع نفسه يوزّع OpenWrt، وهذا يسهّل إقناع مشرفي النواة بأن المنصة مناسبة للمجتمع.
 - **الذاكرة:** SPI-NAND 128MB، 25 partition (ترتيب A/B مزدوج) عبر `nand0`.
 - **القرابة المعمارية:** عائلة Marvell/Armada (link base `0xC0008000`، سجلات FCCR/DDR/AXI مشابهة للعائلات الموجودة أصلاً في النواة).
@@ -23,8 +23,8 @@
 | `drivers/clk/clk-asr1802s.c` | مُعرّف ساعة ASR1802S مبني داخل النواة (`CONFIG_COMMON_CLK_ASR1802S=y`)، الرمز `asr1802s_clk_probe` مُحقَّق في `vmlinux` |
 | `include/dt-bindings/clock/marvell,asr1802s.h` | تعريفات أرقام الساعات للـ DTS |
 | `Documentation/devicetree/bindings/clock/marvell,asr1802s.yaml` | ربط DT (dt-binding) بصيغة YAML |
-| `arch/arm/boot/dts/asr/asr1826s.dtsi` + `asr1826s-kagu.dts` | وصف لوحة KAGU (clocks, serial, ethernet, SPI-NAND) |
-| `arch/arm/boot/dts/asr/Makefile` | بناء `asr1826s-kagu.dtb` |
+| `arch/arm/boot/dts/asr/asr1826s.dtsi` + `asr1826s-p298.dts` | وصف لوحة KAGU (clocks, serial, ethernet, SPI-NAND) |
+| `arch/arm/boot/dts/asr/Makefile` | بناء `asr1826s-p298.dtb` |
 
 ### المعرفة المُستخرجة عن الساعات (من الجهاز الحي عبر SSH):
 

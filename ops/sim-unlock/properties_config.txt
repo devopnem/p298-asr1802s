@@ -13,11 +13,11 @@ config 0 'ril'
 	option telephony__properties '0'
 	option ecclist '911,112,000,08,110,999,118,119'
 
-config Ooredoo-R291-V2 'EXTERNAL_VERSION'
+config Ooredoo P298 'EXTERNAL_VERSION'
 
 config P298_N13 'EXTERNAL_HARDWARE_VERSION'
 
-config Ooredoo-R291-V2_INTERNAL_001 'INTERNAL_VERSION'
+config Ooredoo P298-V2_INTERNAL_001 'INTERNAL_VERSION'
 
 config P298_N13 'INTERNAL_HARDWARE_VERSION'
 

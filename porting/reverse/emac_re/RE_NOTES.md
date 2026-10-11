@@ -239,7 +239,7 @@ Patch set for the clean-room EMAC driver (asr,asr-eth-v2):
   0007-ARM-dts-asr-Wire-up-EMAC-pinctrl-MDIO-bus-and-vendor-props.patch
      - dtsi: pinctrl node -> pinctrl-single (#pinctrl-cells=2, register-width 32,
        function-mask 0x7), 5 vendor EMAC pin groups func0..func4; eth0 vendor props
-     - r291 board: mdio-bus phy@0 ethernet-phy-id011a.c816
+     - p298 board: mdio-bus phy@0 ethernet-phy-id011a.c816
      - checkpatch: 0 errors, only expected generic-phy warning; dtc builds clean
   config-6.12: + CONFIG_NET_VENDOR_ASR=y, CONFIG_ASR_EMAC=y, CONFIG_PHYLIB=y,
      CONFIG_FIXED_PHY=y, CONFIG_OF_MDIO=y, CONFIG_MDIO_BUS=y,

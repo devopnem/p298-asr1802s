@@ -1,4 +1,4 @@
-# فتح SSH على Ooredoo R291 V2
+# فتح SSH على Ooredoo P298
 
 ## الملخص
 

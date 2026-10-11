@@ -1,4 +1,4 @@
-# دليل عملي — TFTP و Failsafe على Ooredoo R291 (بدون UART)
+# دليل عملي — TFTP و Failsafe على Ooredoo P298 (بدون UART)
 
 > كل الأوامر تُنفَّذ من جهازك Linux عبر SSH على `root@192.168.1.1`
 > كلمة المرور: `85719364` (أو ما يعيده `dropbear_password` من بيئة U-Boot)

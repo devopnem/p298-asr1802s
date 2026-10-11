@@ -1,11 +1,11 @@
-# RGW Web API (xml_action.cgi) — Ooredoo R291 V2
+# RGW Web API (xml_action.cgi) — Ooredoo P298
 
 > المصدر الأصلي: `othet_test/ooreoo_r291.md` (مؤرشَف في `archive/`) — نُقل هنا بعد تصحيح
 > الأخطاء: المعالج هو **ARM Cortex-A7 (ASR1802S)** وليس MIPS؛ منفذ UART الفعلي موثّق أدناه.
 
 ## الجهاز
-- **موديل**: Ooredoo R291 V2، hw_ver `P298_N13`
-- **باب**: `20240411_18_29`, Ooredoo-R291-V2
+- **موديل**: Ooredoo P298، hw_ver `P298_N13`
+- **باب**: `20240411_18_29`, Ooredoo P298
 - **ذاكرة**: DDR 128MB, FLASH 128MB (NAND)
 - **MAC**: `7C:99:2E:4F:35:12`
 - **IP**: `192.168.1.1`

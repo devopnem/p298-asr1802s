@@ -107,7 +107,7 @@ Standard DWC DBI (config space) at 0xd4288000/0xd428c000 (0x1000 each):
 2. `drivers/pci/controller/dwc/pcie-asr-kagu.c`
 
 ### Modified Files (in openwrt-fork)
-1. `target/linux/asr1802s/patches-6.12/0003-ARM-dts-asr-Add-ASR1802S-SoC-and-ASR1826s-R291-board.patch` — DTS updates
+1. `target/linux/asr1802s/patches-6.12/0003-ARM-dts-asr-Add-ASR1802S-SoC-and-ASR1826s-P298-board.patch` — DTS updates
 2. `target/linux/asr1802s/patches-6.12/000X-pci-asr-add-kagu-pcie-host-driver.patch` — NEW patch for driver + Kconfig + Makefile + DT binding
 3. `target/linux/asr1802s/config-6.12` — PCI config symbols
 

@@ -15,7 +15,7 @@ distrobox create --name openwrt-ci --image ghcr.io/openwrt/tools:latest
 distrobox enter openwrt-ci
 
 # Inside the distrobox — build
-cd /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/openwrt-fork
+cd /home/void/Downloads/Modems/Notion_P298_ASR1802S/openwrt-fork
 rm -rf .config build_dir staging_dir
 cat >> .config <<'EOF'
 CONFIG_DEVEL=y
@@ -41,7 +41,7 @@ podman pull ghcr.io/openwrt/tools:latest
 
 podman run -it --rm \
   --privileged --pid=host \
-  -v /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/openwrt-fork:/work \
+  -v /home/void/Downloads/Modems/Notion_P298_ASR1802S/openwrt-fork:/work \
   -w /work \
   ghcr.io/openwrt/tools:latest \
   bash

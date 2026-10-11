@@ -1,9 +1,9 @@
 enable ssh:
-edit: /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/ops/api/api_login.py
+edit: /home/void/Downloads/Modems/Notion_P298_ASR1802S/ops/api/api_login.py
 edit correct admin password
 
-python /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/ops/api/_root_shell_phase.py enable
-python /home/void/Downloads/Modems/Notion_R291_ASR1802S_P298_N13/ops/api/acs_tr069.py root-check
+python /home/void/Downloads/Modems/Notion_P298_ASR1802S/ops/api/_root_shell_phase.py enable
+python /home/void/Downloads/Modems/Notion_P298_ASR1802S/ops/api/acs_tr069.py root-check
 
 ssh 192.168.1.1 -o HostKeyAlgorithms=ssh-rsa -o KexAlgorithms=diffie-hellman-group14-sha1 -l root
 79476268
@@ -27,15 +27,15 @@ serial_atcmd AT+CLCK=PN,2
  cat /etc/shadow
  ------
  
-python3 /home/void/Downloads/Modems/notion_r291/ops/api/acs_tr069.py root-shell --command "serial_atcmd ATE1"
-python3 /home/void/Downloads/Modems/notion_r291/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT+CFUN=0"
-python3 /home/void/Downloads/Modems/notion_r291/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT*PROD=2"
-python3 /home/void/Downloads/Modems/notion_r291/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT*MRD_MEP=D"
-python3 /home/void/Downloads/Modems/notion_r291/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT+CLCK=PN,0,04716855,16"
-python3 /home/void/Downloads/Modems/notion_r291/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT*PROD=0"
-python3 /home/void/Downloads/Modems/notion_r291/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT+CFUN=1"
+python3 /home/void/Downloads/Modems/asr1826s_p298/ops/api/acs_tr069.py root-shell --command "serial_atcmd ATE1"
+python3 /home/void/Downloads/Modems/asr1826s_p298/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT+CFUN=0"
+python3 /home/void/Downloads/Modems/asr1826s_p298/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT*PROD=2"
+python3 /home/void/Downloads/Modems/asr1826s_p298/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT*MRD_MEP=D"
+python3 /home/void/Downloads/Modems/asr1826s_p298/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT+CLCK=PN,0,04716855,16"
+python3 /home/void/Downloads/Modems/asr1826s_p298/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT*PROD=0"
+python3 /home/void/Downloads/Modems/asr1826s_p298/ops/api/acs_tr069.py root-shell --command "serial_atcmd AT+CFUN=1"
 
-python3 /home/void/Downloads/Modems/notion_r291/ops/api/acs_tr069.py root-shell --command "rm -f /tmp/flag_usb && serial_atcmd AT+CPIN? && serial_atcmd AT+COPS?"
+python3 /home/void/Downloads/Modems/asr1826s_p298/ops/api/acs_tr069.py root-shell --command "rm -f /tmp/flag_usb && serial_atcmd AT+CPIN? && serial_atcmd AT+COPS?"
 
 ------
 :

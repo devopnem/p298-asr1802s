@@ -1,4 +1,4 @@
-# Notion R291 (Ooredoo) — SIM Unlock — سجل العمل والنتائج
+# Notion P298 (Ooredoo) — SIM Unlock — سجل العمل والنتائج
 
 التاريخ: 2026-08-02
 المجلد: ops/sim-unlock/ (كل الأدوات والنتائج هنا)

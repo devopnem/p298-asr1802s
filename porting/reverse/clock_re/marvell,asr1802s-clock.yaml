@@ -16,7 +16,7 @@ description: |
 
   The register layout and the frequency-change (GO/FC) sequence were
   recovered by reverse-engineering the vendor kernel that ships on
-  Ooredoo R291 v2 / ASR 1826s ("KAGU") gateways, since no public hardware
+  Ooredoo P298 v2 / ASR 1826s ("KAGU") gateways, since no public hardware
   manual exists.
 
   Clock identifiers are defined in
@@ -86,7 +86,7 @@ examples:
 //</devicetree>
 
 description-parsed-note: |
-  On the live Ooredoo R291 v2 (vendor 3.10.33) clk_summary reports the
+  On the live Ooredoo P298 v2 (vendor 3.10.33) clk_summary reports the
   boot frequencies as: cpu 1248 MHz (sel 6), ddr 533 MHz (idx 1, parent
   dpll_1066), axi 312 MHz (sel 1, div 0).  After cpufreq/thermal governor
   downclock the cpu shows 312 MHz (sel 1) -- the driver re-reads 0x110 on

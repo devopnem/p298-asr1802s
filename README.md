@@ -1,9 +1,21 @@
-# Notion R291 / Ooredoo R291 V2 — ASR1802S (P298_N13, KAGU)
+# Notion P298 — ASR1802S (P298_N13, KAGU)
 
 Linux mainlining, OpenWrt port, and primary-source hardware findings for the
-**Notion R291** router (sold by Ooredoo as **R291 V2**, HW `P298_N13`, board
-codename **KAGU / ASR1826s**) with an **ASR1802S** SoC — ARM Cortex-A7,
-Marvell-MMP-derived, 128 MB RAM, 128 MiB SPI-NAND, 25 MTD partitions.
+**Notion P298** router — hardware version `P298_N13`, board codename
+**KAGU / ASR1826s**, **ASR1802S** SoC (ARM Cortex-A7, Marvell-MMP-derived),
+128 MB RAM, 128 MiB SPI-NAND, 25 MTD partitions.
+
+The name used throughout this project is **P298**. It is the platform code the
+hardware actually carries: it is on the board silkscreen, in the U-Boot banner
+(`ASR KAGU EVB P298`), in ASR's own kernel build string
+(`BB14.07_asr1826sP298_...`), and it is the prefix of the device's TR-069 model
+(`P298M22I_Ooredoo_Tuni_R2921_1G`).
+
+> **Why not R291?** The firmware's `EXTERNAL_VERSION` says `Ooredoo-R291-V2`,
+> which is the operator's retail SKU for the same board. But an unrelated
+> **MediaTek MT7621A** product is also sold as "Notion R291", so the string is
+> ambiguous across two completely different devices. P298 is not. See
+> [`findings/README.md`](findings/README.md).
 
 ---
 
@@ -11,7 +23,7 @@ Marvell-MMP-derived, 128 MB RAM, 128 MiB SPI-NAND, 25 MTD partitions.
 
 | path | what |
 |---|---|
-| **`findings/`** | **Primary-source device data** — probes, NAND dumps, firmware backup, PCB photos, flash tooling. Its **own git repository**, tracked at [devopnem/r291-asr1802s-findings](https://github.com/devopnem/r291-asr1802s-findings). Read [`findings/README.md`](findings/README.md). |
+| **`findings/`** | **Primary-source device data** — probes, NAND dumps, firmware backup, PCB photos, flash tooling. Its **own git repository**, tracked at [devopnem/p298-asr1802s-findings](https://github.com/devopnem/p298-asr1802s-findings). Read [`findings/README.md`](findings/README.md). |
 | **`docs/`** | All written documentation, by subject (see below) |
 | **`porting/`** | Mainline porting work — `reverse/` (hardware reverse engineering), `delivery/` (flashing and bring-up scripts) |
 | **`ops/`** | Work performed against a live unit — `api/` (TR-069/ACS), `sim-unlock/` |
@@ -25,8 +37,8 @@ Cloning this repository alone is not enough: `findings/` is a separate
 repository, and several paths here are symlinks into it.
 
 ```bash
-git clone git@github.com:devopnem/notion-r291.git
-git clone git@github.com:devopnem/r291-asr1802s-findings.git   # sibling
+git clone git@github.com:devopnem/notion-p298.git
+git clone git@github.com:devopnem/p298-asr1802s-findings.git   # sibling
 ```
 
 ### Sync
@@ -77,7 +89,7 @@ and `findings/firmware-backup/` are the only real copies.
 |---|---|
 | Linux RFC series | [devopnem/linux-asr1802s-rfc](https://github.com/devopnem/linux-asr1802s-rfc) |
 | OpenWrt port | [openwrt/openwrt#24614](https://github.com/openwrt/openwrt/pull/24614), branch `asr1802s-kagu-wip` |
-| Device data | [devopnem/r291-asr1802s-findings](https://github.com/devopnem/r291-asr1802s-findings) |
+| Device data | [devopnem/p298-asr1802s-findings](https://github.com/devopnem/p298-asr1802s-findings) |
 
 The OpenWrt fork is a separate checkout at `~/Downloads/openwrt/openwrt-fork`
 (symlinked here as `openwrt-fork`, gitignored). Target is

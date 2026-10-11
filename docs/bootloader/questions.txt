@@ -1,10 +1,10 @@
-this @mtd11.bin is the original bootloader of notion r291 asr kagu
+this @mtd11.bin is the original bootloader of notion p298 asr kagu
 i have made a custom openwrt for this router and i need to test it
 1. i hope that you extract this image to this working folder
 2. then i need you to analyse it to determinate:
 3. is there tftp server working in it?
 4. if yes: how to access it?
-5. how to flash safelly the file openwrt-asr1802s-generic-notion_r291-initramfs-kernel.bin to this router via uart?
+5. how to flash safelly the file openwrt-asr1802s-generic-asr1826s_p298-initramfs-kernel.bin to this router via uart?
 6. how to transfere the file? via uart? is it slow? or via uart ethernet? is ethernet enabled in uar mode?
 
 

@@ -92,7 +92,7 @@ RTL8852A/B/C, RTL8832A, RTL8922A — **RTL8812FR not listed.**
 
 ### Stock vendor driver
 
-`rtl8192cd.ko` — proprietary, ~30k lines, targets kernel 3.10. USB vs PCIe question is moot for this driver; it already supports PCIe (R291 uses it over PCIe). However, it **cannot be loaded on 6.12** due to ABI incompatibility.
+`rtl8192cd.ko` — proprietary, ~30k lines, targets kernel 3.10. USB vs PCIe question is moot for this driver; it already supports PCIe (P298 uses it over PCIe). However, it **cannot be loaded on 6.12** due to ABI incompatibility.
 
 ---
 
@@ -304,7 +304,7 @@ iw phy
 
 ## References
 
-- Stock driver: `Notion_R291_ASR1802S_P298_N13/findings/firmware-backup/extracted_rootfs/lib/modules/3.10.33/rtl8192cd.ko`
+- Stock driver: `Notion_P298_ASR1802S/findings/firmware-backup/extracted_rootfs/lib/modules/3.10.33/rtl8192cd.ko`
 - Realtek Jungle SDK: GPL source (CVE-2026-36355)
 - rtw88: `drivers/net/wireless/realtek/rtw88/`
 - rtl8xxxu: `drivers/net/wireless/realtek/rtl8xxxu/`
