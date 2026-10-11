@@ -97,19 +97,35 @@ The OpenWrt fork is a separate checkout at `~/Downloads/openwrt/openwrt-fork`
 
 ---
 
-## Current state
+## Recovering a bricked unit
 
-**The device is bricked.** All LEDs solid, no boot. It enumerates as
-`2ecc:3002` (ASR ROM boot mode) when the `USB_BOOT` test point is asserted.
+The P298 has no dedicated recovery button and cannot be rescued from a running
+system once it fails to boot. These are the documented routes, in the order
+worth trying.
 
-* The SWDownloader write path is **blocked** — it needs Marvell-internal
-  `WTMI` and `TZII` blobs that are not part of any MTD partition and are not
-  obtainable. See [`findings/tooling/blf/swdownloader-blf-spec.md`](findings/tooling/blf/swdownloader-blf-spec.md) §6.
-* A **read-only** flash-dump path exists and needs none of those. Config
-  templates are in [`findings/tooling/blf/`](findings/tooling/blf/).
-* **UART over the test points is still the highest-value next step** and costs
-  nothing: if `Marvell>>` appears, the flash is intact and most of this is
-  unnecessary. 1.8 V, 115200, GND, cross TX/RX, do not connect VCC.
+* **UART over the test points — try this first.** It is read-only, costs
+  nothing, and tells you immediately whether the flash is intact: if the
+  `Marvell>>` prompt appears, the bootloader survived and most of the recovery
+  work is unnecessary. 1.8 V, 115200 baud, GND, cross TX/RX, **do not connect
+  VCC**. See [`docs/recovery/flashing_and_failsafe_guide.md`](docs/recovery/flashing_and_failsafe_guide.md).
+* **USB ROM-boot + SWDownloader read** — the unit enumerates as `2ecc:3002`
+  (ASR ROM boot mode) when the `USB_BOOT` test point is asserted, dropping off
+  the bus after ~1.5 s if the host does not handshake. This gives a read-only
+  flash dump; config templates are in
+  [`findings/tooling/blf/`](findings/tooling/blf/).
+* **USB ROM-boot + SWDownloader write — blocked.** The DKB image list needs
+  Marvell-internal `WTMI` and `TZII` blobs that are not any MTD partition and
+  are not obtainable from the hardware. Analysis in
+  [`findings/tooling/blf/swdownloader-blf-spec.md`](findings/tooling/blf/swdownloader-blf-spec.md) §6.
+* **UART fastboot** — U-Boot exposes a USB fastboot gadget over DWC3, so once
+  you have a UART shell this is a viable write path that avoids SWDownloader
+  entirely.
+* **NAND clip / programmer** — the last resort if the bootloader is gone.
+
+⚠️ Whatever the route, **do not write a raw uImage + DTB to `mtd7`
+(`0x0100000`) or `mtd8` (`0x0140000`)**. Those are the DTIM/bootloader slots;
+overwriting them with a kernel image is what turns a recoverable unit into a
+dead one.
 
 ## ⚠️ Privacy
 

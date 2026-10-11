@@ -20,7 +20,7 @@
 > | Section | Status |
 > |---|---|
 > | §3 "Prepare Flash Images", §5 "Flash Slot A" | The stated hashes only match if DTIM in mtd7/mtd8 is rebuilt. That rebuild is still **unsolved**. See [`../bootloader/REPORT.md`](../bootloader/REPORT.md) §2. |
-> | §5 "Flash Slot A" | Assumes a **booted** unit with SSH. The unit is now bricked; this route is unavailable until the flash is restored. |
+> | §5 "Flash Slot A" | Assumes a **booted** unit with SSH, so it is unavailable on a unit that no longer boots. Use one of the recovery routes above instead. |
 > | §7 "Failsafe Mode" | Still accurate, including that failsafe is UART-only here. |
 > | §10 "MTD Partition Reference" | Superseded by the verified map in [`../../findings/tooling/blf/flash-map.md`](../../findings/tooling/blf/flash-map.md), which also records that **all A/B slots are byte-identical** on a factory unit and that mtd5/mtd6 are zero length. |
 > | §11 (RAM boot / TFTP) | TFTP is impossible on this bootloader — see [`../bootloader/TFTP_AND_FAILSAFE.md`](../bootloader/TFTP_AND_FAILSAFE.md). |
