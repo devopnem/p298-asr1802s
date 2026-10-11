@@ -34,7 +34,10 @@ Applied, in order, exactly as the real build does:
 No `+`/`-` payload was altered — only `@@` headers — so no semantic difference
 could be absorbed silently.
 
-## Result: 13 of 14 patches apply
+## Result: all 14 patches apply
+
+**The series applies cleanly and in order to a pristine `linux-6.18.55` after
+OpenWrt's `target/linux/generic/backport-6.18/` — 14/14.**
 
 | # | Patch | Status |
 |---|---|---|
@@ -49,7 +52,7 @@ could be absorbed silently.
 | 0009 | QSPI driver | ✅ re-anchored |
 | 0010 | YT921x DSA | ✅ **previously broken on 6.12** |
 | 0011 | YT9215 switch DTS | ✅ |
-| 0012 | rtl8xxxu PCIe | ❌ **3 of 78 hunks** |
+| 0012 | rtl8xxxu PCIe | ✅ ported to the 6.18 mac80211 ABI |
 | 0013 | PCIe binding | ✅ |
 | 0014 | PCIe host controller | ✅ re-anchored |
 
@@ -66,31 +69,44 @@ Changes made along the way:
   `aspeed,video-engine.yaml`.
 - **0014** — 6.18 added `CONFIG_PCIE_STM32_HOST` at the anchor.
 
-## The one blocker: 0012 (rtl8xxxu PCIe)
+## Patch 0012: a real API change, not drift
 
-This is **not** line drift and cannot be mechanically re-anchored. 6.18 added
-a `radio_idx` argument to several mac80211 callbacks, which changes the
-function signatures patch 0012 has to de-`static` and export:
+This was the only genuine blocker, and it could not be fixed mechanically.
+
+6.18 added a `radio_idx` argument to several `ieee80211_ops` callbacks, and
+dropped a stray bare `static` that had been sitting above
+`rtl8xxxu_get_antenna`. Patch 0012's job is partly to de-`static` and export
+those callbacks for reuse by the PCIe transport, so its hunks were anchored on
+the 6.12 signatures and no longer matched:
 
 | callback | 6.12 | 6.18 |
 |---|---|---|
 | `get_antenna` | `(hw, u32 *tx, u32 *rx)` | `(hw, int radio_idx, u32 *tx, u32 *rx)` |
 | `config` | `(hw, u32 changed)` | `(hw, int radio_idx, u32 changed)` |
+| `set_rts_threshold` | `(hw, u32 rts)` | `(hw, int radio_idx, u32 rts)` |
 
-Failing hunks: **#37** (`get_antenna` — upstream dropped the stray bare
-`static` we were removing), **#62** (`remove_interface` + `config`, whose
-signatures gained `radio_idx`), **#65** (`configure_filter`).
+What was done:
 
-Fixing this means editing the patch body: thread `radio_idx` through the
-exported wrappers and update the `ieee80211_ops` table in `rtl8xxxu_pcie.c`
-to the 6.18 signature. That is a code change and should be done deliberately,
-not by another automated pass.
+- threaded `radio_idx` through all three, matching `include/net/mac80211.h`;
+- **deleted** the hunk that removed the bare `static` — 6.18 already has both
+  the new signature and no bare `static`, so that hunk became a no-op;
+- updated the three exported prototypes in `rtl8xxxu.h` so they agree with the
+  definitions in `core.c` and with the ops table in `rtl8xxxu_pcie.c`.
+
+A lesson worth keeping: **the automated re-anchorer must never be run against a
+tree that already has the series applied.** It re-anchors to post-patch content
+and silently corrupts the series. `/tmp/opencode/apply618.sh` always unpacks a
+pristine tree first for that reason.
 
 ## Also still to do
 
-- `config-6.18` is the renamed `config-6.12`; it has not been re-validated
-  against the 6.18 Kconfig (new/renamed symbols may be needed).
-- No compile has been attempted yet — this is patch-application validation
-  only. A real `make target/linux/compile` is the next step once 0012 is fixed.
+- `config-6.18` is the renamed `config-6.12`; it has **not** been re-validated
+  against the 6.18 Kconfig, so new or renamed symbols may be needed.
+- **No compile has been attempted.** Patch application is not a build. The next
+  real step is `make target/linux/compile`, which will surface Kconfig symbol
+  drift and any C errors that patch(1) cannot see.
+- The three `radio_idx` parameters are unused in the USB driver. That will draw
+  `-Wunused-parameter` noise at most, but the PCIe transport may need them for
+  multi-radio operation and this has not been worked through.
 - The `asr1802s-kagu-wip` branch (6.12) is untouched and still tracks PR
   #24614, so the PR is unaffected while this branch is in progress.
