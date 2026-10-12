@@ -80,7 +80,8 @@ def configure(fd: int, baud: int) -> bool:
     return True
 
 
-def drain(fd: int, seconds: float, quiet: bool) -> bytes:
+def drain(fd: int, seconds: float, quiet: bool,
+           logfh=None) -> bytes:
     """Read and print whatever arrives for `seconds`. Returns the raw bytes."""
     end = time.time() + seconds
     start = end - seconds
@@ -96,6 +97,8 @@ def drain(fd: int, seconds: float, quiet: bool) -> bytes:
         if not data:
             continue
         got += data
+        if logfh is not None:
+            logfh.write(data)
         if not quiet:
             sys.stdout.write(f"[{time.time() - start:6.2f}s] "
                              f"{data.decode('latin1')}")
@@ -148,7 +151,7 @@ def main() -> int:
     deadline = time.time() + args.seconds if args.seconds else None
     seen = b""
     try:
-        drain(fd, args.settle, quiet=False)
+        drain(fd, args.settle, quiet=False, logfh=logfh)
 
         while True:
             for cmd in cmds:
@@ -158,7 +161,7 @@ def main() -> int:
                     os.write(fd, (cmd + "\r").encode())
                 except BlockingIOError:
                     pass
-                got = drain(fd, args.gap, quiet=False)
+                got = drain(fd, args.gap, quiet=False, logfh=logfh)
                 seen += got
                 if args.stop_on_reply and args.stop_on_reply.encode() in seen:
                     print(f"\n# got {args.stop_on_reply!r} - the console is "
