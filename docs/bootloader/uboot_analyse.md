@@ -234,16 +234,30 @@ an Android boot image (`FAILNot zImage, use bootsp oem cmd to boot special app`)
 
 ## 7. RAM topology
 
-From the vendor DTB (`../findings/firmware-backup/vendor_dtb_extracted/vendor.dtb`):
+**RESOLVED 2026-10-12.** The embedded firmware DTB is *not* what the kernel
+uses. From the vendor DTB:
 
 ```
-memory { reg = <0x4000000 0x8000000>; };    /* base 64 MB, size 128 MB */
+memory { reg = <0x4000000 0x8000000>; };    /* base 64 MB -- this one is wrong */
 ```
 
-U-Boot also prints `mem=512M@0x%x`, `mem=256M@0x%x`, `mem=128M@0x%x`,
-`mem=64M@0x%x` and warns `Unsupport DDR size` — so the DTB and U-Boot's own
-tables disagree on total size. **Read `bdinfo` at the console to get the truth**
-rather than trusting either source.
+but the live tree pulled from `/proc/device-tree` on a running unit says:
+
+```
+memory@0 { reg = <0x00 0x8000000>; };       /* base 0, size 128 MB */
+```
+
+and the runtime cmdline agrees: `mem=128M@0x0 cpmem=32M@0x6000000`.
+
+So the base is **0**, not 64 MB, and `loadaddr=0x00008000` is valid.
+`free` reports ~90 MiB because 32 MiB at `0x06000000` is reserved for the
+Communication Processor.
+
+U-Boot still prints `mem=512M@0x%x`, `mem=256M@0x%x`, `mem=128M@0x%x`,
+`mem=64M@0x%x` and warns `Unsupport DDR size`; treat those as its own table,
+not as ground truth. The live tree and the runtime cmdline are.
+
+See `../porting/live-dt-validation.md`.
 
 `0x8000000` appears in U-Boot as `reserve 4KB for ramdump boot`.
 
