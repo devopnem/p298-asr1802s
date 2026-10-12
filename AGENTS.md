@@ -1,5 +1,42 @@
 # Project: Notion P298 ASR1802S — OpenWrt port (KAGU)
 
+## Strict Rule: never push without the gate passing (NON-NEGOTIABLE)
+
+The `openwrt-ai` review bot catches things our own checks miss. Every check in
+the gate exists because it caught us. Skipping it is how the same issues get
+re-raised on every push.
+
+```sh
+python3 tools/push-gate.py          # full, incl. patch-apply against 6.18.55
+python3 tools/push-gate.py --skip-slow   # everything except patch-apply
+```
+
+It is installed as `pre-push` on the fork
+(`~/Downloads/openwrt/openwrt-fork/.git/hooks/pre-push`), so a push that would
+fail is refused before it reaches the remote. If the hook ever needs to be
+bypassed, that is an explicit, deliberate act — never routine.
+
+**Never report a push as verified on the strength of a check you wrote that
+does not cover the change.** Our first `formality.py` only inspected commit
+messages, so it passed while the bot flagged a missing trailing newline in
+README.md. A local reimplementation of someone else's linter is not evidence
+that their linter is happy.
+
+What the gate covers, and the mistake each check prevents:
+
+| check | mistake it prevents |
+|---|---|
+| `eof-newline`, `eof-blank`, `crlf` | file hygiene (bot: *"missing a trailing newline"*) |
+| `signoff`, `subject-len`, `body-len`, `dup-body`, `merge-commit` | commit-message form |
+| `trailing-ws` | whitespace in non-diff files |
+| `series-apply` | the 13-patch series applying cleanly to 6.18.55 |
+| `dangling-include` | a binding example including a header that exists nowhere |
+| `unused-prefix` | registering a vendor prefix no compatible string uses |
+| `false-claim` | commit prose contradicting the code it describes |
+
+Add a check whenever the bot flags something new. A gate that has never failed
+is not evidence of anything.
+
 ## Strict Rule: asr1802s target completeness (MUST NOT REGRESS)
 
 This repo has lost `target/linux/asr1802s/{Makefile,image/Makefile,base-files}` twice
@@ -15,7 +52,7 @@ Before ANY `git reset --soft` chain rebuild, rebase, or `push --force`:
    git ls-tree -r --name-only HEAD | grep -q ^target/linux/asr1802s/Makefile || exit 1
    git ls-tree -r --name-only HEAD | grep -q ^target/linux/asr1802s/image/Makefile || exit 1
    git ls-tree -r --name-only HEAD | grep -q ^target/linux/asr1802s/base-files || exit 1
-   git ls-tree -r --name-only HEAD | grep -q ^target/linux/asr1802s/config-6.12 || exit 1
+   git ls-tree -r --name-only HEAD | grep -q ^target/linux/asr1802s/config-6.18 || exit 1
    ```
 4. Verify per-commit bisect: `git log --stat HEAD~5..HEAD` — each commit's file list must match its message.
 5. Abort push if any check fails. Never force-push a chain that deletes target files silently.
@@ -24,10 +61,10 @@ Reference: `docs/recovery/flashing_and_failsafe_guide.md` and `docs/porting/BRIN
 
 ## OpenWrt Build Rules (from CI review regressions)
 
-### config-6.12 format
+### config-6.18 format
 - Must be a sorted delta over generic, NOT a raw .config dump.
 - Never include banner, toolchain symbols, "# ... is not set" lines, or menu-section comments.
-- Run `make kernel_oldconfig CONFIG.targets=... > target/linux/asr1802s/config-6.12` and hand-trim.
+- Run `make kernel_oldconfig CONFIG.targets=... > target/linux/asr1802s/config-6.18` and hand-trim.
 - Every symbol must be reachable: check `depends on` chains before adding.
 
 ### image/Makefile conventions
@@ -38,7 +75,7 @@ Reference: `docs/recovery/flashing_and_failsafe_guide.md` and `docs/porting/BRIN
 - Must end with `$(eval $(call BuildImage))`.
 - **P298 needs**: `IMAGES := kernel.bin rootfs.bin`, `IMAGE/kernel.bin`, `IMAGE/rootfs.bin`, `KERNEL_SIZE := 5120k`, `IMAGE_SIZE := 20480k`, `FILESYSTEMS := squashfs` — without these, no firmware images are produced.
 
-### Kernel patch format (patches-6.12/)
+### Kernel patch format (patches-6.18/)
 - Use `git format-patch` mbox format (a/...b/... prefixes), never quilt dump.
 - No fabricated commit hashes — use `From 0000000000000000000000000000000000000000` for out-of-tree.
 - Every patch must have Signed-off-by in the commit message body.
@@ -58,11 +95,11 @@ Reference: `docs/recovery/flashing_and_failsafe_guide.md` and `docs/porting/BRIN
 - Before adding a symbol, trace its `depends on` chain to ensure it's reachable.
 - Common traps: MMC_PXA needs ARCH_PXA, SERIAL_PXA is deprecated (use 8250_*),
   SND_* needs SOUND, MEDIA_* needs MEDIA_SUPPORT, VIDEO_MMP_CAMERA needs MEDIA.
-- If kernel_oldconfig drops it, it doesn't belong in config-6.12.
+- If kernel_oldconfig drops it, it doesn't belong in config-6.18.
 
 ### Series bisectability
 - Each commit must be independently buildable.
-- config-6.12 must be created in the same commit as the target Makefile that needs it.
+- config-6.18 must be created in the same commit as the target Makefile that needs it.
 - Driver patches and their DT bindings should be in the same or adjacent commits.
 
 ### Commit message format
@@ -78,6 +115,14 @@ Reference: `docs/recovery/flashing_and_failsafe_guide.md` and `docs/porting/BRIN
 ### Backport honesty
 - Never claim "backport from vX.Y" for out-of-tree code. Use proper attribution.
 - Verify with `git grep` in the target kernel tree before claiming backport.
+- Check the tree the *target kernel* actually has, not upstream master. `flow_cls_offload_flow_rule()`
+  takes a **non-const** pointer in 6.18 and only became const later, so a CI error
+  citing master's signature does not apply to us.
+- Patch 0010 (yt921x) is **David Yang's** driver, merged upstream in **v6.19**, carried
+  as a 6.18 backport. Attributing it to ourselves was a real provenance error.
+- Say what is *unverified* rather than implying hardware confirmation. A commit body
+  claiming offsets were "read from the live unit" while the patch header said they still
+  needed hardware verification is a capability overclaim.
 
 ## Workspace Layout
 
@@ -97,8 +142,8 @@ Reference: `docs/recovery/flashing_and_failsafe_guide.md` and `docs/porting/BRIN
   `porting_workspace/linux_kernel_patch/` was removed after confirming the remote was up to date)
 - **OpenWrt fork**: `~/Downloads/openwrt/openwrt-fork/` — branch `asr1802s-kagu-wip`, remote `origin` = `devopnem/openwrt`
 - **PR**: openwrt/openwrt#24614 (from `devopnem/openwrt:asr1802s-kagu-wip`)
-- **Target**: `target/linux/asr1802s/` — ARM Cortex-A7, v6.12 kernel, musl
-- **Patches**: `target/linux/asr1802s/patches-6.12/` — quilt series, 0001–0012
+- **Target**: `target/linux/asr1802s/` — ARM Cortex-A7, **v6.18** kernel (`KERNEL_PATCHVER:=6.18`), musl
+- **Patches**: `target/linux/asr1802s/patches-6.18/` — quilt series, **13 patches**, 0001–0014 (0012 dropped)
 - **docs/ops/need_to_push.md**: tracks commits on `asr1802s-kagu-wip` not yet pushed to origin
 
 ### Binary data rule
@@ -110,7 +155,7 @@ verify the hash matches before discarding anything.
 
 ## Patch Validation (before every commit)
 
-Every patch in `patches-6.12/` must pass two checks before committing:
+Every patch in `patches-6.18/` must pass the push gate before pushing:
 
 1. **Hunk count validation** — verify every `@@ -s,c +s,c @@` header matches
    actual body lines (context+removed for old, context+added for new).
@@ -120,7 +165,7 @@ Every patch in `patches-6.12/` must pass two checks before committing:
 2. **Dry-run application** — apply against a clean kernel tree:
    ```
    cd <kernel-build-dir>
-   patch --dry-run -p1 < target/linux/asr1802s/patches-6.12/NNNN-*.patch
+   patch --dry-run -p1 < target/linux/asr1802s/patches-6.18/NNNN-*.patch
    ```
    Both must pass with zero errors. Never commit a patch that only
    passed visual inspection.
