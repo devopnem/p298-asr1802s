@@ -173,3 +173,97 @@ mtd23 0x06080000 25344K              mtd24 0x07940000  6912K  MRVL_BBM
 > The original `findings/tooling/blf/flash_recovery.blf` draft had `FlashAddr=0x000C0000` for U-Boot. That
 > lands **inside `mtd7` (DTIM)** and would destroy the TIM tables. Correct value
 > is `0x01F80000`.
+
+---
+
+## 6. Live USB read attempt — 2026-10-12 (NEW)
+
+Ran for real, against the board, with a read-only upload config.
+
+```
+sudo env LC_ALL=C LANG=C ./swdl_linux -U read.cfg -T 120
+SWDL Version: 4.8.8.2   /  SWDL Date: 2015-8-3
+rmmod: ERROR: Module wtptp is not currently loaded
+Doing Upload...............
+Parsing UploadCfg file: read.cfg
+Number of Area in UploadCfg file is 1
+Segmentation fault
+```
+
+Three findings.
+
+### 6a. The recovered upload grammar is CORRECT
+
+`Number of Area in UploadCfg file is 1` means `CUploadCfgParser` accepted the
+config, including the `Upload_Area_Nums` placement trap and the comment rule
+from §1. Every key was then confirmed against the binary's own string statics
+by reading them through gdb:
+
+| config key | C++ static | literal |
+|---|---|---|
+| `Upload_Property` | `pszUPLOAD_PROPERTY` | `Upload_Property` |
+| `Upload_Area_Nums` | `pszUPLOADAREA_NUM` | `Upload_Area_Nums` |
+| `Upload_Areas_List` | `pszUPLOADAREA_LIST` | `Upload_Areas_List` |
+| `Blf_Version` | `pszBLFVERSION` | `Blf_Version` |
+| `Flash_Family` | `pszFLASH_FAMILY_PRO` | `Flash_Family` |
+| `Max_Upload_Size` | `pszMAX_UPLOAD_SIZE` | `Max_Upload_Size` |
+| `ResetUE_AfterUpload` | `pszUPLOAD_RESETUE` | `ResetUE_AfterUpload` |
+| `Reset_DelayTime` | `pszUPLOAD_TIMEDELAY_RESET` | `Reset_DelayTime` |
+| `Area_Type` | `pszUPLOADAREA_TYPE` | `Area_Type` |
+| `Area_SubType` | `pszUPLOADAREA_SUBTYPE` | `Area_SubType` |
+| `Area_Offset` | `pszUPLOADAREA_OFFSET` | `Area_Offset` |
+| `Area_DataSize` | `pszUPLOADAREA_DATATSIZE` | `Area_DataSize` |
+| `Area_Partition` | `pszUPLOADAREA_PARTITION` | `Area_Partition` |
+| `Area_UploadWithSpareArea` | `pszUPLOADAREA_SPAREAREA` | `Area_UploadWithSpareArea` |
+| `Area_UploadData_SaveFile` | `pszUPLOADAREA_SAVEFILE` | `Area_UploadData_SaveFile` |
+
+Note `Area_Partition` is a real string at `0x8330af3` even though
+`strings | grep -x` misses it — do not conclude a key is absent from that test
+alone. Accepted `Blf_Version` literals are `V2.0.0`/`V2.1.0`/`V2.2.0`/`V3.0.0`.
+Accepted flash tokens are `SPI-NAND`/`SPI-NOR`/`eMMC` — **bare `NAND` is NOT
+accepted**, despite `GetPlatFormType()` comparing against it elsewhere.
+
+### 6b. The crash is in the parser, before any USB access
+
+```
+#0  std::_List_node_base::hook(std::_List_node_base*)
+#1  CUploadCfgParser::ParseUploadCfgFile(char const*, _InstanceParams*)
+#2  CIFL_SWD::PreforUpload(char const*)
+#3  PrepareUpload(_InstanceParams*, char const*)
+#4  main() at SWDTool.cpp:343
+```
+
+Disassembly at the fault site: it `operator new(12)`, tests the result against
+`0xfffffff8` (the `std::bad_alloc` magic), then calls `hook()` with an element
+pointer loaded from offset `0x4c` of another object. The crash means that
+element pointer is garbage, so the per-area record was not populated even
+though the *count* parsed. With every key name verified correct, this looks
+like a defect in a 2015 binary running on a current kernel rather than a
+config error — but that is not yet proven.
+
+This happens before `Begin to detect wtptp device`, so nothing about the board
+was learned. It is **not** evidence that the board is reachable.
+
+### 6c. The tool's `mtd*.bin` inputs are symlinks into the NAND dumps
+
+```
+mtd0.bin -> ../../findings/nand-dumps/mtd0.bin
+mtd7.bin -> ../../findings/nand-dumps/mtd7.bin
+mtd8.bin -> ../../findings/nand-dumps/mtd8.bin
+mtd11.bin -> ../../findings/nand-dumps/mtd11.bin
+```
+
+Running `-D` would have written through these symlinks and overwritten the
+primary-source dumps. Use an upload config with a distinct
+`Area_UploadData_SaveFile`, and never point a write blf at that directory.
+
+Also note `flash_recovery.blf` targets mtd0 (OBM), mtd7/mtd8 (DTIM A/B) and
+mtd11 (u-boot-a) — the entire trust chain, with **no kernel or rootfs image** —
+and its `Erase_Size` is `0x20000` against mtd7's real `0x40000`. It is not
+usable for recovering the board.
+
+### Still blocking a write
+
+- `WTMI`/`TZII` absent from every dump (§4).
+- Tool is `4.8.8.2`; the board's OBM advertises `SWDownloader 4.9.0.5`. None of
+  the four available products is 4.9.
