@@ -10,7 +10,7 @@ Date: 2026-10-10 · Binary: `Marvell_SWDownloader_v4.8.8.2/swdl_linux` (ELF32 i3
 | DKB (boot-ROM download package) construction | **SOLVED 2026-10-13** — was a bug in our own `.blf`, not a missing vendor blob. See §4. |
 | Linux USB transport understood | **SOLVED** — raw usbfs, no kernel module. See findings spec §8. |
 | Live tool run to device detection | **DONE 2026-10-13** — package builds cleanly in `swdl_linux`, `Image_ID` hex confirmed. See §7. |
-| Device handshake | **BLOCKED** — board enumerates and drops in seconds; `Please plug your USB device` never satisfied |
+| Device handshake | **BLOCKED** — board enumerates as `2ecc:3002` for 1.58 s; `swdl_linux` 4.8.8.2 has **no `0x2ECC` immediate** and cannot open it |
 
 ---
 
@@ -379,18 +379,35 @@ was accepted at `0x40000`, and the NEZHA/SPI-NAND path completed. It also
 confirms the §6c hazard live — `GenerateTim` rewrote `mtd7.bin` down to 248 B
 mid-run.
 
-**It then stalled at `Please plug your USB device`.** The board enumerates and
-de-enumerates within seconds, faster than the tool's poll loop resolves, and
-`watch -n1 lsusb` cannot catch it either. Two candidate causes, neither yet
-eliminated:
+**It then stalled at `Please plug your USB device`.** `tools/usb-watch.py`
+(polls sysfs at ~50 Hz, `watch -n1 lsusb` is far too slow) captured it:
 
-1. **Version mismatch.** The tool is 4.8.8.2 (2015); the board's OBM speaks
-   `SWDownloader 4.9.0.5` / `OBM 4.9.0.0` (Apr 2024). The tool reads the
-   device identity over USB (`Getting Version...`, `Processor: %c%c%c%c`) and
-   matches it against a platform table that contains `WKNG`, `MMP3`, `TVTD`,
-   `HELN`, `NZA3`, `HLN2`–`HLN4` — no entry matching our 4.9.0.0 OBM.
-2. **VID/PID mismatch.** `VID_1286&PID_8130` is the documented Nezha WTPTP
-   identity but remains unconfirmed on this board.
+```
+[15:37:29.239] APPEARED  1-2  2ecc:3002  'KSTR'  'ASR'  bus=1   <<< CANDIDATE
+[15:37:30.816] GONE      1-2  2ecc:3002  'KSTR'  'ASR'            <<< CANDIDATE
+```
 
-Next diagnostic is `tools/usb-watch.py`, which polls sysfs at ~50 Hz instead of
-once a second and records every transient device with a timestamp.
+**1.577 seconds.** Two facts fall out, and the first is good news:
+
+1. **The board does enumerate in USB download mode.** It is not `PROD`-gated
+   after all — mtd0's `[PROD]Don't enum USB port` did not prevent this. The
+   device appears at power-on and drops when the OBM's `USB Enum timeout`
+   expires, which is exactly the `[Non-Prod]Wait for download...` behaviour.
+2. **The tool cannot see it.** `swdl_linux` 4.8.8.2 contains **no `0x2ECC`
+   immediate anywhere** — verified by decoding every occurrence of the byte
+   pair and classifying it as instruction-immediate versus coincidence:
+
+   | value | immediates | coincidental byte pairs |
+   |---|---|---|
+   | `0x2ECC` | **0** | 3 (all inside `call` rel32) |
+   | `0x3002` | **0** | 16 |
+   | `0x1286` | 0 (one apparent hit is also a `call`) | 41 |
+   | `0x8130` | **0** | 25 |
+
+   A binary with no `0x2ECC` literal cannot open a `2ecc:3002` device. This is
+   not a flag, a permission or a timing problem. **The 4.8.8.2 route is closed.**
+
+**Correction to §8d:** the `USB\VID_1286&PID_8130` "Marvell R WTP driver for
+Nezha" lead is **wrong for this board**. Those are Monahans/PXA-era IDs from
+the module lineage; the P298 router enumerates as `2ecc:3002`. Do not chase
+that ID. The real identity is now known from observation, not inference.
