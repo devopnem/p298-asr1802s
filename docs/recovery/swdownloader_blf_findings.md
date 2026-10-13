@@ -10,7 +10,7 @@ Date: 2026-10-10 · Binary: `Marvell_SWDownloader_v4.8.8.2/swdl_linux` (ELF32 i3
 | DKB (boot-ROM download package) construction | **SOLVED 2026-10-13** — was a bug in our own `.blf`, not a missing vendor blob. See §4. |
 | Linux USB transport understood | **SOLVED** — raw usbfs, no kernel module. See findings spec §8. |
 | Live tool run to device detection | **DONE 2026-10-13** — package builds cleanly in `swdl_linux`, `Image_ID` hex confirmed. See §7. |
-| Device handshake | **BLOCKED** — board enumerates as `2ecc:3002` for 1.58 s; `swdl_linux` 4.8.8.2 has **no `0x2ECC` immediate** and cannot open it |
+| Device handshake | **BLOCKED** — board enumerates as `2ecc:3002` for 1.58 s. No VID filter in any tool (see §7); cause still unknown. Leading candidate: a kernel driver claims the device. |
 
 ---
 
@@ -404,8 +404,36 @@ mid-run.
    | `0x1286` | 0 (one apparent hit is also a `call`) | 41 |
    | `0x8130` | **0** | 25 |
 
-   A binary with no `0x2ECC` literal cannot open a `2ecc:3002` device. This is
-   not a flag, a permission or a timing problem. **The 4.8.8.2 route is closed.**
+   `swdl_linux` 4.8.8.2 has **no `0x2ECC` immediate anywhere** — every one of
+   those byte pairs decodes as a `call` rel32 displacement.
+
+**Correction, same day.** That table does *not* show the tool is rejecting the
+device, and I should not have written that it did. Scanning every
+download-capable binary in all four toolchains for interface GUIDs — ASCII
+and UTF-16 — turns up `GUID_DEVINTERFACE_USB_DEVICE`
+(`f18a0e88-c30c-11d0-8815-00a0c906bed8`) and nothing else. No vendor-specific
+GUID in any binary. No `VID_`/`PID_` hardware-ID string in any binary. The
+tools enumerate **all** USB devices, open each, and probe for the WTPTP
+protocol.
+
+A missing VID constant is therefore **by design**, not evidence of
+incompatibility. What this does tell us:
+
+- The Windows products have no reason to reject `2ecc:3002` on ID grounds.
+  `SWDownloader.exe`, `Marvell_SwUpgrade_P`, `Marvell_SwUpgrade_C` and
+  `ONTIM_Marvell_MultiDL` are all worth trying.
+- The Linux failure has another cause. The version gap is real (OBM 4.9.0.5,
+  Yuge 4.9.1.1, we hold 4.8.8.2 from 2015) but is no longer established as
+  the reason.
+
+Leading candidate: a **kernel driver claiming the device** at enumeration. If
+`cdc_acm`, `usb-storage` or similar binds to `2ecc:3002`, the vendor tool can
+no longer reach it — a documented Yuge ASR failure mode ("Linux driver
+conflict"). `tools/usb-watch.py` now reports bound drivers, with a 150 ms
+settle delay after enumeration, so this is directly testable.
+
+The real version gate is the WTPTP **protocol probe**, and it has not been
+observed succeeding on either OS. That is the honest state of the USB route.
 
 **Correction to §8d:** the `USB\VID_1286&PID_8130` "Marvell R WTP driver for
 Nezha" lead is **wrong for this board**. Those are Monahans/PXA-era IDs from

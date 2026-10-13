@@ -37,6 +37,29 @@ RE_DEV = re.compile(r"^\d+-[\d.]+$")
 RE_IFACE = re.compile(r"^\d+-[\d.]+:\d+\.\d+$")
 
 
+def bound_drivers(bus_port: str) -> list[str]:
+    """Kernel drivers that have claimed this device's interfaces.
+
+    A non-empty result is the thing to look for: if the kernel binds, say,
+    cdc_acm or usb-storage to the board's download-mode device, the vendor
+    tool can no longer talk to it. Documented as a real failure mode for
+    Yuge ASR module upgrades ("Linux driver conflict").
+    """
+    out = []
+    try:
+        for dev in SYS.iterdir():
+            if not RE_IFACE.match(dev.name):
+                continue
+            if dev.name.split(":")[0] != bus_port:
+                continue
+            drv = dev / "driver"
+            if drv.exists():
+                out.append(drv.resolve().name)
+    except OSError:
+        pass
+    return sorted(set(out))
+
+
 def snapshot() -> dict[str, tuple]:
     """bus-port -> (vid_pid, product, manufacturer, busnum)."""
     out: dict[str, tuple] = {}
@@ -122,6 +145,14 @@ def main() -> int:
             emit(f"APPEARED  {name}  {vid_pid}  "
                  f"'{product}'  '{maker}'  bus={bus}"
                  + ("   <<< CANDIDATE" if hot else ""))
+            # re-read interfaces: a driver may bind a moment after enumeration
+            time.sleep(0.15)
+            drv = bound_drivers(name)
+            if drv:
+                emit(f"  !! driver(s) bound to {name}: {', '.join(drv)}"
+                     f"   <<< likely blocks the vendor tool")
+            elif hot:
+                emit(f"  -- no driver bound to {name} (good)")
 
         for name in prev.keys() - cur.keys():
             vid_pid, product, maker, _ = prev[name]
