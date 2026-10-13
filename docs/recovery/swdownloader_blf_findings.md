@@ -6,8 +6,10 @@ Date: 2026-10-10 · Binary: `Marvell_SWDownloader_v4.8.8.2/swdl_linux` (ELF32 i3
 
 | Stage | Result |
 |---|---|
-| `.blf` syntax / grammar | **SOLVED** — `flash_recovery.blf` parses cleanly |
-| DKB (boot-ROM download package) construction | **BLOCKED** — needs vendor-only flasher blobs |
+| `.blf` syntax / grammar | **SOLVED** — `p298_fixed.blf` parses and builds |
+| DKB (boot-ROM download package) construction | **SOLVED 2026-10-13** — was a bug in our own `.blf`, not a missing vendor blob. See §4. |
+| Linux USB transport understood | **SOLVED** — raw usbfs, no kernel module. See findings spec §8. |
+| USB transfer against hardware | **UNTESTED** — PROD-gated, and the handshake is racy |
 
 ---
 
@@ -31,6 +33,16 @@ a faithful oracle for this bug.
 Note: image paths and the `.blf` itself are resolved **relative to the
 executor's directory**, not the cwd. Keep `.blf` and `mtd*.bin` next to the
 binary.
+
+**`swdl_linux` needs no kernel module.** It opens `/dev/bus/usb` and speaks raw
+usbfs, parsing USB descriptors itself; no libusb is linked. The
+`rmmod: ERROR: Module wtptp is not currently loaded` in its output is harmless
+cleanup of a Marvell module shipped in some Android images. Root is needed only
+for `/dev/bus/usb` permissions — **not** for the module. See
+`../../findings/tooling/blf/swdownloader-blf-spec.md` §8, which also documents
+the CLI, the handshake ordering, and the platform-ID table.
+
+Trap 5 below overstates this. Corrected 2026-10-13.
 
 ---
 
@@ -96,13 +108,19 @@ Other accepted sub-keys: `ImageNumber`, `Hash_Algorithm_ID`,
    interleaved between sections make the parser lose section context and it
    later fails with the misleading `unknown DSAID in ParseDSAInfo`.
 
-5. `swdl_linux` needs root (it `rmmod`s the `wtptp` module and touches USB);
-   run non-root it exits silently with no banner. That is why
-   `MakeDownloadPackage` / `TimBuilder` are the right oracles.
+5. **`swdl_linux` needs root, but not because of `wtptp`.** ~~it `rmmod`s the
+   `wtptp` module and touches USB~~ — that was wrong. It opens `/dev/bus/usb`
+   (raw usbfs, in-tree) and needs root for the permissions. `rmmod wtptp` is
+   tolerated-if-missing cleanup. Run non-root it exits silently with no
+   banner. That is why `MakeDownloadPackage` / `TimBuilder` are the right
+   oracles.
 
 ---
 
-## 4. Current blocker: `OBMImage is NULL in prepareDKB list`
+## 4. `OBMImage is NULL in prepareDKB list` — SOLVED, 2026-10-13
+
+> **This section previously concluded the route was dead. That was wrong.**
+> The blocker was a bug in our own `.blf`, not a missing vendor blob.
 
 ```
 Platform is NEZHA.....
@@ -118,34 +136,82 @@ CTimDescriptor::ImagesList()   // of  this + 0x3804  (the DKB TimDescriptor)
 if (list.empty()) throw "OBMImage is NULL in prepareDKB list"
 ```
 
-So the list it walks is **not** the blf image list. It is a DKB TimDescriptor
-populated by `CIFL_SWD::GenerateDKBTim()`, and the DKB stage expects exactly
-four specially-tagged entries, matched by `CImageDescription::ImageId()`
-against these literals:
+### 4a. Root cause: `Image_ID` is an integer, not a string
 
-| literal | meaning | do we have it? |
+Our `flash_recovery.blf` carried the ID as a bare token:
+
+```ini
+1_Image_Image_ID = OBMI        ; parses as 0
+```
+
+`*_Image_Image_ID` is read as a **number**. `"OBMI"` → `0`, so the DKB builder
+never matches the `OBMI` entry, the list comes back empty, and the error is
+thrown. The vendor form is the ASCII hex of the tag:
+
+```ini
+1_Image_Image_ID = 0x4F424D49  ; 'O' 'B' 'M' 'I'
+2_Image_Image_ID = 0x54494D48  ; 'T' 'I' 'M' 'H'
+```
+
+`*_Image_ID_Name` may stay a plain string. Confirmed by bisection: changing only
+that one key flips FAIL → OK, with the vendor payload in place.
+
+This also explains why the earlier gdb work was misleading: the setter *was*
+called with `OBMI`, but the matching field is a different member.
+
+### 4b. There is no `WTMI` and no `TZII` requirement
+
+The four literals exist in `swdl_linux` near `%s/temp/TZII.bin`,
+`%s/temp/WTM_h.bin`, `%s/temp/OBM_h.bin` — all of which are **temp files the
+tool generates**, not blobs you supply. Decisive evidence: run the tool on a
+known-good vendor `.blf` and read its own output.
+
+`DKB_ntimheader.bin` (744 B) contains **one** nested entry, `IBKD`, and zero
+`WTMI`/`TZII` literals. `Dkb.bin` is the `OBMI` payload wrapped in a 4-byte TIM
+header — with our own images, 262,148 = 262,144 + 4.
+
+Empirically, on a working package: `TIMH` alone → fails, `OBMI` alone → fails,
+`TIMH` + `OBMI` → **succeeds**. Two entries is the requirement, not four.
+
+### 4c. Two more bugs, found the same way
+
+| what | error | fix |
 |---|---|---|
-| `TIMH` | TIM/DTIM header binary | yes — `mtd7.bin` |
-| `OBMI` | boot-ROM flasher | maybe — `mtd0.bin` (OBM contains `Wait for download` / `User force to download`) |
-| `WTMI` | WTM manager | **no** |
-| `TZII` | TrustZone init image | **no** |
+| `Erase_Size = 0x20000` for a 256 KiB image | `ImageFileSize is larger than ImageEraseSize,ImageID: OBMI` | `0x40000` for `mtd0`/`mtd7` |
+| two enabled images sharing `Flash_Entry_Address` | `Images TIMH and OBMI overlap in flash` | distinct addresses |
 
-plus a two-stage TIM descriptor and an `Next_Image_ID` chain.
+`Erase_Size` in a `.blf` is the **region the image occupies**, not the NAND
+block size. The real block is `0x20000` per `fw_env.config`.
 
-Verified with gdb that the parser *does* store our IDs correctly
-(`CImageDescription::ImageId()` lives at `this+0x44`; setter called with
-`OBMI`/`TIMH`/`TIMH`/`UBOOT_A`). Adding `WTMI` + `TZII` entries pointing at
-`mtd0.bin`, toggling `BLF_Version` across `V2.0.0`–`V3.0.0`, toggling
-`Tim_Included`, and toggling `Enable` all leave the error unchanged.
+### 4d. Status
 
-### Conclusion
+`findings/tooling/blf/p298_fixed.blf` builds a complete download package from
+our **own** `mtd0.bin` + `mtd7.bin`:
 
-`SWDownloader` does not flash "a list of mtd dumps". It builds a
-**boot-ROM download package** out of Marvell-internal support blobs that are
-not part of any MTD partition and are not present in any backup we hold.
-The syntax problem is solved; the missing piece is **binary content we cannot
-synthesise**. Without the vendor's original `.blf` + `WTMI`/`TZII` blobs this
-route is closed.
+```
+LC_ALL=C LANG=C ./Utilities/MakeDownloadPackage/MakeDownloadPackage \
+    -r p298_fixed.blf -o pkg.zip
+# Make Download Package successfully....   exit 0
+```
+
+Output `cfg.ini`: `PlatFormType = 6` (NEZHA), `FlashFamilyType = 4`
+(SPI-NAND) — both correct for this board.
+
+Verified non-issues, each tested individually and all still building:
+comments between sections, `BLF_Version` V2.0.0 vs V3.0.0, presence of
+`FlasherLoadAddress`, dropping `[EraseOnly_Option]` / `[Reserved_Data]` /
+`[Extended_Reserved_Data]` / `[Flash_Options]` / `[UE_Options]` /
+`[BLF_Version]`, `Image_Type` `OBM`/`PRIMARY` instead of `RAW`, index-style
+`Next_Image_ID`, and omitting `Size_To_CRC_in_bytes`.
+
+**Still open, and unchanged by the above:**
+
+- No USB transfer has been exercised against hardware.
+- `swdl_linux -U` still segfaults in `CUploadCfgParser::ParseUploadCfgFile` (§6b), unexplained.
+- `-D` needs **root**, and `swdl_linux` 4.8.8.2 vs the OBM's advertised `4.9.0.5`.
+- Device appears then drops — `USB Enum timeout` in mtd0, `NoEnumerationResponseTimeOutError` in the tool. See `§8b` of the findings spec: **start the tool before power-cycling**.
+- `PROD` flag may gate USB enumeration entirely (`[PROD]Don't enum USB port`).
+- `VID_1286&PID_8130` is the expected WTPTP identity per driver databases — **unconfirmed**, needs a live `lsusb`.
 
 ---
 
@@ -257,10 +323,25 @@ Running `-D` would have written through these symlinks and overwritten the
 primary-source dumps. Use an upload config with a distinct
 `Area_UploadData_SaveFile`, and never point a write blf at that directory.
 
-Also note `flash_recovery.blf` targets mtd0 (OBM), mtd7/mtd8 (DTIM A/B) and
-mtd11 (u-boot-a) — the entire trust chain, with **no kernel or rootfs image** —
-and its `Erase_Size` is `0x20000` against mtd7's real `0x40000`. It is not
-usable for recovering the board.
+> **Update 2026-10-13 — this is worse than it looked.** The **offline**
+> utility triggers it too. `MakeDownloadPackage` rewrites the **`TIMH` image in
+> place** with a 248-byte generated TIM header, no hardware needed:
+>
+> ```
+> before:  mtd7.bin  262144 B  7de63ddc29453b0a...
+> after:   mtd7.bin    248 B  f4e1b35d7e74e84c...
+> ```
+>
+> `mtd0.bin` (the `OBMI` image) is untouched. So **never** run any of these
+> binaries from `flashing_tools/Marvell_SWDownloader_v4.8.8.2/`, where
+> `mtd7.bin` is that symlink. Always run in a scratch directory with real
+> copies. `flashing_tools/p298-swd/` is prepared for this. Details in the
+> findings spec §6d-bis.
+>
+> Also note `flash_recovery.blf` targeted mtd0 (OBM), mtd7/mtd8 (DTIM A/B) and
+> mtd11 (u-boot-a) — the entire trust chain, with **no kernel or rootfs image**.
+> It was never usable for recovering the board, and has been deleted in favour
+> of `p298_fixed.blf`.
 
 ### Still blocking a write
 

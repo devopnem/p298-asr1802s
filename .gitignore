@@ -19,6 +19,11 @@
 # and our own config files live in findings/tooling/flashing-tools/.
 /flashing_tools/
 
+# --- vendor firmware packages, downloaded not authored ---
+# 24 MB of third-party AIR720 upgrade packages. The validated blf we derived
+# from them lives in findings/tooling/blf/p298_fixed.blf.
+/new/
+
 # --- local-only data ---
 # data/unit2-20250822/       a SECOND physical unit; deliberately not published
 # data/extracted-rootfs/     derivative of the squashfs rootfs
