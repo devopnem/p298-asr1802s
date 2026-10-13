@@ -9,7 +9,8 @@ Date: 2026-10-10 · Binary: `Marvell_SWDownloader_v4.8.8.2/swdl_linux` (ELF32 i3
 | `.blf` syntax / grammar | **SOLVED** — `p298_fixed.blf` parses and builds |
 | DKB (boot-ROM download package) construction | **SOLVED 2026-10-13** — was a bug in our own `.blf`, not a missing vendor blob. See §4. |
 | Linux USB transport understood | **SOLVED** — raw usbfs, no kernel module. See findings spec §8. |
-| USB transfer against hardware | **UNTESTED** — PROD-gated, and the handshake is racy |
+| Live tool run to device detection | **DONE 2026-10-13** — package builds cleanly in `swdl_linux`, `Image_ID` hex confirmed. See §7. |
+| Device handshake | **BLOCKED** — board enumerates and drops in seconds; `Please plug your USB device` never satisfied |
 
 ---
 
@@ -239,6 +240,8 @@ mtd23 0x06080000 25344K              mtd24 0x07940000  6912K  MRVL_BBM
 > The original `findings/tooling/blf/flash_recovery.blf` draft had `FlashAddr=0x000C0000` for U-Boot. That
 > lands **inside `mtd7` (DTIM)** and would destroy the TIM tables. Correct value
 > is `0x01F80000`.
+>
+> `flash_recovery.blf` itself has been deleted, superseded by `p298_fixed.blf`.
 
 ---
 
@@ -348,3 +351,46 @@ primary-source dumps. Use an upload config with a distinct
 - `WTMI`/`TZII` absent from every dump (§4).
 - Tool is `4.8.8.2`; the board's OBM advertises `SWDownloader 4.9.0.5`. None of
   the four available products is 4.9.
+
+---
+
+## 7. Live Linux run — 2026-10-13
+
+The package pipeline now runs end to end in the **live** tool, not just the
+oracle. `swdl_linux -D p298_fixed.blf -T 120 -N` reached the device-detection
+stage with no errors:
+
+```
+Platform is NEZHA.....
+Preparing NEZHA DKBlist
+complete to prepare NEZHA DKBlist
+Tim file name is .../temp/DKB_ntimheader.bin
+Generating image bin ....  GenerateTim Successfully
+image->Image_ID = 0x54494d48        <- TIMH, hex form now correct
+image->Flash_erase_size = 0x00040000
+image->Image_ID = 0x4f424d49        <- OBMI
+Successfully to prepare temp folder file for wtptp download
+Begin to detect wtptp device....
+Please plug your USB device
+```
+
+This independently confirms §4: `Image_ID` came through as hex, `Erase_Size`
+was accepted at `0x40000`, and the NEZHA/SPI-NAND path completed. It also
+confirms the §6c hazard live — `GenerateTim` rewrote `mtd7.bin` down to 248 B
+mid-run.
+
+**It then stalled at `Please plug your USB device`.** The board enumerates and
+de-enumerates within seconds, faster than the tool's poll loop resolves, and
+`watch -n1 lsusb` cannot catch it either. Two candidate causes, neither yet
+eliminated:
+
+1. **Version mismatch.** The tool is 4.8.8.2 (2015); the board's OBM speaks
+   `SWDownloader 4.9.0.5` / `OBM 4.9.0.0` (Apr 2024). The tool reads the
+   device identity over USB (`Getting Version...`, `Processor: %c%c%c%c`) and
+   matches it against a platform table that contains `WKNG`, `MMP3`, `TVTD`,
+   `HELN`, `NZA3`, `HLN2`–`HLN4` — no entry matching our 4.9.0.0 OBM.
+2. **VID/PID mismatch.** `VID_1286&PID_8130` is the documented Nezha WTPTP
+   identity but remains unconfirmed on this board.
+
+Next diagnostic is `tools/usb-watch.py`, which polls sysfs at ~50 Hz instead of
+once a second and records every transient device with a timestamp.
