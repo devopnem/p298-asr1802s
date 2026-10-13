@@ -22,9 +22,24 @@ get_quiet_from_obm params->quiet: 1
 > key during a `bootdelay=1` countdown to reach `Marvell>>`. That cannot work
 > on this unit, and the reason is in the environment rather than the timing.
 
-## The interrupt window does not exist
+## The interrupt window is silent, not absent
 
-The U-Boot env (mtd21) contains `autostart=yes`. In U-Boot 2014.01:
+> **Correction, 2026-10-13.** This section previously said no keypress can
+> abort the boot because mtd21 contains `autostart=yes`. **That was wrong.**
+> See [`../recovery/mtd21_clip_procedure.md`](../recovery/mtd21_clip_procedure.md).
+
+In U-Boot 2014.01, `autoboot_command()` runs the countdown and the `tstc()`
+poll *before* `run_command_list()`. `autostart` is read **only** by
+`autoboot_command_autostart()`, which is reached **only when `bootcmd`
+contains a `;` run-list separator**. `bootcmd=mrvlboot` has none, so
+`autostart` is never consulted.
+
+The window exists. It is `bootdelay=1` — one second — and `quiet=1` from the
+OBM means the board emits no sign the countdown is running. `mtd11.bin`
+contains both `Hit any key to stop autoboot: %2d` and the `autostart`
+variable, so the path is compiled in.
+
+What is still true from the original note:
 
 ```c
 static int autoboot_command_autostart(const char *s)
@@ -35,17 +50,58 @@ static int autoboot_command_autostart(const char *s)
 }
 ```
 
-`autoboot_command()` is never called, so there is no countdown and `tstc()` is
-never polled. **No keypress can abort the boot, and no length of key-spamming
-helps.** The binary does contain `Hit any key to stop autoboot: %2d `, so
-`CONFIG_AUTOBOOT_KEYED` is compiled in — the code path exists but is unreachable.
+`bootcmd=mrvlboot` runs immediately under `quiet=1` and does not return — but
+only *if no key arrives first*.
 
-And even arriving at the CLI would not help: `bootcmd=mrvlboot` runs
-immediately, prints nothing under `quiet=1`, and does not return. Verified
-with both `picocom` and `tools/uart-exec.py`.
+```c
+static int autoboot_command_autostart(const char *s)
+{
+        if (!autostart)
+                autoboot_command(s);
+        return 1;
+}
+```
 
-The env is locked: setting `autostart=no` needs the shell, and `fw_setenv`
-needs a system that boots.
+```c
+static int autoboot_command(const char *s)
+{
+        if (stored_bootdelay != -1 && s && !abortboot) {
+                int i;
+                printf("Hit any key to stop autoboot: %2d ", bootdelay);
+                bootdelay_start = get_timer(0);
+                bootdelay = bootdelay_start % 1000;
+                for (i = 0; i < bootdelay; ++i) {
+                        if (tstc()) {
+                                abort_boot(1);
+                                break;
+                        }
+                        mdelay(10);
+                }
+                run_command_list(s, s);   /* only reached if no key */
+        }
+        return 0;
+}
+```
+
+The key poll runs **before** `run_command_list()`, so pressing anything during
+the countdown sets `abort_boot` and skips `mrvlboot` entirely. `CONFIG_SILENT_BOOT`
+suppresses the `printf`, which is why nothing appears on the console — the
+countdown is still happening.
+
+**Open questions, stated honestly:** the board was observed printing
+`get_quiet_from_obm params->quiet: 1` and then nothing, with no `Marvell>>`
+across repeated attempts using both `picocom` and `tools/uart-exec.py`. That
+is consistent with a silent countdown that was never hit, but also with other
+explanations — e.g. the OBM consuming early UART input, or `tstc()` polling a
+different console than the one monitored. `bootdelay=1` gives roughly one
+second, and there is no on-screen cue for when it starts.
+
+This is why the clip route raises `bootdelay` to 10 rather than relying on
+winning a one-second silent race. See
+[`../recovery/mtd21_clip_procedure.md`](../recovery/mtd21_clip_procedure.md).
+
+The env is otherwise locked: `fw_setenv` needs a system that boots, which is
+what is being recovered.
 
 ## Tools
 

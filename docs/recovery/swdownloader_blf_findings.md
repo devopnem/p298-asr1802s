@@ -10,7 +10,12 @@ Date: 2026-10-10 · Binary: `Marvell_SWDownloader_v4.8.8.2/swdl_linux` (ELF32 i3
 | DKB (boot-ROM download package) construction | **SOLVED 2026-10-13** — was a bug in our own `.blf`, not a missing vendor blob. See §4. |
 | Linux USB transport understood | **SOLVED** — raw usbfs, no kernel module. See findings spec §8. |
 | Live tool run to device detection | **DONE 2026-10-13** — package builds cleanly in `swdl_linux`, `Image_ID` hex confirmed. See §7. |
-| Device handshake | **BLOCKED** — board enumerates as `2ecc:3002` for 1.58 s. No VID filter in any tool (see §7); cause still unknown. Leading candidate: a kernel driver claims the device. |
+| Device handshake | **CLOSED 2026-10-13** — neither the native Linux tool nor Wine could enumerate it. See §7a. |
+| Kernel driver claiming the device | **RULED OUT** — `-- no driver bound to 1-2` |
+
+**This route is now closed.** Both enumeration paths failed to see a device
+that demonstrably appears for 1.58 s, and neither tool ever opened a USB
+device. Details and what we learned in §7a.
 
 ---
 
@@ -213,6 +218,48 @@ comments between sections, `BLF_Version` V2.0.0 vs V3.0.0, presence of
 - Device appears then drops — `USB Enum timeout` in mtd0, `NoEnumerationResponseTimeOutError` in the tool. See `§8b` of the findings spec: **start the tool before power-cycling**.
 - `PROD` flag may gate USB enumeration entirely (`[PROD]Don't enum USB port`).
 - `VID_1286&PID_8130` is the expected WTPTP identity per driver databases — **unconfirmed**, needs a live `lsusb`.
+
+## 7a. SWDownloader route: closed on our side — 2026-10-13
+
+Both the native Linux tool and the Windows tool under Wine failed to enumerate
+`2ecc:3002`, from two completely different code paths:
+
+| path | enumeration mechanism | `wtp*.log` written? |
+|---|---|---|
+| `swdl_linux` 4.8.8.2 | netlink uevent, `init_hotplug_sock`, parses `DEVNAME=` | no |
+| `SWDownloader.exe` under Wine | Wine `setupapi` / `wineusb.so` over `/sys/bus/usb` | no |
+
+`swdl_linux_wtptp_device_detect.log` was **0 bytes**. `WtptpDownLoad.dll`
+writes `%s/wtp%s.log` per device seen (`add DevName:%s`,
+`Open device successfully/failed`) — it does not exist. Neither tool ever
+opened any USB device, so neither reached the protocol probe.
+
+A kernel driver claiming the device was ruled out: `tools/usb-watch.py`
+reports `-- no driver bound to 1-2 (good)`, so `/dev/bus/usb` was accessible
+the whole time. Wine needs no driver either — `WTPTP.SYS` is a *Windows* kernel
+driver, needed only because Windows requires a driver to claim a USB device
+for vendor I/O. Wine implements `setupapi`, `cfgmgr32` and `DeviceIoControl`
+itself (`wineusb.so`) and talks to `/dev/bus/usb` directly.
+
+Two findings did come out of it:
+
+1. **The Windows tool accepted our blf.** `SWD.log` recorded
+   `InitializeBL WTPTPDownload parameter succeed!`, with
+   `Image_ID = 0x54494D48` / `0x4F424D49` preserved. The §4 hex fix is
+   validated on the Windows side as well.
+2. **The Windows tool ignores `Enable` in the blf.** It rewrote both files
+   (3959 → 1439 B, comments stripped) and reset `Enable` to `1`. A no-write
+   probe cannot be made this way — uncheck images in the GUI's own list
+   instead. Treat the `Enable` keys as unusable on Windows. The tool also
+   re-serialises `Blf_Version_Number = NOT AVAILABLE` and
+   `Spare_Area_Size = NOT AVAILABLE` on rewrite, while still honouring
+   `Flash_Family = SPI-NAND` and `Processor_Type = PXA1802`.
+
+**Conclusion:** no further SWDownloader work. Four tools spanning 2015–2018
+have all missed a board whose OBM is 4.9.0.5. The remaining option would be
+`4.9.x` from Yuge (`support@yuge-info.com`) on bare-metal Windows — and it
+would still be writing mtd0 and a vendor-signed DTIM to fix a boot-policy
+hang. See [`mtd21_clip_procedure.md`](mtd21_clip_procedure.md).
 
 ---
 
