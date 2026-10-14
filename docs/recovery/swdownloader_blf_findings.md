@@ -10,7 +10,7 @@ Date: 2026-10-10 · Binary: `Marvell_SWDownloader_v4.8.8.2/swdl_linux` (ELF32 i3
 | DKB (boot-ROM download package) construction | **SOLVED 2026-10-13** — was a bug in our own `.blf`, not a missing vendor blob. See §4. |
 | Linux USB transport understood | **SOLVED** — raw usbfs, no kernel module. See findings spec §8. |
 | Live tool run to device detection | **DONE 2026-10-13** — package builds cleanly in `swdl_linux`, `Image_ID` hex confirmed. See §7. |
-| Device handshake | **ROOT CAUSE FOUND 2026-10-14** — `swdl_linux` filters on a VID/PID whitelist that lacks `0x2ECC`. Patched, pending a live run. See §8f of the findings spec. |
+| Device handshake | **WHITELIST FIXED 2026-10-14** — device now found, opened, version read (`3311` / `06012014` / `NZA3`). One gate left: platform-enum lookup. See §8h of the findings spec. |
 | Kernel driver claiming the device | **RULED OUT** — `-- no driver bound to 1-2` |
 
 **This route is now closed.** Both enumeration paths failed to see a device
