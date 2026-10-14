@@ -43,16 +43,25 @@ TWO EDITS
        813b7a9  78 33     js  +0x33
     -> 813b7a9  7e 33     jle +0x33
 
-2. Call it from OpenDev just before `__libc_open64` (0x0813b6b3). The 10-byte
-   instruction replaced is dead: `GetPipeOfDev` writes all three of its
-   out-params on success (0x813b432-0x813b44c) and OpenDev reads only two of
+2. Call it from OpenDev just before `__libc_open64` (0x0813b6b3). `ebx` already
+   holds the handle (loaded at 0x0813b66f, not clobbered before this point), so
+   it is pushed explicitly. Omitting that push is not a harmless no-op: CloseDev
+   reads its argument from [ebp+0xc], and a bare call leaves stack junk there.
+   That is exactly what the first attempt did, and it produced
+
+       segfault at 200 ip 000000000813b7a1 error 4
+
+   which is CloseDev's `mov edx,[ebx+0x200]` executing with ebx == 0.
+
+   The 10-byte instruction replaced is dead: `GetPipeOfDev` writes all three of
+   its out-params on success (0x813b432-0x813b44c) and OpenDev reads only two of
    them back (0x813b714, 0x813b720); `[ebp-0x428]` is the third and is never
    read on either path -- the failure path at 0x813b770 only prints and returns.
 
        813b69e  c7 85 d8 fb ff ff ff ff ff ff   mov DWORD PTR [ebp-0x428],-1
-    -> 813b69e  e8 ed 00 00 00 90 90 90 90 90   call CloseDev ; nops
+    -> 813b69e  53 e8 ec 00 00 00 90 90 90 90   push ebx ; call CloseDev ; nops
 
-   rel32 = 0x0813b790 - 0x0813b6a3 = 0xED.
+   rel32 = 0x0813b790 - 0x0813b6a4 = 0xEC.
 
 RISK DIRECTION
 --------------
@@ -118,13 +127,24 @@ def main() -> int:
         print("wrong binary, or already patched", file=sys.stderr)
         return 1
 
-    # call CloseDev: rel32 is measured from the end of the call instruction
-    rel = CLOSEDEV_VA - (CALL_VA + 5)
+    # call CloseDev: the handle lives in ebx. rel32 is measured from the end of
+    # the call instruction, which now sits one byte later because of the push.
+    rel = CLOSEDEV_VA - (CALL_VA + 1 + 5)
     if not -(1 << 31) <= rel < (1 << 31):
         print("CloseDev is out of rel32 range", file=sys.stderr)
         return 1
-    call_patch = bytes.fromhex("e8") + struct.pack("<i", rel) + b"\x90" * 5
+    call_patch = bytes.fromhex("53") + bytes.fromhex("e8") + struct.pack("<i", rel) + b"\x90" * 4
     assert len(call_patch) == len(CALL_EXPECT), "patch must be same length"
+
+    # Decode our own output the way the CPU would and insist it lands on
+    # CloseDev. A call with the wrong rel32 compiles, links, looks plausible in
+    # a hex dump and crashes at run time -- this is the check that catches it.
+    call_at = CALL_VA + 1
+    decoded_target = (call_at + 5) + struct.unpack("<i", call_patch[2:6])[0]
+    if decoded_target != CLOSEDEV_VA:
+        print(f"encoded call lands on {decoded_target:#x}, "
+              f"not CloseDev {CLOSEDEV_VA:#x}", file=sys.stderr)
+        return 1
 
     buf[guard_off:guard_off + 2] = GUARD_REPLACE
     buf[call_off:call_off + 10] = call_patch
@@ -149,7 +169,7 @@ def main() -> int:
     print(f"va {CALL_VA:#x}  file {call_off:#x}")
     print(f"  before: {CALL_EXPECT.hex(' ')}")
     print(f"  after : {call_patch.hex(' ')}")
-    print(f"  call rel32 = {rel:#x} -> target {CALL_VA + 5 + rel:#x} "
+    print(f"  call rel32 = {rel:#x} -> lands on {decoded_target:#x} "
           f"(CloseDev is {CLOSEDEV_VA:#x})")
     print(f"bytes differing: {len(changed)} (all inside the windows: {inside})")
     print(f"size unchanged: {len(chk) == len(src)}")
