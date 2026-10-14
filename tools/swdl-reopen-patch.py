@@ -43,25 +43,35 @@ TWO EDITS
        813b7a9  78 33     js  +0x33
     -> 813b7a9  7e 33     jle +0x33
 
-2. Call it from OpenDev just before `__libc_open64` (0x0813b6b3). `ebx` already
-   holds the handle (loaded at 0x0813b66f, not clobbered before this point), so
-   it is pushed explicitly. Omitting that push is not a harmless no-op: CloseDev
-   reads its argument from [ebp+0xc], and a bare call leaves stack junk there.
-   That is exactly what the first attempt did, and it produced
-
-       segfault at 200 ip 000000000813b7a1 error 4
-
-   which is CloseDev's `mov edx,[ebx+0x200]` executing with ebx == 0.
-
-   The 10-byte instruction replaced is dead: `GetPipeOfDev` writes all three of
-   its out-params on success (0x813b432-0x813b44c) and OpenDev reads only two of
+2. Call it from OpenDev just before `__libc_open64` (0x0813b6b3). The 10-byte
+   instruction replaced is dead: `GetPipeOfDev` writes all three of its
+   out-params on success (0x813b432-0x813b44c) and OpenDev reads only two of
    them back (0x813b714, 0x813b720); `[ebp-0x428]` is the third and is never
    read on either path -- the failure path at 0x813b770 only prints and returns.
 
-       813b69e  c7 85 d8 fb ff ff ff ff ff ff   mov DWORD PTR [ebp-0x428],-1
-    -> 813b69e  53 e8 ec 00 00 00 90 90 90 90   push ebx ; call CloseDev ; nops
+   CloseDev is a MEMBER function, so it takes two stack arguments even though
+   its mangled name shows one: implicit `this` at [ebp+8] and the explicit
+   `_USB_HANDLE*` at [ebp+0xc]. Both must be pushed, in that order, and both
+   popped afterwards because CloseDev returns with `leave`.
 
-   rel32 = 0x0813b790 - 0x0813b6a4 = 0xEC.
+       813b66c  mov eax,[ebp+0x8]       ; OpenDev: this           (arg1)
+       813b66f  mov ebx,[ebp+0xc]       ; OpenDev: _USB_HANDLE*   (arg2)
+                                          (both still live at 0x813b69e)
+       813b79b  mov ebx,[ebp+0xc]       ; CloseDev: _USB_HANDLE*  (arg2)
+
+   Pushing only the handle fills the `this` slot and leaves the one CloseDev
+   actually dereferences as stack junk. That produced
+
+       segfault at 200 ip 000000000813b7a1 error 4
+
+   on two consecutive runs, identically, and adding `push ebx` alone did not
+   help because it was the wrong slot.
+
+       813b69e  c7 85 d8 fb ff ff ff ff ff ff   mov DWORD PTR [ebp-0x428],-1
+    -> 813b69e  50 53 e8 eb 00 00 00 83 c4 08
+                                push eax ; push ebx ; call ; add esp,8
+
+   rel32 = 0x0813b790 - 0x0813b6a5 = 0xEB.
 
 RISK DIRECTION
 --------------
@@ -127,20 +137,24 @@ def main() -> int:
         print("wrong binary, or already patched", file=sys.stderr)
         return 1
 
-    # call CloseDev: the handle lives in ebx. rel32 is measured from the end of
-    # the call instruction, which now sits one byte later because of the push.
-    rel = CLOSEDEV_VA - (CALL_VA + 1 + 5)
+    # CloseDev is a member function: arg1 is the implicit `this` (still live in
+    # eax, loaded at 0x813b66c and never clobbered before this point), arg2 is
+    # the explicit _USB_HANDLE* (still live in ebx, loaded at 0x813b66f).
+    # Both are pushed, and both popped, because CloseDev returns with `leave`.
+    PREFIX = 2   # push eax ; push ebx
+    rel = CLOSEDEV_VA - (CALL_VA + PREFIX + 5)
     if not -(1 << 31) <= rel < (1 << 31):
         print("CloseDev is out of rel32 range", file=sys.stderr)
         return 1
-    call_patch = bytes.fromhex("53") + bytes.fromhex("e8") + struct.pack("<i", rel) + b"\x90" * 4
+    call_patch = (bytes.fromhex("5053") + bytes.fromhex("e8")
+                  + struct.pack("<i", rel) + bytes.fromhex("83c408"))
     assert len(call_patch) == len(CALL_EXPECT), "patch must be same length"
 
     # Decode our own output the way the CPU would and insist it lands on
     # CloseDev. A call with the wrong rel32 compiles, links, looks plausible in
     # a hex dump and crashes at run time -- this is the check that catches it.
-    call_at = CALL_VA + 1
-    decoded_target = (call_at + 5) + struct.unpack("<i", call_patch[2:6])[0]
+    call_at = CALL_VA + PREFIX
+    decoded_target = (call_at + 5) + struct.unpack("<i", call_patch[3:7])[0]
     if decoded_target != CLOSEDEV_VA:
         print(f"encoded call lands on {decoded_target:#x}, "
               f"not CloseDev {CLOSEDEV_VA:#x}", file=sys.stderr)
