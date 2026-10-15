@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -131,6 +132,34 @@ def new_chunk_bytes(chunk: int) -> bytes:
     return body + b"\x90" * (CHUNK_LEN - len(body))
 
 
+def retune_chunk_bytes(buf: bytearray, chunk: int) -> int:
+    """Rewrite only the imm32 of an already-applied chunk patch.
+
+    Re-running the full patch on an already-patched binary fails, because the
+    expected byte pattern includes the call displacement to
+    `isFastDownload`, and that displacement depends on where the patch was
+    built from. The immediate does not move, so retuning a chunk size on an
+    existing v6/v8 does not need the whole region to match.
+
+    Verifies the six-byte opcode prefix `C7 85 A0 B7 FF FF` -- `mov DWORD PTR
+    [ebp-0x4860], imm32` -- before writing, and refuses anything else. The
+    disp8 form `C7 45 A0` sign-extends 0xA0 to -0x60 and targets the wrong
+    stack slot, so the prefix check is not optional.
+    """
+    if not 1 <= chunk <= MAX_CHUNK:
+        raise SystemExit(f"chunk must be 1..{MAX_CHUNK:#x}, got {chunk:#x}")
+    off = CHUNK_VADDR - IMAGE_BASE
+    prefix = bytes.fromhex("c7 85 a0 b7 ff ff")
+    got = bytes(buf[off:off + 6])
+    if got != prefix:
+        raise SystemExit(
+            f"{CHUNK_VADDR:#010x}: expected the chunk store prefix "
+            f"{prefix.hex(' ')}, found {got.hex(' ')} -- not a patched binary")
+    old = struct.unpack_from("<I", buf, off + 6)[0]
+    struct.pack_into("<I", buf, off + 6, chunk)
+    return old
+
+
 def orig_fd_bytes() -> bytes:
     return bytes.fromhex("c7 44 24 08 00 00 00 00")       # mov [esp+0x8],0
 
@@ -195,6 +224,10 @@ def main() -> int:
                          "(0 = leave stock)")
     ap.add_argument("--force-fast-download", action="store_true",
                     help="also make isFastDownload(true,true) unconditional")
+    ap.add_argument("--retune", action="store_true",
+                    help="rewrite only the chunk immediate, for a binary that "
+                         "already carries an earlier chunk patch. Needs "
+                         "--chunk. Skips the whole-region match.")
     ap.add_argument("--verify", action="store_true",
                     help="re-check a previously patched binary and exit")
     ap.add_argument("--describe", action="store_true",
@@ -213,6 +246,25 @@ def main() -> int:
 
     src = Path(args.binary)
     data = bytearray(src.read_bytes())
+
+    if args.retune:
+        if not args.chunk:
+            ap.error("--retune needs --chunk")
+        print(f"binary      {src}  ({len(data)} bytes)")
+        old = retune_chunk_bytes(data, args.chunk)
+        print(f"  chunk store at {hex(CHUNK_VADDR)}: {hex(old)} -> "
+              f"{hex(args.chunk)}")
+        dst = Path(args.output) if args.output else src
+        if dst != src:
+            shutil.copy2(src, dst)
+        dst.write_bytes(bytes(data))
+        dst.chmod(src.stat().st_mode)
+        print(f"wrote {dst}")
+        print()
+        print("verify with:")
+        print(f"  objdump -d -M intel --start-address={hex(CHUNK_VADDR)} "
+              f"--stop-address={hex(CHUNK_VADDR + 10)} {dst}")
+        return 0
 
     have_chunk = read_region(data, CHUNK_VADDR, CHUNK_LEN)
     want_chunk = orig_chunk_bytes()
