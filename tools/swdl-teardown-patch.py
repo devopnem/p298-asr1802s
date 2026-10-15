@@ -56,9 +56,9 @@ Neutralises the three `operator delete` calls in the detect thread. The object
 survives the remove event, so `esi` stays valid and the download thread runs
 its loop to completion and fails cleanly on the timeout instead of crashing.
 
-    0x081377d9  e8 62 ed 17 00   call _ZdlPv   ->   90 90 90 90 90
-    0x08137b64  e8 d7 e9 17 00   call _ZdlPv   ->   90 90 90 90 90
-    0x08137e90  e8 ab e6 17 00   call _ZdlPv   ->   90 90 90 90 90
+    0x0812f91b  e8 90 e0 03 00   call ~CWtpComm()  ->  90 90 90 90 90
+    0x0812f923  e8 18 6c 18 00   call _ZdlPv      ->  90 90 90 90 90
+    0x0812f935  e8 06 6c 18 00   call _ZdlPv      ->  90 90 90 90 90
 
 Fifteen bytes. No instruction is moved, no relocation changes, no stack frame
 is touched.
@@ -89,15 +89,24 @@ from pathlib import Path
 LOAD1_VA, LOAD1_END = 0x08048000, 0x34C404
 LOAD2_VA, LOAD2_OFF = 0x08395404, 0x34C404
 
-# va of each `call operator delete(void*)` in WtptpDeviceDetectThread
-DELETE_CALLS = [0x081377D9, 0x08137B64, 0x08137E90]
+# CWtptpDownLoad::RemoveEntryList @ 0x0812f840 ends with:
+#
+#   0812f90e  mov ebx,DWORD PTR [esi+0xc18]   ; dev->m_pComm
+#   0812f91b  call CWtpComm::~CWtpComm()       ; destroys what thread 3 holds
+#   0812f923  call operator delete            ; frees the CWtpComm
+#   0812f928  mov DWORD PTR [esi+0xc18],0
+#   0812f935  call operator delete            ; frees the _DEVICE
+#
+# Those last two are the objects BootLoaderIOThread dereferences.
+KILL_CALLS = [0x0812F91B, 0x0812F923, 0x0812F935]
 
 NOP5 = b"\x90" * 5
 EXPECT = {
-    0x081377D9: bytes.fromhex("e8 62 ed 17 00"),
-    0x08137B64: bytes.fromhex("e8 d7 e9 17 00"),
-    0x08137E90: bytes.fromhex("e8 ab e6 17 00"),
+    0x0812F91B: bytes.fromhex("e8 90 e0 03 00"),
+    0x0812F923: bytes.fromhex("e8 18 6c 18 00"),
+    0x0812F935: bytes.fromhex("e8 06 6c 18 00"),
 }
+DELETE_CALLS = KILL_CALLS   # back-compat alias
 
 
 def v2f(va: int) -> int:
@@ -108,8 +117,8 @@ def v2f(va: int) -> int:
 
 
 def describe() -> None:
-    print("neutralise 3 `call operator delete` in WtptpDeviceDetectThread")
-    print("(use-after-free: download thread still holds the freed CWtpComm)")
+    print("neutralise the CWtpComm + _DEVICE teardown in RemoveEntryList")
+    print("(use-after-free: BootLoaderIOThread still holds both)")
     print()
     for va in DELETE_CALLS:
         print(f"  {va:#010x}  {EXPECT[va].hex(' ')}  ->  {NOP5.hex(' ')}")
