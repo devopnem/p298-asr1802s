@@ -81,12 +81,42 @@ WHAT THIS PATCH DOES
     0x0812f928  c7 86 18 0c 00 00 00      mov [esi+0xc18],0 ->  7x nop
     0x0812f935  e8 06 6c 18 00            call _ZdlPv       ->  5x nop
 
-Twenty-two bytes of instructions, 21 of which differ: the byte at 0x0812f91c
+Twenty-five bytes of instructions, 24 of which differ: the byte at 0x0812f91c
 is already 0x90 in the stock binary. No instruction is moved, no relocation
-changes, no stack frame is touched. Every site is a whole instruction, and
-each is followed by alignment padding, so nothing is split.
+changes, no stack frame is touched. `--undo` round-trips byte-identical to the
+input.
 
-`--undo` round-trips byte-identical to the input.
+A NOP PATCH MUST COVER THE WHOLE INSTRUCTION
+--------------------------------------------
+The first version of this tool replaced 0x0812f928 with seven nops, believing
+`mov DWORD PTR [esi+0xc18],0x0` was a seven-byte instruction. It is ten.
+`c7 86` is an opcode plus ModRM with a disp32 operand, and the store carries a
+four-byte immediate:
+
+    c7 86 18 0c 00 00 00 00 00 00     10 bytes, 0x0812f928-0x0812f931
+              ^dis32 = 0xc18             ^imm32 = 0
+
+Nopping only the first seven left `00 00 00` at 0x0812f92f, where the CPU then
+decoded:
+
+    0x0812f92f  00 00           add %al,(%eax)      harmless, data section
+    0x0812f931  00 89 34 24 ..  add %cl,0x90909024(%ecx)   SIGSEGV
+
+0x90909024 is the NOP fill from 0x0812f935 being executed as a displacement.
+That produced a crash in the hotplug thread inside RemoveEntryList, at an
+address that had nothing to do with the bug being fixed, and it moved the
+fault out of the download thread and into a thread that was working fine.
+
+The lesson is the reason SITES carries an explicit expected byte string rather
+than a length: read the instruction length off the encoding, never off the
+first disassembly line, which stops at the operand and not at the boundary.
+`objdump` prints `mov DWORD PTR [esi+0xc18],0x0` as one line either way.
+
+USING THE CRASH TRACE
+---------------------
+Thread 3 being parked in ioctl() rather than dead in GetTargetMessage is the
+signal that the original fault is gone. Check the thread table, not just the
+top frame, before concluding anything about progress.
 
 `RemoveEntryList`'s `CWtpComm::CloseUsbPort()` call is deliberately left in
 place: closing the fd makes the download thread's next transfer fail cleanly,
@@ -121,11 +151,14 @@ LOAD2_VA = 0x08395404
 LOAD2_OFF = 0x34C404
 
 # (va, original bytes) -- each a single whole instruction, nopped with
-# len(original) nops. See the module docstring for the disassembly.
+# len(original) nops. The byte string is the whole instruction including its
+# disp32 and imm32; see the docstring on why a length would have been wrong.
+# --verify and the apply path both match it exactly, so a short or long
+# instruction is caught rather than silently mis-patched.
 SITES = [
     (0x0812F91B, bytes.fromhex("e8 90 e0 03 00")),  # call CWtpComm::~CWtpComm()
     (0x0812F923, bytes.fromhex("e8 18 6c 18 00")),  # call operator delete  (CWtpComm)
-    (0x0812F928, bytes.fromhex("c7 86 18 0c 00 00 00")),  # dev->m_pComm = NULL
+    (0x0812F928, bytes.fromhex("c7 86 18 0c 00 00 00 00 00 00")),  # dev->m_pComm = NULL
     (0x0812F935, bytes.fromhex("e8 06 6c 18 00")),  # call operator delete  (_DEVICE)
 ]
 
@@ -149,7 +182,9 @@ def nops(n: int) -> bytes:
 
 
 def describe() -> None:
-    print("CWtptpDownLoad::RemoveEntryList @ 0x0812f840 -- 4 sites, 22 bytes")
+    total = sum(len(o) for _, o in SITES)
+    print(f"CWtptpDownLoad::RemoveEntryList @ 0x0812f840 -- "
+          f"{len(SITES)} sites, {total} bytes")
     print("keep the removed device's CWtpComm alive for BootLoaderIOThread")
     print()
     for va, orig in SITES:
