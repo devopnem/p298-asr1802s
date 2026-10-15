@@ -160,6 +160,9 @@ def main() -> int:
     ap.add_argument("--dkb", choices=["air720", "p298"], default="air720",
                     help="which file supplies the DKB (default air720)")
     ap.add_argument("--env-size", choices=["256K", "32K"], default="32K")
+    ap.add_argument("--env", help="env block to embed, relative to "
+                    "flashing_tools/p298-swd. Overrides the default name for "
+                    "--env-size and skips the derivation step.")
     ap.add_argument("--validate", action="store_true",
                     help="run the vendor MakeDownloadPackage oracle on the result")
     args = ap.parse_args()
@@ -172,20 +175,36 @@ def main() -> int:
         dkb_erase = "0x40000"
 
     if args.env_size == "32K":
-        env_path = "mtd21.env32k.bin"
+        env_path = args.env or "mtd21.env32k.bin"
         env_bytes = 0x8000
         # Derive it if absent so the .blf is always buildable in one step.
+        # Skipped when --env names a file explicitly: that file is the point.
         src = SWD / "mtd21.unlocked.bin"
         dst = SWD / env_path
-        if src.exists():
+        if not args.env and src.exists():
             full = src.read_bytes()
             if not dst.exists() or dst.read_bytes() != full[:0x8000]:
                 dst.write_bytes(full[:0x8000])
                 print(f"derived {dst} from mtd21.unlocked.bin "
                       "(first 0x8000 B; the rest of the partition is 0xFF)")
     else:
-        env_path = "mtd21.unlocked.bin"
+        env_path = args.env or "mtd21.unlocked.bin"
         env_bytes = 0x40000
+
+    # A short or long env block would be written at the wrong partition size.
+    # Catch it here; the vendor oracle does not check it.
+    env_file = SWD / env_path
+    if env_file.exists():
+        actual = env_file.stat().st_size
+        if actual != env_bytes:
+            print(f"error: {env_path} is {actual} bytes, but --env-size "
+                  f"{args.env_size} means {env_bytes}. Refusing to build a "
+                  f".blf that would write it at the wrong size.",
+                  file=sys.stderr)
+            return 1
+    else:
+        print(f"error: {env_path} not found in {SWD}", file=sys.stderr)
+        return 1
 
     text = HEADER.replace("{AIR720 if True else ''}", "")
     text += TEMPLATE.format(dkb_path=dkb_path, dkb_erase=dkb_erase, env_path=env_path)
