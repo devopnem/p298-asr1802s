@@ -31,6 +31,7 @@ working.
 """
 
 import argparse
+import os
 import struct
 import shutil
 import sys
@@ -82,8 +83,11 @@ def main() -> int:
             break
         off += 12
 
-    print(f"whitelist at file 0x{table:x}: {len(ents) - 1} live entries "
+    print(f"whitelist at file 0x{table:x}: {len(ents) - 1} stored entries "
           f"+ terminator at 0x{ents[-1][0]:x}")
+    print(f"  note: ChecHWIds starts at table+0xC, so entry[0] "
+          f"(0x{ents[0][1]:04X}:0x{ents[0][2]:04X}) is unreachable; "
+          f"{len(ents) - 2} entries are actually scanned")
     vids = sorted({v for _, v, _, _ in ents})
     print(f"  VIDs present: {', '.join(f'0x{v:04X}' for v in vids)}")
     if any(v == args.vid for _, v, _, _ in ents):
@@ -108,6 +112,7 @@ def main() -> int:
 
     struct.pack_into("<III", buf, last_off, args.vid, args.pid, WILDCARD)
     shutil.copyfile(args.input, args.output)
+    os.chmod(args.output, (Path(args.input).stat().st_mode & 0o7777) | 0o111)
     Path(args.output).write_bytes(bytes(buf))
 
     # re-read from disk and verify

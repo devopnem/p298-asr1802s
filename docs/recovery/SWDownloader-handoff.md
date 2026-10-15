@@ -251,7 +251,40 @@ objdump on the produced binary. See §11.
 
 ## 6. Specific questions for whoever picks this up
 
-**A. Can the OBM's 1.58 s USB window be extended or held?**
+**A. Can the OBM's 1.58 s USB window be extended or held? — ANSWERED 2026-10-15.**
+
+> The premise is wrong, and so is the remedy. The board is not racing us.
+> Full analysis in [`DOWNLOAD_MODE_RE.md`](DOWNLOAD_MODE_RE.md).
+>
+> Download mode is gated in the OBM (`FUN_003eeacc`, `0x3EEACC`) by three
+> conditions, in order:
+>
+> 1. a force-download code read from a register, or
+> 2. **a latch in mtd19**: `DLFG == "DLFG" && DLOK != "DLOK"`, or
+> 3. the PROD fuse bit `0x8000` at `0xD428287C`.
+>
+> **This unit fails gate 2 and never reaches download mode at all.** mtd19
+> holds `DLFG` at `+0x8C` and `DLOK` at `+0x90`; because `DLOK == "DLOK"` the
+> latch is **closed** and the board boots straight through. Every earlier
+> "device appears for 1.58 s" observation came from the force-download strap
+> (gate 1), not from a window we were losing.
+>
+> Clearing `DLOK` reopens the gate. It is evaluated *before* the fuse check
+> and before any timeout, so it should hold download mode open on every boot.
+> `tools/mtd19-force-download.py` prepares it (`--inspect` reads the state).
+>
+> The wait is also not a constant: `FUN_003ef72c` sleeps
+> `ResetDelay * 1000000` us, where `ResetDelay` is a byte read from a 0x10-byte
+> options block — the device-side counterpart of the `.blf` `Reset_DelayTime`
+> key. Raising it is the second lever.
+>
+> **Untested on hardware**, and the OBM re-stamps `DLOK` on entering download
+> mode, so it may buy one boot per write rather than a permanent change.
+>
+> `RESTORE_Key` / GPIO 16 is therefore no longer the cheapest experiment — it
+> is gate 1 of three, and not the gate that is closed.
+
+<details><summary>Original open question (superseded)</summary>
 
 Strings in `mtd0.bin` suggest it is adjustable:
 `Wait for download change timeout to true...`, `USB Enum timeout`,
@@ -265,6 +298,8 @@ Strings in `mtd0.bin` suggest it is adjustable:
   **If holding that pin keeps the OBM in forced download mode, the window may
   not expire and the whole route reopens.** This is the cheapest untested
   experiment.
+
+</details>
 
 **B. Can Fast Download be enabled? — ANSWERED: not in this binary.**
 
@@ -300,18 +335,71 @@ Requested from Yuge (`support@yuge-info.com`) on 2026-10-14. They document
 `SWDownloader_4_9_1_1`; our OBM advertises `4.9.0.5`. Their answer decides
 whether this route is worth continuing at all.
 
+**E. "Get type of device failed" after a clean handshake — ANSWERED 2026-10-15.**
+
+> The failure is in our `.blf`, not in the tool and not on the board. Full
+> analysis in
+> [`findings/tooling/blf/swdl-platform-enum.md`](../../findings/tooling/blf/swdl-platform-enum.md).
+>
+> `GetDeviceBootType` does not *determine* the platform, it dispatches on one
+> the BLF already chose:
+>
+> ```
+> [TIM_Configuration] Processor_Type
+>   -> CBlfParser::GetPlatFormType   -> ePlatForm
+>   -> CIFL_SWD::Initilizeparameter   -> _InstanceParams+0x24
+>   -> CWtptpDownLoad::InitializeBL  -> this+0x1C4C
+>   -> GetDeviceBootType jump table at 0x083371DC (19 entries)
+> ```
+>
+> `PXA1802` maps to ePlatForm **6**, and slot 6 is one of the three (0, 6, 12)
+> whose handler is the `"Unknown platform type"` stub. `PXA1826` maps to
+> ePlatForm **15**, whose handler tests exactly the identity this board reports:
+> date `06012014`, processor `NZA3`, version `3311`.
+>
+> **One-token fix, no binary patch:**
+>
+> ```diff
+> -Processor_Type = PXA1802
+> +Processor_Type = PXA1826
+> ```
+>
+> Confirmed offline with the vendor's own oracle: `MakeDownloadPackage`
+> printed `NEZHA platform type` for the old BLF and `NEZHA3 platform type` for
+> the corrected one. Note `PXA1802` is plain *Nezha* and `PXA1826` is *Nezha 3*;
+> the board's own processor string is `NZA3`, so the BLF was mis-declaring the
+> SoC family.
+>
+> If you prefer the patch route, `tools/swdl-platform-patch.py --enum 0x0F` is
+> correct; the previous default `0x12` selects the HLN4 / `3313` branch.
+
 ## 7. Recovered protocol constants
 
 `swdl_linux` is **unstripped and carries DWARF**. `readelf -sW swdl_linux |
 c++filt` gives every method of `CWtpComm` and `CWtptpDownLoad` with address
 and size.
 
-| command | bytes | function |
+**Corrected 2026-10-15.** These were the little-endian encodings of the
+compiler's *dword stores*, read backwards. The WTP opcode is at **offset 0**.
+
+| command | transmitted bytes | function |
 |---|---|---|
-| Preamble | `D3 02 2B 02` | `CWtpComm::SendPreamble` `0x0816d820` |
-| DataHeader | `04 00 00 2A` | `CWtpComm::DataHeader` `0x0816ea00` |
-| VerifyImage | `01 00 00 00 27` | `CWtpComm::VerifyImage` `0x0816eca0` |
-| UploadDataHeader | `10 00 00 00 32` | `CWtpComm::UploadDataHeader` `0x0816f530` |
+| Preamble | `00 D3 02 2B` (4 B) | `CWtpComm::SendPreamble` `0x0816d820` |
+| GetVersion | `20 00 …` (8 B) | `CWtpComm::GetVersion` `0x0816f0c0` |
+| Data | `22 <seq> …` (8 + N B) | `CWtpComm::Data` `0x0816e7d0` |
+| SelectImage | `26 …` (8 B) | `CWtpComm::SelectImage` `0x0816ee70` |
+| VerifyImage | `27 00 … 01000000 <mode>` (9 B) | `CWtpComm::VerifyImage` `0x0816eca0` |
+| DataHeader | `2A <seq> 00 <04 if fast> 04000000 <size BE32>` (12 B) | `CWtpComm::DataHeader` `0x0816ea00` |
+| GetWtpMessage | `2B …` (8 B) | `CWtpComm::GetWtpMessage` `0x0816dbb0` |
+| Done | `30 …` (8 B) | `CWtpComm::Done` `0x0816e600` |
+| Disconnect | `31 …` (8 B) | `CWtpComm::Disconnect` `0x0816e480` |
+| UploadDataHeader | `32 … 10000000 <4×u32>` (24 B) | `CWtpComm::UploadDataHeader` `0x0816f530` |
+| UploadData | `33 …` (8 + N B) | `CWtpComm::UploadData` `0x0816dfd0` |
+| GetProtocolVersion | `34 …` (8 B) | `CWtpComm::GetProtocolVersion` `0x0816f260` |
+| GetParameters | `35 …` (8 B) | `CWtpComm::GetParameters` `0x0816e0f0` |
+
+NACK is `resp[3] == 1`. Full engine writeup in
+[`findings/tooling/blf/swdl_linux-internals.md`](../../findings/tooling/blf/swdl_linux-internals.md).
 
 Key functions:
 

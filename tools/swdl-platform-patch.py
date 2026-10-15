@@ -18,16 +18,39 @@ exchanges the preamble and reads its identity:
     8136a30  mov  eax,DWORD PTR [esi+0x1c4c]
     8136a36  jmp  DWORD PTR [eax*4+0x83371dc]    ; 19 entries, index 0..0x12
 
-The enum is copied out of a record found by looking the device identity up in
-a table the tool assembles at runtime, so it cannot be read statically. The
-name fields are `std::string` globals in BSS built by the CWtptpDownLoad
-global constructor; the version codes survive as 4-character dwords in
-.rodata but the dates do not appear as dwords at all, so the record layout is
-string-based.
+SOLVED 2026-10-15 -- see findings/tooling/blf/swdl-platform-enum.md
+------------------------------------------------------------------
+This patch is now a FALLBACK, not the fix. The gate is not a board-side
+lookup at all:
 
-Our board reports version `3311` and date `06012014`, which the tool pairs
-with `HLN2`, while its processor string says `NZA3`. That mismatch is the
-most likely reason the lookup resolves to an out-of-range enum.
+    [TIM_Configuration] Processor_Type = <SoC name>
+      -> CBlfParser::GetPlatFormType      -> ePlatForm
+      -> CIFL_SWD::Initilizeparameter      -> _InstanceParams+0x24
+      -> CWtptpDownLoad::InitializeBL     -> this+0x1C4C
+
+    Processor_Type = PXA1802  ->  ePlatForm 6   -> DEAD STUB (no handler)
+    Processor_Type = PXA1826  ->  ePlatForm 15  -> the branch we want
+
+`PXA1802` was in every BLF in this repo, and ePlatForm 6 is one of the three
+slots (0, 6, 12) that land on "Unknown platform type". Editing the BLF to
+`PXA1826` is the real fix and needs no binary patch:
+
+    -Processor_Type = PXA1802
+    +Processor_Type = PXA1826
+
+The handler at enum 15 (0x08136b75) tests, as plain substring matches:
+
+    date      resp[18..21] as "%02x%02x%02x%02x"  contains "06012014"
+    processor resp[14..17] as "%c%c%c%c"          contains "NZA3"
+    version   resp[6..9]   as "%c%c%c%c"          contains "3311"
+
+which is exactly what our board reports. The lookup keys are NOT
+unrecoverable: they are static `std::string`s constructed from .rodata
+literals by _GLOBAL__I__...CWtptpDownLoad (0x0812fc40).
+
+The original note below claimed the mapping was unrecoverable and that the
+board's version/date pair disagreed with its processor string. Both were
+wrong: NZA3 is version 3311 / date 06012014, and the pairing is consistent.
 
 WHY NOT JUST PATCH THE BOUNDS CHECK
 -----------------------------------
@@ -37,23 +60,28 @@ Instead this replaces the load of the enum with a constant that is a valid
 table index. Exactly six bytes, the same length as the instruction replaced:
 
     8b 86 4c 1c 00 00     mov eax,[esi+0x1c4c]
- -> b8 12 00 00 00 90     mov eax,0x12 ; nop
+ -> b8 0f 00 00 00 90     mov eax,0x0F ; nop
 
-`0x12` is the last valid index and has a real handler that calls
-`SetBootDeviceType`; indices 0, 6 and 12 all land on the
-"Unknown platform type" stub instead.
+The correct constant for this board is `0x0F`, not `0x12`:
 
-HONESTY
--------
-`0x12` is a reasoned guess, not a proven name-to-enum mapping, which could
-not be recovered statically. This is a probe of which branch a Nezha-class
-board takes. It may select the wrong platform branch. Always run it against
-`p298_probe.blf` first, which carries no image payloads.
+    0x12 = 18 -> HLN4 / 3313 / 25032015   WRONG platform branch
+    0x0F = 15 -> NZA3 / 3311 / 06012014  matches this board
 
-    ./swdl-platform-patch.py swdl_linux -o swdl_linux_p298 --enum 0x12
+Indices 0, 6 and 12 all land on the "Unknown platform type" stub -- and 6 is
+what `PXA1802` produces.
+
+USAGE
+-----
+Prefer the BLF edit. If you must patch:
+
+    ./swdl-platform-patch.py swdl_linux -o swdl_linux_p298 --enum 0x0F
+
+Always first run it against `p298_probe.blf`, which carries no image
+payloads.
 """
 
 import argparse
+import os
 import struct
 import sys
 from pathlib import Path
@@ -78,7 +106,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("input")
     ap.add_argument("-o", "--output", required=True)
-    ap.add_argument("--enum", type=lambda s: int(s, 0), default=0x12,
+    ap.add_argument("--enum", type=lambda s: int(s, 0), default=0x0F,
                     help=f"platform enum to force, 0..0x{MAX_ENUM:x} "
                          f"(default 0x{MAX_ENUM:x})")
     args = ap.parse_args()
@@ -106,6 +134,10 @@ def main() -> int:
     buf[off:off + 6] = bytes.fromhex("b8") + struct.pack("<I", enum) + b"\x90"
 
     Path(args.output).write_bytes(bytes(buf))
+
+    # write_bytes creates a fresh file, so it does NOT inherit the exec bit
+    # from the input. Without this the run dies with "Permission denied".
+    os.chmod(args.output, (Path(args.input).stat().st_mode & 0o7777) | 0o111)
 
     # verify by re-reading from disk
     chk = Path(args.output).read_bytes()
