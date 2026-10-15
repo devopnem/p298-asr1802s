@@ -1,0 +1,239 @@
+ Air720, asr1802, pxa1802 Marvell MIFI 
+ 
+ Air720, asr1802/1803, pxa1802 Marvell MIFI
+
+Catalogue
+
+    Air720, asr1802/1803, pxa1802 Marvell MIFI
+    Workflow of WEB UI Server
+        Combine examples to describe how Webserver works
+            (1) resolves the request to the get file request,
+            What if I resolve to xml_action? The CGI,
+            (3) Get operations: such as
+            (4) Set operations:
+    Back-end processing submodules
+    AT's Order
+        AT*MRD_IMEI
+        AT+MIFIMAC
+        AT*MRD_SECOND_SN
+        AT*MRD_SN
+        AT*Reader
+        AT+clck
+    Reference links
+    ASR1802 Document Analysis
+
+Asr with wifi
+Workflow of WEB UI Server
+
+    PXA1802 WEB Working Mechanism.pdf
+
+​
+
+​ The http socket communication between the front and back end of the existing scheme is used to pass XML data.
+
+​ The Web-UI front-end (the code running in the browser) communicates through AJAX and http server, that is, using the http protocol, using the XML data format to interact with the server data.
+
+The backend calls the processing functions of the corresponding module based on the XML file and the XML content. If it is a POST request , the backend saves the corresponding XML fields to the database, and then calls the corresponding module handler processing; if it is a GET request, the database may be called in the module's handler for access.
+Combine examples to describe how Webserver works
+
+​ The web method works as ajax call mode, because the server only supports GET/POST operations, so it can only issue these two kinds of http requests, after the URL when the request is issued, add the suffix after the URL.
+
+WebServer receives the request to parse the URL:
+(1) resolves the request to the get file request,
+
+Read the webdata according to the request path and return the file.
+
+    http://192.168.1.1/html/home_network/dhcp_settings.html
+
+The request is a get file operation, reading the webdata html/home_network/dhcp_settings.html file.
+What if I resolve to xml_action? The CGI,
+
+The request will be judged as a cgi request, the processing process will be transferred to the cgi task, and then continue to resolve the url, module=get, the request is to get request, continue to parse the url, module=duster, the processing process into the duster module, parse the xml file, read the xml file's individual subspaces, enter the corresponding duster submodules, and the relevant processing, each module submodule has two main processing functions, module_post_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_get_
+(3) Get operations: such as
+
+http://192.168.1.1/xml_action.cgi? method=get&module=duster&file=lan
+
+The name is lan, lan.xml is structured as follows:
+
+<RGW>
+	<lan>
+		<dhcp>
+			<status>1</status>
+			<start>192.168.0.100</start>
+			<end>192.168.0.200</end>
+			<lease_time>86400</lease_time>
+			<max_leases>50</max_leases>
+		</dhcp>
+		<redirect_enable>0</redirect_enable>
+  		<redirect_url>www.asr.com</redirect_url>
+		<dhcpv6server>0</dhcpv6server>
+		<ip>192.168.0.1</ip>
+		<mask>255.255.255.0</mask>
+		<gateway>0.0.0.0</gateway>
+		 <run_days/>
+  		<run_hours/>
+              <run_minutes/>
+               <run_seconds/>
+		<upnp_status>1</upnp_status>
+		<dns_name_action>1</dns_name_action>
+		<dns_name>www.asr.hotspot</dns_name>
+		<Fixed_IP_list/>
+		<Fixed_IP_list_meta>mac#ip</Fixed_IP_list_meta>
+		<dns_enable>0</dns_enable>    
+        <dns1/>    
+        <dns2/>    
+	</lan>
+</RGW>
+
+The subspace name is lan, and after comparison, it enters the lan_post_get() function, which gets the value of each node in lan.xml in the database psm and returns it to the webserver.
+
+Web lan.js retrieves the returned lan.xml, gets the node value, and generates the page.
+(4) Set operations:
+
+Modify the relevant data on the web page, then post the modified xml value to the webserver, and finally into the post_set() function of the module near the duster.
+
+For example, if you modify dhcp ip start to 10 on the web, and the end is 150, js detects the relevant values of the modification, generates lan.xml that will post to the webserver, and add xml_action.cgi at the end of the url. The method=set&module=duster&file=lan field will generate lan.xml POST to the server. Finally, go to lan_post_set, which detects the relevant modification values and is related to the processing.
+
+After the post, JS will make a get request and the results of the relevant changes will be displayed on the web interface.
+Back-end processing submodules
+
+From the above analysis, it can be seen that the main processing of Webserver is completed in the backend processing submodule, and now there are mainly the following sub-modules, the corresponding relationship between each sub-module and xml, see the individual xml files under webdata/xmldata.
+
+http://192.168.1.1/xml_action.cgi? method=get&module=duster&file=
+
+（1） wan 
+（2） statistics 
+（3） pin_puk 
+（4） device_management 
+（5） custom_fw 
+（6） message 
+（7） wlan_setting 
+（8） wlan_security 
+（9） wlan_wps_client 
+（10） wlan_mac_filters 
+（11） firewall 
+（12） wlan_cli_scan 
+（13） locale 
+（14） management 
+（15） device_management 
+（16） custom_fw 
+（17） detailed_log 
+（18） dynamic_dns 
+（19） internet_access_control 
+（20） time_setting 
+(21) diagnostic 
+(22) restore_defaults 
+(23) reboot 
+(24) theme 
+(25) sysinfo 
+(26) last_login 
+(27) file_sharing
+
+    Focus on acs.xml and admin.xml
+
+acs.xml
+admin.xml
+custom_fw.xml
+detailed_log.xml
+device_date.xml
+device_management.xml
+dynamic_dns.xml
+file_share.xml
+firewall.xml
+internet_access_control.xml
+lan.xml
+locale.xml
+message.xml
+phonebook.xml
+pin_puk.xml
+port_filter.xml
+port_forwarding.xml
+port_forward_trigger.xml
+statistics.xml
+theme.xml
+time_setting.xml
+upgrade_firmware.xml
+wan.xml
+webdav_management.xml
+wlan_guest1_security.xml
+wlan_mac_filters.xml
+wlan_primary_security.xml
+wlan_settings.xml
+wlan_wps_client.xml
+
+
+AT's Order
+AT*MRD_IMEI
+
+Reading
+
+AT*MRD_IMEI?
+
+*MRD_SN:XXXXXXXXXXXXXXX
+
+Writing
+
+AT*MRD_IMEI=<a>[,<v>,<d>,<s>]
+
+AT*MRD_IMEI=W,0101,12NOV2010,012 34567890123
+
+ Defined values
+ <a>:
+ W:write IMEI to RD
+ D: delete IMEI from RD
+ R: read IMEI from RD
+Luat LTE Module AT Command User Manual
+ <v>: Version string, must be 4 ASCII strings like 0201, 0311, etc
+ <d>: Date string, must be 9 ASCII strings like 06JUN2010
+ <s>: The ASCII strings of IMEI, must be 14 or 15 or 16 digits, must terminated with NULL
+
+AT+MIFIMAC
+
+Reading
+
+AT&MIFIMAC?
+
++MIFIMAC: 11:22:33:44:55:66
+
+Writing
+
+AT+MIFIMAC=W,1234567890E3
+AT*MRD_SECOND_SN
+
+AT*MRD_SECOND_SN?
+
+*MRD_SECOND_SN:XXXXXXXXXXXXXXX
+
+*MRD_SECOND_SN=<a>,[<v>,<d>,<s>]
+
+AT*MRD_SN
+
+AT*MRD_SN?
+
+*MRD_SN:XXXXXXXXXXXXXXXXXXXXX
+
+*MRD_SN=<a>,[<v>,<d>,<s>]
+
+AT*Reader
+
+*READVER: 
+release_version: XXXXX (SDK 1.057.043)
+release_time: Nov 20 2023  16:20:32
+(DSP: XXXXXXXX 21.12.2022 11:13)
+(RF: XXXXXXX NULL)
+(HW: ASR1803_EVB_V1.0 by ASR)
+DFOTA_INNER_VERSION: XXXXXXXXX
+
+AT+clck
+
+What is AT+clck=?
+
++CLCK: ("PS", "SC", "AO", "OI", "OX", "AI", "IR", "AB", "AG", "AC", "FD", "PN", "PU", "PP", "PC" )
+
+Reference links
+
+Get Air720 in network card mode - Article - Luat, make the Internet of Everything easier
+ASR1802 Document Analysis
+
+I shared "ASR1802 data.zip" with a quark disk and click on the link to save it. Open the "quark APP", no need to download the video online playback, enjoy the original painting 5 times the speed, support the TV screen.
+Link: https://pan.quark.cn/s/039d62a27f39
