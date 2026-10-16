@@ -20,9 +20,6 @@
 
 set -u
 
-BLF=${1:?usage: swd-diag-run.sh <blf> [stall-secs]}
-STALL_SECS=${2:-45}
-
 ROOT=/home/void/Downloads/Modems/Notion_P298_ASR1802S
 BIN=$ROOT/flashing_tools/SWDownloader_5_0_0_2/binlinux
 SWDL=$BIN/swdl_linux
@@ -31,14 +28,33 @@ STAMP=$(date +%Y%m%d-%H%M%S)
 RUN=$OUT/run-$STAMP
 
 [ "$(id -u)" = 0 ] || { echo "must run as root (gdb attach needs it)" >&2; exit 1; }
-[ -f "$BLF" ] || { echo "no such blf: $BLF" >&2; exit 1; }
 
-mkdir -p "$RUN"
+# Resolve the BLF before touching anything else. A relative path under sudo has
+# already cost one run: `[ -f ]` succeeded, `stat` failed a line later, and the
+# download started against a path that did not exist. Pin it down hard, and
+# make the failure loud instead of continuing.
+mkdir -p "$OUT" || exit 1
+cd "$ROOT" || { echo "cannot cd to $ROOT" >&2; exit 1; }
+
+if ! BLF=$(readlink -f -- "${1:?usage: swd-diag-run.sh <blf> [stall-secs]}" 2>/dev/null); then
+    echo "cannot resolve blf argument" >&2; exit 1
+fi
+if [ ! -r "$BLF" ]; then
+    echo "FATAL: blf not readable: $BLF" >&2
+    echo "  cwd was: $PWD" >&2
+    echo "  args were: $*" >&2
+    exit 1
+fi
+BLF_SIZE=$(stat -c%s -- "$BLF") || { echo "FATAL: stat failed on $BLF" >&2; exit 1; }
+STALL_SECS=${2:-45}
+
+mkdir -p "$RUN" || exit 1
 cd "$BIN" || exit 1
 
 echo "=== swd-diag run $STAMP ==="
-echo "blf : $BLF  ($(stat -c%s "$BLF") bytes)"
-echo "out : $RUN"
+echo "cwd  : $PWD"
+echo "blf  : $BLF  ($BLF_SIZE bytes)"
+echo "out  : $RUN"
 echo
 
 # --- 1. launch under strace -----------------------------------------------
