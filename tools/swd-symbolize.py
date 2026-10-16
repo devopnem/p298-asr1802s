@@ -125,13 +125,25 @@ def main():
     print(f"swdl_linux: base 0, vaddr = file_offset + 0x{ELF_BIAS:x}")
     print(f"landmarks : {len(LANDMARKS)}\n")
 
+    # swdl_linux is a non-PIE ET_EXEC: the lowest PT_LOAD vaddr IS the load
+    # bias. maps.txt shows the text segment at 0x400000, but that is its link
+    # address, not a relocation -- gdb reports absolute addresses that need no
+    # adjustment. Subtracting 0x400000 pushed every address below the filter and
+    # reported "0 addresses inside swdl_linux".
     base = 0
-    if args.maps and os.path.exists(args.maps):
-        for line in open(args.maps):
-            if line.rstrip().endswith("swdl_linux"):
-                start = int(line.split("-")[0], 16)
-                base = min(base, start) if base else start
-    print(f"load base : 0x{base:x} (0 = non-PIE, expected)\n")
+    etype = subprocess.run(["readelf", "-hW", SWDL], capture_output=True,
+                           text=True).stdout
+    m = re.search(r"Type:\s+(\S+)", etype)
+    kind = m.group(1) if m else "?"
+    if "DYN" in kind:
+        if args.maps and os.path.exists(args.maps):
+            lo = None
+            for line in open(args.maps):
+                if line.rstrip().endswith("swdl_linux"):
+                    s0 = int(line.split("-")[0], 16)
+                    lo = s0 if lo is None else min(lo, s0)
+            base = lo or 0
+    print(f"elf type  : {kind} -> base 0x{base:x}\n")
 
     text = open(args.gdb).read()
     addrs, seen = [], set()
