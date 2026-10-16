@@ -196,7 +196,15 @@ def main() -> int:
                     help="which file supplies the DKB (default air720, "
                          "79,924 B, the one proven to work on this board)")
     ap.add_argument("--uboot", help="u-boot image for the slot, from the\n                        verified dump. Optional: the stock u-boot boots a new\n                        uImage kernel fine. Write it to make the slot\n                        self-consistent, or to rule out a corrupt live copy.")
-    ap.add_argument("--slot-flag", help="asr_flag image selecting this slot, e.g.\n                        mtd19.slotb.bin. Always written LAST so an interrupted\n                        run leaves the previous slot active.")
+    ap.add_argument("--slot-flag", help="asr_flag image selecting this slot, e.g.\n"
+                        "                        mtd19.slotb.bin.\n\n"
+                        "                        NOT written last. The downloader\n"
+                        "                        orders FBF images by partition number\n"
+                        "                        DESCENDING, so mtd19 (0x13) goes FIRST,\n"
+                        "                        ahead of the kernel and rootfs. Chain\n"
+                        "                        order is irrelevant. To keep the switch\n"
+                        "                        safe, flash it in a run of its own with\n"
+                        "                        no kernel or rootfs present.")
     ap.add_argument("--write-dtim", action="store_true",
                     help="also write the regenerated DTIM. Discards 2,364 bytes of\n                         DDR/PP settings and carries no image digests at\n                         Trusted = 0. There to test, not to use.")
     ap.add_argument("--check", action="store_true",
@@ -209,33 +217,41 @@ def main() -> int:
     if args.describe:
         describe()
         return 0
-    if not (args.kernel and args.rootfs):
-        ap.error("--kernel and --rootfs are required (or use --describe)")
+    if not (args.kernel and args.rootfs) and not args.slot_flag:
+        ap.error("--kernel and --rootfs are required (or use --describe).\n"
+                 "       A --slot-flag-only BLF is also valid: that is the second\n"
+                 "       of the two runs, which flips the A/B switch on its own.")
     if not args.check and not args.output:
         ap.error("-o/--output is required unless --check")
 
-    kpath, rpath = Path(args.kernel), Path(args.rootfs)
+    kpath = Path(args.kernel) if args.kernel else None
+    rpath = Path(args.rootfs) if args.rootfs else None
     for p in (kpath, rpath):
+        if p is None:
+            continue
         if not p.exists():
             print(f"error: {p} not found", file=sys.stderr)
             return 1
 
-    ksize, rsize = kpath.stat().st_size, rpath.stat().st_size
+    ksize = kpath.stat().st_size if kpath else 0
+    rsize = rpath.stat().st_size if rpath else 0
     slots = list("ab") if args.slot == "ab" else [args.slot]
 
     # Size gate. The initramfs image is 1.9 MB too big for mtd13 and this is
     # the single easiest way to turn a recovery into a dead board.
     bad = False
     for s in slots:
-        _, _ = KERNEL[s]
-        if ksize > ERASE_KERNEL:
-            print(f"error: kernel is {ksize:,} B but mtd{KERNEL[s][0]} holds "
-                  f"{ERASE_KERNEL:,} B -- it will not fit.", file=sys.stderr)
-            bad = True
-        if rsize > ERASE_ROOTFS:
-            print(f"error: rootfs is {rsize:,} B but mtd{ROOTFS[s][0]} holds "
-                  f"{ERASE_ROOTFS:,} B -- it will not fit.", file=sys.stderr)
-            bad = True
+        if ksize:
+            _, _ = KERNEL[s]
+            if ksize > ERASE_KERNEL:
+                print(f"error: kernel is {ksize:,} B but mtd{KERNEL[s][0]} holds "
+                      f"{ERASE_KERNEL:,} B -- it will not fit.", file=sys.stderr)
+                bad = True
+        if rsize:
+            if rsize > ERASE_ROOTFS:
+                print(f"error: rootfs is {rsize:,} B but mtd{ROOTFS[s][0]} holds "
+                      f"{ERASE_ROOTFS:,} B -- it will not fit.", file=sys.stderr)
+                bad = True
     if bad:
         print("\nThe initramfs kernel (7,221,772 B) does not fit a 5 MiB "
               "kernel\npartition. Repartitioning means mtd23 and a new BBT, "
@@ -247,12 +263,18 @@ def main() -> int:
     rpart, raddr = ROOTFS[slots[0]]
     dpart, _ = DTIM[slots[0]]
     total = ksize + rsize + ERASE_DTIM * len(slots)
-    print(f"kernel {ksize:,} B -> mtd{kpart} @ {kaddr:#010x}")
-    print(f"rootfs {rsize:,} B -> mtd{rpart} @ {raddr:#010x}")
-    print(f"DTIM   regenerated -> mtd{dpart}")
-    print(f"slots  {args.slot}   total payload ~{total:,} B")
-    print(f"at the board's advertised 248 B buffer that is roughly "
-          f"{total // 248:,} round trips")
+    if not (ksize or rsize):
+        print("SLOT-FLAG-ONLY package: no kernel, no rootfs, no u-boot.")
+        print("The downloader writes mtd19 FIRST, before any payload, so the")
+        print("switch can only be kept safe by running it alone. This is run 2")
+        print("of 2 -- run 1 must already have written the kernel and rootfs.")
+    else:
+        print(f"kernel {ksize:,} B -> mtd{kpart} @ {kaddr:#010x}")
+        print(f"rootfs {rsize:,} B -> mtd{rpart} @ {raddr:#010x}")
+        print(f"DTIM   regenerated -> mtd{dpart}")
+        print(f"slots  {args.slot}   total payload ~{total:,} B")
+        print(f"at the board's advertised 248 B buffer that is roughly "
+              f"{total // 248:,} round trips")
 
     if args.check:
         print("fits.")
@@ -270,11 +292,18 @@ def main() -> int:
     # located through Next_Image_ID. Put the OBMI anywhere else and
     # MakeDownloadPackage fails with "OBMImage is NULL in prepareDKB list".
     #
-    # Beyond that, the ORDER OF THE WRITES IS THE SAFETY PROPERTY: the mtd19
-    # slot switch is always the last image. The tool writes in chain order, so
-    # if the transfer is cut short -- power loss, cable, timeout -- the switch
-    # has not happened yet and the board still boots slot A, untouched. The
-    # rollback is the same 272 bytes written the other way.
+    # Write order is NOT controlled by the chain and CANNOT be made safe here.
+    # Measured from the swdl_linux startup log: for a chain of
+    # mtd12 -> mtd14 -> mtd16 -> mtd19 the tool emits the FBF image list as
+    # mtd19, mtd16, mtd14, mtd12 -- exact reverse, sorted by partition number
+    # DESCENDING. mtd19 is the highest partition in the set, so the slot switch
+    # is written FIRST, ahead of the kernel and rootfs it selects.
+    #
+    # Putting the switch last in this list achieves nothing. Keep it out of the
+    # package entirely and flash it in a second run of its own; then an
+    # interrupted run 1 cannot leave the board on an unwritten slot B, and an
+    # interrupted run 2 cannot do any damage at all. Rollback is the same 272
+    # bytes written the other way.
     #
     # The DTIM is supplied as the TIMH source but NOT written, and that is
     # deliberate. MakeDownloadPackage regenerates it as 152 bytes containing no
@@ -292,8 +321,10 @@ def main() -> int:
         if args.uboot:
             plan.append(("UBOOT", ua, ERASE_UBOOT, u, False, 0,
                          Path(args.uboot).name))
-        plan.append(("KERN", ka, ERASE_KERNEL, k, False, 0, kpath.name))
-        plan.append(("ROOT", ra, ERASE_ROOTFS, r, False, 0, rpath.name))
+        if kpath:
+            plan.append(("KERN", ka, ERASE_KERNEL, k, False, 0, kpath.name))
+        if rpath:
+            plan.append(("ROOT", ra, ERASE_ROOTFS, r, False, 0, rpath.name))
         if args.slot_flag:
             plan.append(("FLAG", FLAG_ADDR, ERASE_FLAG, FLAG_PART, False, 0,
                          Path(args.slot_flag).name))
@@ -338,8 +369,11 @@ def main() -> int:
 
     out = Path(args.output)
     head = HEADER.format(
-        slots=args.slot, kname=kpath.name, ksize=ksize, kpart=kpart, kaddr=kaddr,
-        rname=rpath.name, rsize=rsize, rpart=rpart, raddr=raddr, dpart=dpart,
+        slots=args.slot,
+        kname=kpath.name if kpath else "-", ksize=ksize,
+        kpart=kpart, kaddr=kaddr,
+        rname=rpath.name if rpath else "-", rsize=rsize,
+        rpart=rpart, raddr=raddr, dpart=dpart,
         dkbname=dkb_name, out=out.name)
 
     text = head + """
@@ -376,8 +410,10 @@ Reset_BBT = 0
             work = Path(td)
             for name in ([args.uboot and Path(args.uboot).name] +
                          [args.slot_flag and Path(args.slot_flag).name] +
-                         [kpath.name, rpath.name, dkb_name] +
+                         [kpath and kpath.name, rpath and rpath.name, dkb_name] +
                          [f"mtd{DTIM[s][0]}.bin" for s in slots]):
+                if not name:
+                    continue
                 src = SWD / name
                 if not src.exists():
                     print(f"  note: {name} not in {SWD}, skipping copy")

@@ -271,21 +271,64 @@ r2 -2 -A -q -c 'afl~0x' flashing_tools/SWDownloader_5_0_0_2/binlinux/swdl_linux 
 
 ## Ready to run once the payload stage is unblocked
 
-`tools/mk-openwrt-blf.py` produces an oracle-validated slot-B package.
-Write order is the safety property, and it is deliberate:
+## The downloader writes the A/B switch FIRST, not last
+
+Corrected 2026-10-16. Everything below supersedes the earlier claim that the
+switch is safe because it sits last in the chain. **It is not safe in a combined
+package, and the chain order does not control write order.**
+
+The `swdl_linux` startup log dumps the FBF image list before downloading. For a
+BLF whose chain is `mtd12 -> mtd14 -> mtd16 -> mtd19`, the tool emitted:
 
 ```
-1. mtd8   TIMH    Enable = 0   source only, NOT written (preserves DDR/PP)
-2. mtd0   OBMI    Enable = 0   DKB into BootROM SRAM only
-3. mtd12  u-boot-b Enable = 1  from the verified dump
-4. mtd14  kernel-b Enable = 1  OpenWrt squashfs-kernel, 3,468,276 B
-5. mtd16  rootfs-b Enable = 1  OpenWrt squashfs-rootfs, 3,932,164 B
-6. mtd19  ASRF0   Enable = 1   slot switch, LAST
+m_dev.nOfImages = 4
+mtd19.slotb.bin   partition 0x13   First_Sector 0x1
+ow-rootfs.bin     partition 0x10   First_Sector 0x2
+ow-kernel.bin     partition 0x0e   First_Sector 0x3c3
+mtd12.bin         partition 0x0c   First_Sector 0x712
 ```
 
-The tool writes in chain order, so an interrupted run leaves the switch
-unwritten and the board on slot A. The rollback is the same 272 bytes the
-other way.
+Exact reverse of the chain order, and exactly sorted by **partition number
+descending**. mtd19 is the highest-numbered partition in the set, so the slot
+switch is written **first** — before the u-boot, kernel and rootfs it is
+switching to.
+
+Consequence: an interrupted combined run leaves the board pointing at a slot B
+that was never written. The "instant rollback" property is unaffected (slot A is
+never touched), but the failure mode is worse than an unchanged board.
+
+### The fix: two runs, never combined
+
+`tools/mk-openwrt-blf.py` now builds both halves. Neither run can leave a
+half-written slot selected.
+
+```sh
+# run 1 -- payload only. No mtd19 in the package at all, so the board keeps
+#          booting slot A (the vendor firmware) no matter how it ends.
+python3 tools/mk-openwrt-blf.py --slot b --dkb p298 \
+  --kernel flashing_tools/p298-swd/ow-kernel.bin \
+  --rootfs flashing_tools/p298-swd/ow-rootfs.bin \
+  --uboot  flashing_tools/p298-swd/mtd12.bin \
+  -o flashing_tools/p298-swd/p298_payload_b.blf --validate
+
+# run 2 -- the switch alone, 272 bytes, after run 1 is known good
+python3 tools/mk-openwrt-blf.py --dkb p298 \
+  --slot-flag flashing_tools/p298-swd/mtd19.slotb.bin \
+  -o flashing_tools/p298-swd/p298_switch_b.blf --validate
+```
+
+Image lists, as generated and oracle-validated:
+
+| run | TIMH | OBMI | written |
+|---|---|---|---|
+| 1 | `mtd8` `Enable=0` | `mtd0` `Enable=0` | `mtd12`, `mtd14`, `mtd16` |
+| 2 | `mtd7` `Enable=0` | `mtd0` `Enable=0` | `mtd19` only |
+
+`Enable = 0` on TIMH and OBMI means *supply the file, do not write it*. The DTIM
+is never written in either run — see `Trusted = 0` above.
+
+Rollback is run 2 again with `mtd19.slota.bin`: 272 bytes, and it cannot
+disturb slot A because it never writes slot A.
 
 Payload is ~8.4 MB over the board's advertised 248-byte buffer — roughly
 34,000 round trips — so `-T 1800`.

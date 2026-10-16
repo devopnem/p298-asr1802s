@@ -62,10 +62,21 @@ echo
 # -tt  : absolute timestamps, to correlate with the WTP log
 # -T   : duration spent inside each syscall -- this is the money shot; a
 #        read() that never returns tells us exactly which fd is dead
+#
+# tee, not > : "Please plug your USB device" is the operator's only cue to
+# power the board on. Redirecting stdout into a file hid it, and the run then
+# sat waiting for a device that was never plugged in.
+START_EPOCH=$(date +%s)
+LAUNCHED=$(date +%H:%M:%S)
+echo "launched at $LAUNCHED"
+echo
+
 env LC_ALL=C LANG=C strace -ff -tt -T -s 256 \
     -o "$RUN/strace" \
-    "$SWDL" -D "$BLF" -S -T 1800 -N >"$RUN/stdout.log" 2>"$RUN/stderr.log" &
+    "$SWDL" -D "$BLF" -S -T 1800 -N 2> >(tee -a "$RUN/stderr.log" >&2) \
+    | tee "$RUN/stdout.log" &
 SPID=$!
+echo ">>> power-cycle the board NOW if it asks you to <<<"
 echo "strace pid $SPID, swdl_linux under it"
 
 # Sample lsusb throughout. If the board resets or re-enumerates between the
@@ -78,14 +89,44 @@ echo "strace pid $SPID, swdl_linux under it"
   done > "$RUN/usb-timeline.txt" 2>&1 ) &
 UPID=$!
 
-# give it time to enumerate and hit the first transfer
-sleep 20
+# give the tool a moment to print its prompt
+sleep 8
 
-# --- 2. watch the per-device log for the stall ----------------------------
-WTPLOG=$(ls -t "$BIN"/wtp_dev_bus_usb_*.log 2>/dev/null | head -1)
-[ -n "$WTPLOG" ] || { echo "FATAL: no per-device log appeared -- tool never opened the board"; exit 1; }
+# --- 2. wait for a per-device log created BY THIS RUN ----------------------
+# Earlier runs leave 996-byte wtp logs lying around. Watching one of those
+# reports a stall for a download that never opened the board -- exactly the
+# false positive that made the 19:23 run look like a deadlock. Only a log
+# newer than the launch counts.
+echo "waiting for a per-device log from THIS run (ignoring older ones)..."
+WTPLOG=""
+i=0
+while [ $i -lt 60 ]; do
+    for f in "$BIN"/wtp_dev_bus_usb_*.log; do
+        [ -e "$f" ] || continue
+        [ "$(stat -c%Y "$f")" -ge "$START_EPOCH" ] || continue
+        WTPLOG=$f
+        break
+    done
+    [ -n "$WTPLOG" ] && break
+    if ! kill -0 $SPID 2>/dev/null; then
+        echo "FATAL: tool exited before opening any device."
+        tail -5 "$RUN/stdout.log"
+        exit 1
+    fi
+    sleep 5
+    i=$((i + 1))
+done
+
+if [ -z "$WTPLOG" ]; then
+    echo "FATAL: no per-device log from this run after 5 minutes."
+    echo "       The board was almost certainly never plugged in."
+    echo "       usb-timeline.txt tail:"
+    tail -3 "$RUN/usb-timeline.txt"
+    exit 1
+fi
+
 cp "$WTPLOG" "$RUN/wtp.log"
-echo "wtp log: $(basename "$WTPLOG") ($(stat -c%s "$WTPLOG") bytes)"
+echo "wtp log: $(basename "$WTPLOG") ($(stat -c%s "$WTPLOG") bytes) -- created by THIS run"
 echo "watching for ${STALL_SECS}s of no growth..."
 
 LAST=$(stat -c%s "$WTPLOG")
