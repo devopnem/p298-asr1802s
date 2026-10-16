@@ -71,13 +71,41 @@ LAUNCHED=$(date +%H:%M:%S)
 echo "launched at $LAUNCHED"
 echo
 
-env LC_ALL=C LANG=C strace -ff -tt -T -s 256 \
-    -o "$RUN/strace" \
-    "$SWDL" -D "$BLF" -S -T 1800 -N 2> >(tee -a "$RUN/stderr.log" >&2) \
-    | tee "$RUN/stdout.log" &
+# gdb and strace both need the ptrace slot and only one tracer can hold it.
+# strace takes it at launch, so gdb then fails with "already traced" and the
+# backtrace -- the thing we actually want -- is unobtainable. strace is therefore
+# opt-in via a third argument, and off by default.
+#
+# Nothing is lost by defaulting to no strace: /proc/PID/task/*/syscall gives the
+# syscall number and raw argument registers with no ptrace at all, wchan gives
+# the kernel function, and /proc/PID/mem gives the usbdevfs_bulktransfer struct.
+# That is how ep=0x81 len=38 timeout=0 was read out of the stalled process.
+#
+# What strace adds is syscall *history*, worth having when hunting a desync --
+# hence the flag rather than deleting it.
+USE_STRACE=0
+for a in "${@:3}"; do
+    case $a in
+        --strace) USE_STRACE=1 ;;
+        *) echo "unknown option: $a" >&2; exit 1 ;;
+    esac
+done
+
+if [ "$USE_STRACE" = 1 ]; then
+    echo ">>> strace ENABLED: syscall history yes, gdb backtrace NO <<<"
+    env LC_ALL=C LANG=C strace -ff -tt -T -s 256 \
+        -o "$RUN/strace" \
+        "$SWDL" -D "$BLF" -S -T 1800 -N 2> >(tee -a "$RUN/stderr.log" >&2) \
+        | tee "$RUN/stdout.log" &
+else
+    echo ">>> gdb backtrace ENABLED (default). --strace adds syscall history <<<"
+    env LC_ALL=C LANG=C \
+        "$SWDL" -D "$BLF" -S -T 1800 -N 2> >(tee -a "$RUN/stderr.log" >&2) \
+        | tee "$RUN/stdout.log" &
+fi
 SPID=$!
 echo ">>> power-cycle the board NOW if it asks you to <<<"
-echo "strace pid $SPID, swdl_linux under it"
+echo "launcher pid $SPID"
 
 # Sample lsusb throughout. If the board resets or re-enumerates between the
 # TIM-header stage and the payload, this is the only record of it -- the stall
@@ -188,6 +216,63 @@ for t in /proc/$CPID/task/*; do
     } >> "$RUN/syscalls.txt" 2>&1
 done
 echo "proc snapshot -> maps/fds/syscall/threads"
+
+# Decode any outstanding usbdevfs_bulktransfer. ep tells us IN vs OUT, len how
+# many bytes are expected, and timeout whether the wait is bounded. timeout = 0
+# means no timeout, which turns any unanswered request into an indefinite hang
+# instead of a failure the tool could recover from.
+python3 - "$CPID" > "$RUN/bulktransfer.txt" 2>&1 <<'PY'
+import glob, os, re, struct, sys
+
+pid = sys.argv[1]
+USR = 0x55  # 'U' -- the usbdevfs ioctl type
+
+
+def is_bulk(code):
+    nr = code & 0xFF
+    typ = (code >> 8) & 0xFF
+    return typ == USR and nr == 2
+
+
+mem = None
+for t in sorted(glob.glob(f"/proc/{pid}/task/*")):
+    tid = os.path.basename(t)
+    try:
+        sc = open(f"{t}/syscall").read().split()
+    except OSError:
+        continue
+    try:
+        wch = open(f"{t}/wchan").read().strip()
+    except OSError:
+        wch = "?"
+    if not sc or sc[0] in ("running", "-1"):
+        print(f"tid {tid}: {wch} (not in a syscall)")
+        continue
+    num = int(sc[0])
+    args = sc[1:7]
+    desc = f"tid {tid}: syscall {num}"
+    if len(args) >= 3:
+        desc += f" fd=0x{args[0]} req=0x{args[1]} arg=0x{args[2]}"
+    print(f"{desc}  wchan={wch}")
+    if num == 16 and len(args) >= 3 and is_bulk(int(args[1], 16)):
+        if mem is None:
+            mem = open(f"/proc/{pid}/mem", "rb", buffering=0)
+        a = int(args[2], 16)
+        mem.seek(a)
+        b = mem.read(24)
+        if len(b) == 24:
+            ep, ln, to = struct.unpack("<III", b[:12])
+            direction = "IN (tool reading from board)" if ep & 0x80 else "OUT (tool writing to board)"
+            print(f"    USBDEVFS_BULK at 0x{a:x}:")
+            print(f"      ep      = 0x{ep:x}  endpoint {ep & 0x7f} {direction}")
+            print(f"      len     = {ln} bytes")
+            print(f"      timeout = {to} ms" + ("   <-- NO TIMEOUT, waits forever"
+                                             if to == 0 else f"  ({to/1000:.1f}s)"))
+        else:
+            print(f"    could not read 24 bytes at 0x{a:x} (got {len(b)})")
+PY
+cat "$RUN/bulktransfer.txt"
+echo "bulktransfer decode -> bulktransfer.txt"
 
 # board state -- is it still enumerated and sane?
 lsusb > "$RUN/lsusb.txt" 2>&1
