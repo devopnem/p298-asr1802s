@@ -29,8 +29,9 @@ brief is about that last obstacle.
 > shape of the problem, both verified offline against the vendor's own
 > `MakeDownloadPackage` oracle plus disassembly of `swdl_linux`.  **§11 has the
 > procedure.**  In short: `Dkb.bin` is byte-for-byte the OBMI image file with a
-> 4-byte `IBKD` tag, `*_Image_Enable = 0` means "supply this file but do not
-> write it to flash", and "Fast Download" is unreachable dead code in 4.8.8.2.
+> 4-byte `IBKD` tag, and `*_Image_Enable = 0` means "supply this file but do
+> not write it to flash". "Fast Download" **is** reachable on this board and
+> is selected by the device, not by us — §4b was wrong until 2026-10-16.
 > The remaining lever on the 248-byte channel is the chunk size, which is
 > patched by `tools/swdl-chunksize-patch.py`.
 
@@ -147,7 +148,7 @@ limit** — `CWtpComm::Data`'s legacy path memcpy's up to `0x4000` bytes and
 issues one `WriteUSB` of `len + 8` bytes per chunk, so the tool can
 comfortably send 16 KiB per round trip and simply chooses not to.
 
-### 4b. "Fast Download" is dead code in 4.8.8.2 (verified)
+### 4b. "Fast Download" is REACHABLE on this board (corrected 2026-10-16)
 
 The gate is one instruction:
 
@@ -156,12 +157,42 @@ The gate is one instruction:
 08137cc  je   0813cdf                       ; -> "Fast Download is not activated"
 ```
 
-`WTPSTATUS+4` is the **top byte of the 4-byte little-endian length field** in
-the reply.  Testing bit 2 of it means "is `length & 0x04000000` set", i.e. is
-the reply ≥ 64 MiB.  No reply to a DataHeader ever will be.  So the branch is
-unreachable and every run prints the same message.
+**This section previously concluded the opposite, and that conclusion was
+wrong.** It claimed `WTPSTATUS+4` is the *top* byte of the 4-byte
+little-endian length field, making the test mean "length >= 64 MiB" and the
+branch unreachable.
 
-Two further corrections to what was written here before:
+That is a byte-offset error. In the WTP reply header
+`{opcode, sequence, flags, u32 LE length}`, the length occupies bytes 3..6.
+Byte 4 is therefore bits 8..15 of the length, and `test BYTE, 0x4` asks
+whether `length & 0x0400` is set — a reply of 1024..2047 bytes satisfies it.
+The DataHeader reply on this board is well over a kilobyte.
+
+**Measured confirmation, five independent runs.** Every one of
+`wtp_dev_bus_usb_001_{085,086,087,088,091}.log` contains:
+
+```
+Return flag in Dataheader CMD: 4,FDSwitch is 1,BufferSize is 0xF8
+*******NOTE:: Fast Download is NOW activated!
+```
+
+`Return flag in Dataheader CMD: 4` is the same byte, read as `%d`. Bit 2 is
+set, so the `je` is not taken and the fast branch runs. This includes run 091,
+made with `swdl_linux_min` — stock binary plus the four-byte whitelist edit,
+no `--force-fast-download`, no other patch.
+
+Consequences:
+
+* `--force-fast-download` is redundant on this board. The device already
+  selects the mode. It remains correct as a no-op override.
+* In fast mode `Data` uses `WriteUSBWithNoRsp`, dropping the per-chunk ACK.
+  Per-chunk behaviour is not the reason a run stalls at the end of the image.
+* The cross-check came from the Windows engine. `SWDownloader.exe` is a 21 MB
+  GUI shell; the protocol lives in `flashing_tools/wine-swd/WtptpDownLoad.dll`,
+  which reads the same byte as a standalone flag rather than as part of a
+  length. See `docs/recovery/SWDownloader-windows-RE.md`.
+
+Two further corrections to what was written here before, which still stand:
 
 * **`FDSwitch is 1` is a hardcoded literal `1` in the binary**, not device
   data.  The `fprintf` at `0x0813379f` loads `mov DWORD PTR [esp+0x10],0x1`
@@ -303,8 +334,11 @@ Strings in `mtd0.bin` suggest it is adjustable:
 
 **B. Can Fast Download be enabled? — ANSWERED: not in this binary.**
 
-See §4b. The gate tests bit 2 of the *length field's* top byte, so it is
-structurally unreachable, and the "FDSwitch is 1" in the log is a literal.
+See §4b, which was corrected on 2026-10-16. The gate is **not** unreachable:
+byte 4 of the reply is bits 8..15 of the length, so `test BYTE, 0x4` asks
+whether the DataHeader reply is at least 1024 bytes, and it is. Five logs show
+`Fast Download is NOW activated!`. The "FDSwitch is 1" in the log is still a
+literal and carries no device information.
 `CWtpComm::isFastDownload(bool,bool)` at `0x0816d060` is a plain
 getter/setter on the byte at `this+0x63c`:
 
