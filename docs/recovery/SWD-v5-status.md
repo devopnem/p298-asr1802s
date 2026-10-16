@@ -45,6 +45,80 @@ The DKB result is the most informative: this board's own verified OBM behaves
 exactly like a foreign board's loader, which argues the problem is not the
 image being wrong but the protocol stage itself.
 
+## The stall located statically, without running anything
+
+Added 2026-10-16. Measured from the binary, not inferred.
+
+`swdl_linux` is a statically linked, **stripped**, non-PIE ELF: load base 0 and
+`vaddr == file_offset + 0x400000`, so addresses convert to file offsets
+exactly. It also **hides most of its log strings**, assembling them at runtime
+from `movabs` immediates. `Begin DownloadImage...........` does not exist in
+`.rodata` at all:
+
+```asm
+movabs r11, "wnloadIm"      ; 49bb 776e6c6f6164 496d
+movabs r10, "age...."       ; 49ba 6167652e2e2e2e2e
+movabs r15, "egin Do"       ; 49bf 426567696e20 446f
+movl    [r12+0x18], "...."  ; 41c7
+movw    [r12+0x1c], ".."
+movb    [r12+0x1e], 0
+movl    [r14+0xd], 0x0a     ; append newline
+```
+
+So `strings` proximity analysis is weak and a naive symbolizer is useless. The
+strings that *are* literals resolve cleanly though: scan `.text` for the
+4-byte little-endian address of each literal, then read the control flow
+between consecutive log prints with `objdump`.
+
+### Result: the stall window is 238 bytes wide
+
+Log lines that survive as literals, and their single xref each:
+
+| `.rodata` string | vaddr | xref in `.text` |
+|---|---|---|
+| `Getting Version...` | `0x75e80a` | `0x51834e` |
+| `download file name is %s` | `0x75e81f` | `0x51843c` |
+| `Download data finished` | `0x75e8d7` | `0x518e56` |
+| `Completed DownLoad file: %s` | `0x75e906` | `0x518eaa` |
+
+`DownloadImage()` starts at `0x5181e0`. It checks `[rbx+0xd78] == 1` and
+branches to `0x5185e0` before logging anything, which is why only some images
+print. The stall lies between the `Getting Version...` print at `0x518357` and
+the `download file name is %s` print at `0x518445`. In that window the tool
+issues **two WTPTP commands** through the shared helper `0x5fe210`:
+
+| call site | wrapper | string passed to the helper |
+|---|---|---|
+| `0x518376` | `0x5ffdb0` | `GetVersion command......` |
+| `0x51839e` | `0x5ff970` | `SelectImage command` |
+
+`0x5fe210` is the WTPTP command sender. It builds a header carrying `0x10` and
+`0x30` at `[rsp+0x400]` and `[rsp+0x404]`, then waits for the reply.
+
+Also in the window: `0x51838a` calls `0x6daef0`, a `lock cmpxchg` on
+`(%fs:0x10)->0x8` — a refcount/mutex that can block independently.
+
+### What that means
+
+**The board stops answering WTPTP after the FBF TIM-header stage.** The tool
+never gets as far as opening `FBF_h.bin`, so the payload is not merely rejected
+— it is never offered. `SelectImage` is the command the board fails to answer.
+
+Two candidates, not yet separated:
+
+1. The tool may expect the board to reset or re-enumerate between the TIM
+   header and the payload, and that event never happens. The binary does carry
+   hotplug machinery (`init_hotplug_sock`, `socket`, `setsockopt`) plus a
+   `TerminateBL.....` / `please wait .....` pair — all stack-built, so no xrefs
+   exist for them. The USB timeline captured by `swd-diag-run.sh` settles this:
+   if the device number never changes and the board never disappears, there is
+   no reset to wait for.
+2. There may be no timeout on this wait at all, so any unanswered command
+   becomes an indefinite block. `strace -T` shows whether the syscall is still
+   running or already returned with an error that is being ignored.
+
+A backtrace plus strace separates these in a single run.
+
 ## What is proven and reusable
 
 ### The Linux binaries need `vsyscall=emulate`
@@ -155,23 +229,45 @@ string is reached by a reference form a linear scan does not model.
 
 ## Next step
 
-Get the backtrace of the stuck process. Everything else has been exhausted by
-measurement; this is the only remaining source of information.
+One run, one harness. `tools/swd-diag-run.sh` launches the download under
+`strace -ff`, watches the per-device log for the stall, and at the stall point
+captures the backtrace, registers, every thread's `/proc/PID/task/*/syscall`,
+the memory map, open fds and a full USB re-enumeration timeline.
 
 ```sh
-# terminal 1 — start the download, leave it running when it stalls
-sudo env LC_ALL=C LANG=C \
-  /home/void/Downloads/Modems/Notion_P298_ASR1802S/flashing_tools/SWDownloader_5_0_0_2/binlinux/swdl_linux \
-  -D /home/void/Downloads/Modems/Notion_P298_ASR1802S/flashing_tools/p298-swd/p298_openwrt_b_p298dkb.blf \
-  -S -T 1800 -N
-
-# terminal 2 — about 30 s after it reaches the second "Begin DownloadImage"
-sudo sh /tmp/opencode/swd-bt.sh
+cd /home/void/Downloads/Modems/Notion_P298_ASR1802S
+sudo tools/swd-diag-run.sh \
+  flashing_tools/p298-swd/p298_openwrt_b_p298dkb.blf 45
 ```
 
-`swdl_linux` is stripped and statically linked, so the backtrace will give
-addresses only — but the deadlock sits between known log strings, which is
-enough to bound the region.
+One command, unattended, no second terminal and no timing race — the earlier
+backtrace was lost because the board was powered off while the process was
+still stuck.
+
+Then interpret the result:
+
+```sh
+python3 tools/swd-symbolize.py /tmp/swd-diag/run-*/gdb.txt /tmp/swd-diag/run-*/maps.txt
+```
+
+`tools/swd-symbolize.py` carries the landmark table derived above, so bare
+addresses come back labelled. What to look for:
+
+| observation | conclusion |
+|---|---|
+| thread inside `read()` on the USB fd, syscall still running, no `-T` value | no timeout on the WTPTP reply wait — an unanswered `SelectImage` blocks forever |
+| `read()` already returned, code looping | the reply is arriving and being rejected, which is a different bug entirely |
+| thread parked at the `lock cmpxchg` (`0x6daef0`) | a mutex is held by the terminated device thread, not a protocol failure |
+| `usb-timeline.txt` shows the device number changing | the board *does* reset between stages and the tool is racing it |
+
+Because the binary is stripped, a `rizin -A` function list is a fallback for
+addresses outside the landmark table. It is not checked in — regenerate it
+with:
+
+```sh
+r2 -2 -A -q -c 'afl~0x' flashing_tools/SWDownloader_5_0_0_2/binlinux/swdl_linux \
+  > /tmp/swd-diag/afl.txt
+```
 
 ## Ready to run once the payload stage is unblocked
 
