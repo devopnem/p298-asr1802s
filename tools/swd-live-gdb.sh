@@ -182,6 +182,19 @@ fi
 echo "swdl_linux pid $CPID (launched by us)"
 ps -o pid,etime,stat,args -p "$CPID" | tail -1
 
+# Sample the USB bus continuously. The decisive open question is whether the
+# board re-enumerates after the first file completes: if it resets, the tool is
+# racing a device event; if it never does, the board has genuinely stopped
+# answering WTPTP and no host-side fix will help.
+#
+# Sample every 500 ms rather than 2 s -- a reset can be short enough to miss.
+( while true; do
+      printf '%s %s\n' "$(date +%H:%M:%S.%2N)" \
+          "$(lsusb | awk '/2ecc:/{printf "%s dev=%s", $6, substr($4,2)}')"
+      sleep 0.5
+  done > "$RUN/usb-timeline.txt" 2>&1 ) &
+UPID=$!
+
 # Wait for the tool to reach its "waiting for a device" state. Until it has
 # opened the board, every thread is in interruptible sleep and therefore
 # stoppable. Attaching now is the only window where gdb will work at all.
@@ -342,6 +355,21 @@ cat "$RUN/bulktransfer.txt" 2>/dev/null
 echo
 echo "=== gdb breakpoint hits ==="
 cat "$RUN/gdb-hits.log" 2>/dev/null
+kill $UPID 2>/dev/null
+
+# Summarise the timeline: transitions are what matter, not 1800 samples.
+{
+    echo "=== USB timeline (transitions only) ==="
+    awk '{
+        s = ($2 == "" ? "BOARD ABSENT" : "BOARD PRESENT " $3)
+        if (s != prev) { printf "  %s  %s\n", $1, s; prev = s }
+    }' "$RUN/usb-timeline.txt"
+    echo
+    printf "  samples: %s   board-present: %s\n" \
+        "$(wc -l < "$RUN/usb-timeline.txt")" \
+        "$(grep -c "2ecc:" "$RUN/usb-timeline.txt")"
+} | tee "$RUN/usb-summary.txt"
+
 echo
 echo "=== files in $RUN ==="
 ls -la "$RUN"
