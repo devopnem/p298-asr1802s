@@ -51,8 +51,8 @@ case "$USB_TO" in
     ''|*[!0-9]*) USB_TO=0 ;;
 esac
 if [ "$USB_TO" -gt 0 ] 2>/dev/null; then
-    echo ">>> --usb-timeout=${USB_TO}: IN reads get a deadline, so an unanswered"
-    echo "    request returns ETIMEDOUT instead of hanging forever <<<"
+    echo ">>> --usb-timeout=${USB_TO}: every bulk transfer gets a deadline,"
+    echo "    so an unanswered request returns ETIMEDOUT instead of hanging <<<"
 fi
 if [ "$FORCE_EBP" = 1 ]; then
     echo ">>> --force-no-preamble: image 2 will SKIP SendPreamble/GetVersion <<<"

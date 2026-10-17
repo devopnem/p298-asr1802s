@@ -108,10 +108,17 @@ commands
   # Injecting a real timeout makes the read return -ETIMEDOUT, which lets the
   # tool take its own error path, report, clean up and exit. That also releases
   # the device so it can be probed independently.
+  # Apply to OUT as well as IN. A bulk OUT only blocks if the device stops
+  # ACKing, and with timeout = 0 that is another indefinite hang. Observed: once
+  # the IN retries are exhausted the tool moves on and immediately blocks on an
+  # OUT, so injecting only on reads just relocates the stall.
   if $usbto > 0 && (($rsi >> 8) & 0xff) == 0x55 && ($rsi & 0xff) == 2
     if (*(unsigned int *)($rdx) & 0x80) != 0
       set *(unsigned int *)($rdx + 8) = $usbto
       printf "    *** injected timeout = %d ms into this IN read ***\n", $usbto
+    else
+      set *(unsigned int *)($rdx + 8) = $usbto
+      printf "    *** injected timeout = %d ms into this OUT write ***\n", $usbto
     end
   end
   printf "    struct@rdx AFTER:  "
