@@ -1,0 +1,223 @@
+#!/bin/bash
+# swd-live-gdb.sh -- watch swdl_linux walk into the stall, in real time.
+#
+# The problem this solves: once the download thread issues a USBDEVFS_BULK read
+# that the board never answers, it sits in uninterruptible sleep (D) inside
+# usbfs_start_wait_urb. A task in D cannot be ptrace-stopped, so gdb attaching
+# at that point hangs forever. Every gdb.txt captured so far ended at
+# "[New LWP ...]" for exactly that reason.
+#
+# The way around it is timing. Before the board is plugged in, swdl_linux has
+# printed "Please plug your USB device" and is blocked in recvfrom() on its
+# netlink hotplug socket -- all threads interruptible, fully stoppable. So:
+#
+#   1. launch the tool
+#   2. attach gdb NOW, while it is still waiting for a device
+#   3. arm hardware breakpoints across the stall window
+#   4. hand control back so you can power-cycle the board
+#   5. gdb logs every breakpoint hit with a backtrace, live
+#
+# No strace. gdb and strace contend for the ptrace slot, and here gdb wins by
+# default. Syscall detail comes from /proc/PID/task/*/syscall, which needs no
+# ptrace at all.
+#
+# Usage: sudo tools/swd-live-gdb.sh <path-to.blf> [stall-secs]
+#
+# Ctrl-C stops gdb and the tool. Nothing is written to the board until the
+# payload stage is reached, and no run has ever reached it.
+
+set -u
+
+BLF_ARG=${1:?usage: swd-live-gdb.sh <blf> [stall-secs]}
+STALL_SECS=${2:-60}
+
+ROOT=/home/void/Downloads/Modems/Notion_P298_ASR1802S
+BIN=$ROOT/flashing_tools/SWDownloader_5_0_0_2/binlinux
+SWDL=$BIN/swdl_linux
+GDB_SCRIPT=$ROOT/tools/swd-stall.gdb
+OUT=/tmp/swd-diag
+STAMP=$(date +%Y%m%d-%H%M%S)
+RUN=$OUT/live-$STAMP
+
+[ "$(id -u)" = 0 ] || { echo "must run as root (gdb attach needs it)" >&2; exit 1; }
+[ -f "$GDB_SCRIPT" ] || { echo "missing $GDB_SCRIPT" >&2; exit 1; }
+
+mkdir -p "$OUT" || exit 1
+cd "$ROOT" || exit 1
+
+if ! BLF=$(readlink -f -- "$BLF_ARG" 2>/dev/null); then
+    echo "cannot resolve: $BLF_ARG" >&2; exit 1
+fi
+if [ ! -r "$BLF" ]; then
+    echo "FATAL: blf not readable: $BLF" >&2
+    echo "  cwd was: $PWD" >&2
+    exit 1
+fi
+BLF_SIZE=$(stat -c%s -- "$BLF") || exit 1
+
+mkdir -p "$RUN" || exit 1
+cd "$BIN" || exit 1
+
+# Record which per-device logs already exist. Only one created after this
+# launch tells us anything; an earlier run's 996-byte leftover must never be
+# mistaken for this run stalling.
+START_EPOCH=$(date +%s)
+
+echo "=== swd-live-gdb $STAMP ==="
+echo "cwd : $PWD"
+echo "blf : $BLF  ($BLF_SIZE bytes)"
+echo "out : $RUN"
+echo
+
+# --- launch ---------------------------------------------------------------
+env LC_ALL=C LANG=C \
+    "$SWDL" -D "$BLF" -S -T 1800 -N 2> >(tee -a "$RUN/stderr.log" >&2) \
+    | tee "$RUN/stdout.log" &
+SWPID=$!
+sleep 2
+
+CPID=$(pgrep -x swdl_linux | head -1)
+if [ -z "$CPID" ]; then
+    echo "FATAL: swdl_linux did not start"; tail -20 "$RUN/stdout.log"; exit 1
+fi
+echo "swdl_linux pid $CPID"
+
+# Wait for the tool to reach its "waiting for a device" state. Until it has
+# opened the board, every thread is in interruptible sleep and therefore
+# stoppable. Attaching now is the only window where gdb will work at all.
+echo "waiting for the tool to arm its device wait..."
+READY=0
+for _ in $(seq 1 30); do
+    if grep -q "Please plug your USB device" "$RUN/stdout.log" 2>/dev/null; then
+        READY=1
+        break
+    fi
+    sleep 1
+done
+if [ "$READY" != 1 ]; then
+    echo "warning: never saw the device prompt; attaching anyway"
+fi
+
+# --- attach, armed, while the board is still absent ------------------------
+gdb -q -batch -p "$CPID" -x "$GDB_SCRIPT" > "$RUN/gdb-hits.log" 2>&1 &
+GPID=$!
+sleep 5
+
+if ! kill -0 $GPID 2>/dev/null; then
+    echo "FATAL: gdb exited immediately. gdb-hits.log:"
+    cat "$RUN/gdb-hits.log"
+    exit 1
+fi
+if ! grep -q "breakpoints armed" "$RUN/gdb-hits.log"; then
+    echo "FATAL: gdb did not arm the breakpoints:"
+    cat "$RUN/gdb-hits.log"
+    exit 1
+fi
+
+echo
+echo "############################################################"
+echo "#  gdb is attached and armed."
+echo "#  >>> POWER-CYCLE THE BOARD NOW <<<"
+echo "#  Then watch:"
+echo "#      tail -f $RUN/gdb-hits.log"
+echo "############################################################"
+echo
+
+# --- watch ----------------------------------------------------------------
+WTPLOG=""
+STABLE=0
+LAST=0
+DEADLINE=$((SECONDS + 900))
+
+while [ $SECONDS -lt $DEADLINE ]; do
+    sleep 5
+
+    if [ -z "$WTPLOG" ]; then
+        for f in "$BIN"/wtp_dev_bus_usb_*.log; do
+            [ -e "$f" ] || continue
+            [ "$(stat -c%Y "$f")" -ge "$START_EPOCH" ] || continue
+            WTPLOG=$f
+            break
+        done
+        [ -n "$WTPLOG" ] && echo "device opened: $(basename "$WTPLOG")"
+        continue
+    fi
+
+    NOW=$(stat -c%s "$WTPLOG" 2>/dev/null || echo "$LAST")
+    if [ "$NOW" != "$LAST" ]; then
+        echo "  $(basename "$WTPLOG") $LAST -> $NOW"
+        LAST=$NOW
+        STABLE=0
+    else
+        STABLE=$((STABLE + 5))
+        [ $((STABLE % 30)) -eq 0 ] && echo "  quiet ${STABLE}s at $NOW bytes"
+        if [ "$STABLE" -ge "$STALL_SECS" ]; then
+            break
+        fi
+    fi
+
+    kill -0 $CPID 2>/dev/null || { echo "tool exited"; break; }
+    kill -0 $GPID 2>/dev/null || { echo "gdb exited"; break; }
+done
+
+echo
+cp "$WTPLOG" "$RUN/wtp.log" 2>/dev/null
+cp "/proc/$CPID/maps" "$RUN/maps.txt" 2>/dev/null
+ps -o pid,tid,stat,time,wchan:22,comm -T -p "$CPID" > "$RUN/threads.txt" 2>&1
+ls -l "/proc/$CPID/fd" > "$RUN/fds.txt" 2>&1
+
+{
+    echo "=== thread states ==="
+    cat "$RUN/threads.txt"
+} > "$RUN/summary.txt" 2>&1
+
+# Decode the outstanding bulk transfer. Needs no ptrace.
+python3 - "$CPID" > "$RUN/bulktransfer.txt" 2>&1 <<'PY'
+import glob, os, struct, sys
+pid = sys.argv[1]
+mem = None
+for t in sorted(glob.glob(f"/proc/{pid}/task/*")):
+    tid = os.path.basename(t)
+    try:
+        sc = open(f"{t}/syscall").read().split()
+        wch = open(f"{t}/wchan").read().strip()
+    except OSError:
+        continue
+    if not sc or sc[0] in ("running", "-1"):
+        print(f"tid {tid}: wchan={wch} (not in a syscall)")
+        continue
+    num = int(sc[0])
+    print(f"tid {tid}: syscall {num}  wchan={wch}")
+    if num == 16 and len(sc) >= 3:
+        code = int(sc[2], 16) if len(sc) > 2 else 0
+        if (code >> 8) & 0xFF == 0x55 and code & 0xFF == 2 and len(sc) > 3:
+            a = int(sc[3], 16)
+            if mem is None:
+                try:
+                    mem = open(f"/proc/{pid}/mem", "rb", buffering=0)
+                except OSError as e:
+                    print(f"    cannot open /proc/{pid}/mem: {e}")
+                    break
+            try:
+                mem.seek(a); b = mem.read(24)
+                ep, ln, to = struct.unpack("<III", b[:12])
+                d = "IN (tool reading)" if ep & 0x80 else "OUT (tool writing)"
+                print(f"    USBDEVFS_BULK @0x{a:x}: ep=0x{ep:x} endpoint {ep & 0x7f} {d}")
+                print(f"      len={ln}  timeout={to} ms" +
+                      ("   <-- NO TIMEOUT" if to == 0 else f"  ({to/1000:.1f}s)"))
+            except Exception as e:                            # noqa: BLE001
+                print(f"    read failed: {e}")
+PY
+
+echo "=== bulk transfer ==="
+cat "$RUN/bulktransfer.txt" 2>/dev/null
+echo
+echo "=== gdb breakpoint hits ==="
+cat "$RUN/gdb-hits.log" 2>/dev/null
+echo
+echo "=== files in $RUN ==="
+ls -la "$RUN"
+echo
+echo "gdb is still attached (pid $GPID) and the tool is still running (pid $CPID)."
+echo "Read the trace with:  tools/swd-symbolize.py $RUN/gdb-hits.log $RUN/maps.txt"
+echo "Stop both with:       sudo pkill -f swd-live-gdb; sudo pkill -x swdl_linux"
