@@ -28,22 +28,24 @@
 
 set -u
 
-BLF_ARG=${1:?usage: swd-live-gdb.sh <blf> [stall-secs] [--force-preamble-skip]}
+BLF_ARG=${1:?usage: swd-live-gdb.sh <blf> [stall-secs] [--force-no-preamble]}
 STALL_SECS=${2:-60}
 
-# --force-preamble-skip sets $forcemark in the gdb script, which makes the
-# breakpoint at 0x5182fc force [r13+0x1c72] to 1. Image 1 already takes that
-# branch; forcing it for image 2 skips the second SendPreamble, which is the
-# command the board stops answering.
-FORCE_MARK=0
+# --force-no-preamble makes the breakpoint at 0x5182d6 set $ebp = 0, which is
+# the branch that makes image 2 take image 1's path: skip SendPreamble and
+# GetVersion, rejoin at 0x518383, go straight to SelectImage.
+#
+# Forcing [r13+0x1c72] instead was tried and did nothing, because both sides of
+# that branch converge on the same SendPreamble call. Only %ebp decides.
+FORCE_EBP=0
 for a in "${@:3}"; do
     case $a in
-        --force-preamble-skip) FORCE_MARK=1 ;;
+        --force-no-preamble) FORCE_EBP=1 ;;
         *) echo "unknown option: $a" >&2; exit 1 ;;
     esac
 done
-if [ "$FORCE_MARK" = 1 ]; then
-    echo ">>> --force-preamble-skip: image 2 will SKIP SendPreamble <<<"
+if [ "$FORCE_EBP" = 1 ]; then
+    echo ">>> --force-no-preamble: image 2 will SKIP SendPreamble/GetVersion <<<"
 fi
 
 ROOT=/home/void/Downloads/Modems/Notion_P298_ASR1802S
@@ -202,10 +204,10 @@ fi
 # The script ends in `continue`, so a trailing -ex would never be reached, and
 # a leading -ex is overwritten by the script's own default. Substitute the value
 # into a per-run copy instead -- explicit, and it cannot silently do nothing.
-sed "s/^set \$forcemark = 0$/set \$forcemark = $FORCE_MARK/" \
+sed "s/^set \$forceebp = 0$/set \$forceebp = $FORCE_EBP/" \
     "$GDB_SCRIPT" > "$RUN/stall.gdb"
-if ! grep -q "^set \$forcemark = $FORCE_MARK$" "$RUN/stall.gdb"; then
-    echo "FATAL: could not set \$forcemark in $RUN/stall.gdb" >&2
+if ! grep -q "^set \$forceebp = $FORCE_EBP$" "$RUN/stall.gdb"; then
+    echo "FATAL: could not set \$forceebp in $RUN/stall.gdb" >&2
     exit 1
 fi
 

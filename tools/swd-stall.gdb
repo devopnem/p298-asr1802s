@@ -36,38 +36,49 @@ set width 0
 
 set $hits = 0
 set $n = 0
-set $forcemark = 0
+set $forceebp = 0
 
-# --- the Preamble decision ------------------------------------------------
-# 0x5182fc:  cmpb $0x0,0x1c72(%r13) ; jne 0x518b21
+# --- the Preamble decision: %ebp, not the flag ----------------------------
+# 0x5182d6:  test %ebp,%ebp
+# 0x5182db:  je   0x518383
 #
-# If the flag at [r13+0x1c72] is set, control skips the block that contains
-# SendPreamble (0x5ffef0) and jumps to 0x518b21, which logs "Sending Preamble"
-# and rejoins just before SelectImage. That is image 1's behaviour.
+# This is the real branch. ebp == 0 skips the entire preamble block -- the
+# "Sending Preamble" log, the [r13+0x1c72] test, SendPreamble AND GetVersion
+# -- and rejoins at 0x518383, just before SelectImage. That is image 1's path,
+# confirmed by the trace: image 1 issues no ioctl at all between
+# "Begin DownloadImage" and "SelectImage".
 #
-# If it is clear, the block runs: 0x518319 calls SendPreamble, which writes a
-# 4-byte command and then reads a 38-byte reply. That is image 2's behaviour,
-# and it is where the board stops answering.
+# ebp != 0 runs the block. Image 2 takes it, and stalls in SendPreamble.
 #
-# The same 4-byte Preamble with the same 38-byte expected reply SUCCEEDS at
-# session start, from openUsbPort. So the command is not malformed; the board
-# accepts one Preamble per session and not a second.
+# ebp is the third argument the caller passes in (0x51a084: mov %ebp,%edx
+# before `call 0x5181d0`), so it is the caller's decision per image.
 #
-# Setting $forcemark to 1 forces the flag set, which makes image 2 take image
-# 1's path. That is the experiment: if skipping the second Preamble lets the
-# payload transfer, the fix is to stop the tool re-preambling.
-break *0x5182fc
+# The flag at [r13+0x1c72] is NOT this switch. Forcing it to 1 was tried and
+# changed nothing, which the disassembly explains: both sides of that branch
+# converge on the same SendPreamble call -- 0x518b21 logs "Sending Preamble"
+# and ends in `jmp 0x51830a`, which falls into the same `call 0x5ffef0` at
+# 0x518312 that the fall-through path uses.
+break *0x5182d6
 commands
   silent
   set $hits = $hits + 1
-  printf "\n########## HIT %d: Preamble decision  (0x5182fc) ##########\n", $hits
-  printf "  [r13+0x1c72] before = %d\n", *(unsigned char *)($r13 + 0x1c72)
-  if $forcemark != 0
-    set *(unsigned char *)($r13 + 0x1c72) = 1
-    printf "  *** FORCED to 1 -- second Preamble will be SKIPPED ***\n"
+  printf "\n########## HIT %d: Preamble branch  (0x5182d6) ##########\n", $hits
+  printf "  ebp before = %d\n", $ebp
+  if $forceebp != 0
+    set $ebp = 0
+    printf "  *** FORCED ebp=0 -- SendPreamble and GetVersion will be SKIPPED ***\n"
   end
-  printf "  [r13+0x1c72] after  = %d  (0 -> SendPreamble, 1 -> skip it)\n", *(unsigned char *)($r13 + 0x1c72)
+  printf "  ebp after  = %d  (0 -> skip block, nonzero -> SendPreamble)\n", $ebp
   bt 6
+  continue
+end
+
+# Kept as a pure observer: it sits inside the block that %ebp==0 bypasses, so
+# seeing it at all tells us which path was taken.
+break *0x5182fc
+commands
+  silent
+  printf "  [r13+0x1c72] = %d\n", *(unsigned char *)($r13 + 0x1c72)
   continue
 end
 

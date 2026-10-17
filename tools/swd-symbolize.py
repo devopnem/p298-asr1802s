@@ -48,19 +48,28 @@ LANDMARKS = [
     (0x51827a, "call 0x6d9870 -- jump-table dispatch on al"),
     (0x518297, "call 0x5fded0 -- trivial setter, writes [rdi+0x658], returns 1"),
     (0x5182a8, "memset(buf, 0, 0x4006) -- 16 KB scratch"),
+    (0x5182d6, "test %ebp,%ebp -- THE Preamble branch. ebp==0 skips the whole "
+               "block (SendPreamble AND GetVersion) and rejoins at 0x518383. "
+               "ebp!=0 runs it. Image 1 has ebp==0; image 2 does not."),
+    (0x5182db, "je 0x518383 -- the skip target"),
     (0x5182f2, "log \"Sending Preamble...\""),
     (0x5182fc, "cmpb $0,[r13+0x1c72]; jne 0x518b21 -- SKIPS the preamble+version block "
                "when already set. This is why GetVersion never fires per image."),
-    (0x518319, "call 0x5ffef0 -- malloc(0x4006) then clears it"),
+    (0x518319, "call 0x5ffef0 -- SendPreamble. Reached only when ebp != 0."),
     (0x518337, "call 0x5fe860 -- GetWtpMessage: logs '\\n GetWtpMessage...\\n' then "
                "reads a WTPTP message. CANDIDATE for the 38-byte read that hangs."),
-    (0x518376, "call 0x5ffdb0 -- GetVersion command (observed NEVER taken)"),
+    (0x518312, "call 0x5ffef0 -- SendPreamble, reached from BOTH the fall-through "
+               "and the 0x518b21 branch"),
+    (0x518376, "call 0x5ffdb0 -- GetVersion command. Sits inside the ebp!=0 block, "
+               "so it never fires for image 1."),
     (0x51838a, "call 0x6daef0 -- refcount/mutex, lock cmpxchg on (%fs:0x10)->0x8"),
     (0x51839e, "call 0x5ff970 -- SelectImage command"),
     (0x51843b, "log \"download file name is %s\""),
     (0x518445, "call 0x6d9a30 -- that log. Reached for image 1 only."),
+    (0x518383, "the ebp==0 skip target -- rejoins just before SelectImage"),
     (0x518b21, "target of the [r13+0x1c72] branch: rebuilds and logs \"Sending Preamble\" "
-               "from movabs immediates, then rejoins before SelectImage"),
+               "from movabs immediates, then `jmp 0x51830a` -- i.e. it converges on "
+               "the SAME SendPreamble call. That flag is therefore NOT the switch."),
     (0x51a086, "call 0x5181d0 -- the image loop calling DownloadImage"),
     (0x51a08b, "test %eax,%eax; je 0x51aa20 -- DownloadImage returned 0, stop looping"),
     (0x518e56, "log \"Download data finished\""),
@@ -68,7 +77,11 @@ LANDMARKS = [
     (0x5fe210, "WTPTP command sender. Logs 'GetVersion command......' / "
                "'SelectImage command' then builds a 0x10/0x30 header and waits"),
     (0x5fe860, "GetWtpMessage -- logs \"\\n GetWtpMessage...\\n\", reads a message"),
-    (0x5ffef0, "malloc(0x4006) + clear"),
+    (0x5ffef0, "SendPreamble -- logs 'SendPreamble command', writes 4 bytes "
+               "(00 d3 02 2b) then reads a 38-byte reply. Succeeds at session "
+               "start via openUsbPort; hangs when re-sent mid-session for image 2."),
+    (0x5fff6e, "inside SendPreamble, immediately after `call 0x5fe4a0` (the sender)"),
+    (0x5fffb0, "inside SendPreamble, on the reply-read path -- where it hangs"),
     (0x5ff970, "wrapper: SelectImage command"),
     (0x5ffdb0, "wrapper: GetVersion command"),
     (0x5ff800, "wrapper called just before the file-name log"),
