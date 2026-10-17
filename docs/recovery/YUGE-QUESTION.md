@@ -77,15 +77,15 @@ target itself.
 
 ### Two more things we found that may be relevant
 
-**1. A/B image balance check.** From your own release notes:
+**1. A/B image balance check — RESOLVED, disregard.** From your own release notes:
 
 > `5.0.0.1: 5,IFL: Check for A/B image balance and report error on lone
 > DTIM-included image when AB_System = 2`
 
-Our BLF does not contain an `AB_System` key at all, so it inherits whatever the
-default is. Our image set is exactly the shape described: a single
-DTIM-included image (`TIMH`, `Enable = 0`). Please confirm what the default value
-is, and whether it needs to be set explicitly for this board.
+We had guessed at this before, since our BLF had no `AB_System` key. Having
+round-tripped the BLF through `SWDownloader`'s save path, as your documentation
+instructs, we can confirm the tool writes `AB_System = 0` explicitly. The check
+applies at 2, so it does not apply here. Disregard this item.
 
 **2. A documented history of breakage in our configuration.**
 
@@ -262,13 +262,9 @@ Begin DownloadImage...........          ← 同样卡死
 这是一条**完全不同的代码路径**：不解析 blf，没有镜像列表，没有逐镜像循环，
 但卡在同一个位置。因此问题不在 blf、不在镜像内容、也不在 swdl_linux 的下载循环。
 
-另外，我们的 BLF 中没有 `AB_System` 字段，因此使用默认值。而 5.0.0.1 的
-更新日志中写道：
-
-> `5,IFL: Check for A/B image balance and report error on lone DTIM-included image when AB_System = 2`
-
-我们的 BLF 恰好是「只有一个 DTIM-included 镜像（`TIMH`, `Enable = 0`）」的情况。
-请确认默认的 `AB_System` 取值，以及是否需要显式设置。
+另外，关于 `AB_System`：我们按照贵司文档要求，把 blf 用 SWDownloader 打开并
+重新保存过一次，确认工具会明确写入 `AB_System = 0`。因此 5.0.0.1 中提到的检查
+（仅在 `AB_System = 2` 时触发）对我们并不适用，此项可以忽略。
 
 同样值得注意的是，贵司自己的更新日志显示这条下载路径曾经反复出现问题：
 
