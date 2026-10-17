@@ -1,5 +1,10 @@
 """WTPTP wire format, as recovered from swdl_linux 4.8.8.2.
 
+Re-derived independently from fbfdownloader 5.0.0.2 on 2026-10-17
+(FUN_00403810 at 0x403810): same 4-byte preamble, same 0x26 reply, same
+status-byte checks. Two unrelated builds agree, so this is confirmed rather
+than inferred.
+
 EVERYTHING HERE IS TAGGED. Nothing in this module is a guess dressed up as
 fact: each constant is marked VERIFIED (read out of the disassembly, with the
 address that proves it) or INFERRED (consistent with the logs, but not

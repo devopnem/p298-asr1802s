@@ -124,6 +124,39 @@ Reference: `docs/recovery/flashing_and_failsafe_guide.md` and `docs/porting/BRIN
   claiming offsets were "read from the live unit" while the patch header said they still
   needed hardware verification is a capability overclaim.
 
+## Recovery campaign: start here, do not read the history
+
+The board's NAND is only writable over USB download mode. There is no SSH and no
+U-Boot shell. Nothing has ever been written to the board.
+
+**A new session should read, in this order, and nothing else until it has:**
+
+1. `docs/recovery/SWD-v5-status.md` — **top section only** (banner + "Corrections
+   and confirmations"). The file is long and append-only; the top is current.
+2. `docs/recovery/NEXT-EXPERIMENTS.md` — what to try, plus the table of
+   hypotheses already falsified. **Check this before proposing anything.**
+3. `docs/recovery/YUGE-QUESTION.md` — the vendor letter, ready to send.
+
+**Do not read these as if they described the current state.** They are kept for
+provenance and each carries a status banner saying which parts still hold:
+
+| doc | status |
+|---|---|
+| `SWDownloader-handoff.md` | historical. Superseded. §4b (Fast Download) and §7 (protocol constants) are still good. |
+| `swdownloader_blf_findings.md` | historical. §2 BLF grammar and §5 flash map are still good. |
+| `SWD-v5-stall-abstract.md` | current. Written for outside consultation — use when talking to the vendor. |
+| `DOWNLOAD_MODE_RE.md` | reference. How download mode and device detection work. |
+| `SWDownloader-windows-RE.md` | untracked. Windows is a dead end; it fails earlier and separately. |
+
+`tools/archive/` holds superseded code — binary patches against `swdl_linux` and
+BLF generators replaced by `mk-openwrt-blf.py`. Read-only provenance.
+
+### The current blocker, in three lines
+
+The board stops answering WTPTP immediately after the 248-byte FBF TIM header.
+Everything we can construct is now either confirmed against the board or proven
+not to matter. `-p <logfile>` is the only diagnostic never exercised.
+
 ## Workspace Layout
 
 - **Working dir (notion-p298)**: `~/Downloads/Modems/Notion_P298_ASR1802S/` — docs, porting, ops

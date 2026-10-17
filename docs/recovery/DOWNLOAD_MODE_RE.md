@@ -211,5 +211,5 @@ npx -y rea-agents@6.5.0 analyze obm_code.bin \
 ```
 
 Working directory for all of the above: `flashing_tools/p298-swd`-style scratch,
-**never** `flashing_tools/Marvell_SWDownloader_v4.8.8.2/`, whose `mtd7.bin` is a
-symlink into `findings/nand-dumps/`.
+**never** `flashing_tools/old_not_for_use/Marvell_SWDownloader_v4.8.8.2/`, whose
+`mtd7.bin` is a symlink into `findings/nand-dumps/`.

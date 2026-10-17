@@ -138,3 +138,83 @@ byte-identical to the one that **succeeded** for image 1.
 
 **The board is not refusing any particular command. It stops answering WTPTP
 after the first file completes.**
+---
+
+## 0. The one diagnostic never run: `-p <logfile>`  (2026-10-17)
+
+**Do this before anything else below.** It costs one board power-cycle and needs
+no code change.
+
+Many messages in `fbfdownloader` go **only** to the log file, never to stdout.
+We have never passed `-p`, so we have never seen any of them — including the
+board's answer to the one question that matters.
+
+```sh
+sudo env LC_ALL=C LANG=C \
+  flashing_tools/SWDownloader_5_0_0_2/binlinux/fbfdownloader \
+  -b /tmp/swd-fbf/BinFile_tim3.bin -p /tmp/wtp.log
+cat /tmp/wtp.log
+```
+
+Board off until `Please plug your USB device`. What to look for:
+
+| log line | why it matters |
+|---|---|
+| `Return flag in Dataheader CMD: %d,FDSwitch is %d,BufferSize is 0x%X` | the **board's** reply. Confirms whether the DataHeader was ACKed at all. |
+| `*******NOTE:: Fast Download is NOW activated!` | already seen as active in `SWDownloader-handoff.md` §4b, five runs |
+| `TotalBadBlocks: %d, Total Blocks: %d` | only for DFBF images |
+| `Getting Version...` / anything after it | how far past the first file it got |
+
+The last FBF-ntimheader run completed at `Completed DownLoad file`, so the log
+should end there. **If the log shows a `Return flag` line, the board answered and
+the stall is later than we think.**
+
+## WTPTP protocol, recovered from `fbfdownloader` 5.0.0.2 disassembly
+
+Static RE, Ghidra 12.1.4. Addresses are image-base `0x400000`.
+
+`SendPreamble` — `FUN_00403810` at `0x403810`:
+
+```
+write 4 bytes:  00 D3 02 2B
+read 38 bytes (0x26)                         <- blocking
+  reject if buf[0]!=0 || buf[1]!=0xD3 || buf[2]!=0x02   "SendPreamble returned a wrong status"
+  reject if buf[3]==0x01                                 "SendPreamble returned a NACK!"
+```
+
+**The board's 38-byte reply has never been observed.** That is the exact thing it
+owes us and the single most useful datum for the vendor letter.
+
+`DownloadImage` — `FUN_00409c10` at `0x409c10`, 3893 bytes:
+
+```
+FUN_00401410(dev,3)
+  -> SendPreamble -> GetVersion -> SelectImage -> VerifyImage
+  [strip the 4-byte DFBF magic unless the ID is TIMH 0x54494d48 or TRAP 0x50415254]
+  -> DataHeader: the board returns BufferSize and return flags
+  -> loop: read chunk -> send -> poll -> ack
+```
+
+Image-ID constants the binary actually tests: `0x46424644` DFBF, `0x54494d48`
+TIMH, `0x50415254` TRAP.
+
+Fast Download is negotiated on the board's own reply:
+`if ((local_4854 & 4) == 0) "not activated" else "NOW activated"`.
+
+### The board drives the image order
+
+`SelectImage` returns **the ID of the next image the board wants**. The host is
+not pushing a fixed list — it is answering requests. So our stall is not "the
+host got stuck mid-transfer": the board fails to answer the *next* preamble,
+which means it has already hung inside FBF TIM header processing.
+
+This supersedes the `ebp`/image-index explanation at the end of this file. The
+`ebp` finding was real about `swdl_linux`, but the mechanism is the board
+selecting the next image and then dying, not the host skipping a preamble.
+
+### Invented image IDs: eliminated, not guessed
+
+`FUN_00407e10` (0x407e10) is a 63-byte linked-list lookup of the board's returned
+ID against the map the tool built from the BLF. There is no validation against a
+hardcoded set. Our invented `0x52444348` ("RDCH") and `0x4F424D49` ("OBMI") are
+therefore self-consistent and **harmless**. Do not spend time on them.

@@ -1,5 +1,23 @@
 # SWDownloader `.blf` — findings for Notion P298 / ASR1802S (PXA1802)
 
+> **STATUS: HISTORICAL. Written against 4.8.8.2, which is archived.**
+> `Marvell_SWDownloader_v4.8.8.2` moved to `flashing_tools/old_not_for_use/`
+> and its `MakeDownloadPackage` is no longer the oracle — 5.0.0.2's is, and 5.0.0.2
+> is also the tool that performs the download. Current state is
+> `SWD-v5-status.md`.
+>
+> **Still good:**
+> * **§2 BLF grammar** — the `[Image_List]` key set and per-image semantics.
+>   Verified rather than guessed, and nothing later contradicted it.
+> * **§5 Flash map** — still accurate; independently re-derived from the NAND
+>   dump sizes on 2026-10-17.
+> * **§4** — why `OBMImage is NULL`, solved. Useful background on `Image_ID`.
+>
+> **Superseded by later work:** §3 traps, §6 and §7 (live runs on the old
+> route). Three findings here are now known to be *wrong* — they were
+> superseded by the TIM identity work (`OEM_UniqueID` was `"Sky!"`, it must be
+> `"NZA3"`) and by the header elimination. Do not quote §6/§7 conclusions.
+
 Date: 2026-10-10 · Binary: `Marvell_SWDownloader_v4.8.8.2/swdl_linux` (ELF32 i386, static, not stripped, has `debug_info`)
 
 ## Status

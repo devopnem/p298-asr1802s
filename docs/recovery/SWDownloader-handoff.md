@@ -1,5 +1,25 @@
 # Handoff brief — SWDownloader USB window on Notion P298 / ASR1802S
 
+> **STATUS: SUPERSEDED. Do not treat this as the current state.**
+> Written 2026-10-14. The campaign has moved to the vendor's documented
+> `fbfmake` + `fbfdownloader` flow on **5.0.0.2**, and the blocker described in
+> §4d (`EBUSY` on re-open) is **no longer where runs stop**. Current state is
+> `SWD-v5-status.md`; current next steps are `NEXT-EXPERIMENTS.md`.
+>
+> **Still good, and worth reading:**
+> * **§4b** — Fast Download is reachable and already active. Independently
+>   re-derived on 2026-10-17 from `fbfdownloader` disassembly, which agrees.
+>   Corrects an earlier byte-offset error in this same section.
+> * **§7** — recovered protocol constants. `SendPreamble` really does send a
+>   fixed `00 D3 02 2B` regardless of its argument.
+> * **§11b**, **§11c** — `*_Image_Enable = 0` semantics, and the DKB stage being
+>   unavoidable. Note §11c sits in tension with the 2026-10-17 reading that the
+>   board skips the DKB download; unresolved, see the status doc.
+>
+> **Stale:** §1, §3, §4a, §4c, §4d, §5, §6, §10, §11d — all describe earlier
+> blockers on the `swdl_linux` route, which is no longer the tool in use.
+> §11d's patch script now lives in `tools/archive/`.
+
 Self-contained. Written to be handed to another engineer or AI agent with no
 access to this conversation. Every claim below is either measured or marked
 unverified.

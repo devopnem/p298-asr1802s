@@ -33,6 +33,12 @@ labelled, so a future session knows what to confirm first on real hardware.
 
 **VERIFIED** — read from `swdl_linux` 4.8.8.2, with the address that proves it:
 
+**Re-derived independently on 5.0.0.2, 2026-10-17.** `fbfdownloader`'s
+`FUN_00403810` at `0x403810` decompiles to the same exchange: write the same 4
+bytes, read 0x26, validate the same three status bytes plus a NACK check at
+`buf[3] == 0x01`. Two unrelated builds, same wire format — treat this as
+confirmed rather than inferred.
+
 - `CWtpComm::SendPreamble` (0x0816d820) writes **4 bytes**, `00 D3 02 2B`
   (`WriteUSB(this, 4)` at 0x0816d8c0). `D3 02 2B` is a three-byte magic, not
   four — `buf[0]` is zero from the memset, not an opcode.

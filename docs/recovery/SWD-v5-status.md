@@ -1,9 +1,26 @@
-# SWDownloader 5.0.0.2 — state of play, 2026-10-16
+# SWDownloader 5.0.0.2 — state of play
 
 Compaction survival document. Everything below is either **measured** or
 explicitly marked as **inferred**. Where something failed, the failure is
 recorded, because the list of falsified hypotheses is the most valuable
 artefact here: it is what stops the next attempt from re-testing them.
+
+> **This file is append-only. It is 576 lines and you only need the top.**
+> Read this banner and "Corrections and confirmations, 2026-10-17" below,
+> then `NEXT-EXPERIMENTS.md`. The older sections describe blockers that were
+> later resolved or superseded — notably an `EBUSY` re-open failure that is no
+> longer where runs stop. Nothing has been deleted, because what was ruled out
+> and when is the point of the document.
+
+### TL;DR (2026-10-17)
+
+Nothing has been written to the board. The board stops answering WTPTP
+immediately after the 248-byte FBF TIM header, on both entry points, with a
+header byte-identical to the board's own stored TIM. Every package-side
+variable is now either confirmed against the board or proven not to matter.
+
+The one diagnostic never exercised is `fbfdownloader -p <logfile>`, which
+enables many messages that go only to the log rather than stdout.
 
 ## TL;DR
 
