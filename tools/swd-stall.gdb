@@ -35,6 +35,42 @@ set height 0
 set width 0
 
 set $hits = 0
+set $n = 0
+
+# --- every ioctl, with the bulktransfer struct inline ---------------------
+# 0x7165b0 is the static glibc ioctl() wrapper:
+#     mov $0x10,%eax ; syscall ; cmp $-4095,%rax ; jae ...
+# __NR_ioctl is 16, which is exactly the syscall number /proc reports for the
+# stuck thread. Breaking here catches EVERY usbdevfs call, and because the
+# breakpoint is *before* the syscall, %rdi is the fd, %rsi the request code and
+# %rdx a pointer to struct usbdevfs_bulktransfer. Dumping %rdx therefore shows
+# ep / len / timeout directly, with a backtrace saying which tool function asked.
+#
+# This is the breakpoint that settles where the stall is, instead of narrowing it
+# by elimination.
+break *0x7165b0
+commands
+  silent
+  set $n = $n + 1
+  printf "\n--- ioctl #%d  fd=%d  req=0x%lx ---\n", $n, (int)$rdi, $rsi
+  printf "    struct@rdx: "
+  x/3wx $rdx
+  bt 6
+  continue
+end
+
+# --- GetWtpMessage --------------------------------------------------------
+# 0x5fe860 builds the literal "\n GetWtpMessage...\n" and logs it, then reads a
+# WTPTP message from the board. Called from 0x518337 inside the DownloadImage
+# window, so it is a candidate for the 38-byte read that never completes.
+break *0x5fe860
+commands
+  silent
+  set $hits = $hits + 1
+  printf "\n########## HIT %d: GetWtpMessage entry  (0x5fe860) ##########\n", $hits
+  bt 8
+  continue
+end
 
 # --- image boundary -------------------------------------------------------
 # 0x51825c: the call that writes "Begin DownloadImage.........". It is the last

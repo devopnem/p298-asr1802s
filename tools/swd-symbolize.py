@@ -37,36 +37,49 @@ ELF_BIAS = 0x400000          # vaddr == file_offset + ELF_BIAS, base 0
 # addr -> (what it is, how we know)
 # ---------------------------------------------------------------------------
 LANDMARKS = [
-    (0x5181e0, "DownloadImage() -- prologue; entry for one image transfer"),
+    (0x514200, "walks the image list at [+0x1ca8] -- big 0x698 frame"),
+    (0x517ab0, "the log writer: appends the device name and newline, then writes"),
+    (0x5181d0, "DownloadImage() -- ENTRY. Called from the image loop at 0x51a086. "
+               "Returns int: 0 means stop."),
     (0x5181ec, "DownloadImage(): tests [rbx+0xd78]; ==1 branches to 0x5185e0 (no log)"),
-    (0x518205, "DownloadImage(): builds \"Begin DownloadImage.........\" on the stack"),
-    (0x51825c, "DownloadImage(): log write  -> LAST LOG LINE WE SEE"),
-    (0x518269, "DownloadImage(): call 0x514200 (walks image list @+0x1ca8)"),
-    (0x51827a, "DownloadImage(): call 0x6d9870 (jump-table dispatch)"),
-    (0x518297, "DownloadImage(): call 0x5fded0 (trivial setter, +0x658)"),
-    (0x5182a8, "DownloadImage(): memset(0x4006) -- 16 KB scratch"),
-    (0x518319, "DownloadImage(): call 0x5ffef0"),
-    (0x518337, "DownloadImage(): call 0x5fe860"),
-    (0x51834e, "log \"Getting Version...\"  <-- stall window opens here"),
-    (0x518357, "WTPTP GetVersion  -> 0x5ffdb0 -> helper 0x5fe210"),
-    (0x518376, "WTPTP SelectImage -> 0x5ffdb0/0x5ff970 -> helper 0x5fe210"),
-    (0x51838a, "mutex / refcount  -> 0x6daef0 (lock cmpxchg)  <-- CAN BLOCK"),
-    (0x51839e, "WTPTP SelectImage command issued here"),
-    (0x518416, "snprintf 0x6918c0 (formats into [rsp+0x4470])"),
-    (0x518426, "call 0x5ff800"),
-    (0x51843b, "log \"download file name is %s\"  <-- stall window closes"),
-    (0x518445, "never reached in our runs -> payload never opened"),
+    (0x518205, "DownloadImage(): builds \"Begin DownloadImage.........\" from movabs immediates"),
+    (0x51825c, "log \"Begin DownloadImage\"  <-- last log line we ever see"),
+    (0x518264, "call 0x514200 -- walks the image list at [+0x1ca8]"),
+    (0x51827a, "call 0x6d9870 -- jump-table dispatch on al"),
+    (0x518297, "call 0x5fded0 -- trivial setter, writes [rdi+0x658], returns 1"),
+    (0x5182a8, "memset(buf, 0, 0x4006) -- 16 KB scratch"),
+    (0x5182f2, "log \"Sending Preamble...\""),
+    (0x5182fc, "cmpb $0,[r13+0x1c72]; jne 0x518b21 -- SKIPS the preamble+version block "
+               "when already set. This is why GetVersion never fires per image."),
+    (0x518319, "call 0x5ffef0 -- malloc(0x4006) then clears it"),
+    (0x518337, "call 0x5fe860 -- GetWtpMessage: logs '\\n GetWtpMessage...\\n' then "
+               "reads a WTPTP message. CANDIDATE for the 38-byte read that hangs."),
+    (0x518376, "call 0x5ffdb0 -- GetVersion command (observed NEVER taken)"),
+    (0x51838a, "call 0x6daef0 -- refcount/mutex, lock cmpxchg on (%fs:0x10)->0x8"),
+    (0x51839e, "call 0x5ff970 -- SelectImage command"),
+    (0x51843b, "log \"download file name is %s\""),
+    (0x518445, "call 0x6d9a30 -- that log. Reached for image 1 only."),
+    (0x518b21, "target of the [r13+0x1c72] branch: rebuilds and logs \"Sending Preamble\" "
+               "from movabs immediates, then rejoins before SelectImage"),
+    (0x51a086, "call 0x5181d0 -- the image loop calling DownloadImage"),
+    (0x51a08b, "test %eax,%eax; je 0x51aa20 -- DownloadImage returned 0, stop looping"),
     (0x518e56, "log \"Download data finished\""),
     (0x518eaa, "log \"Completed DownLoad file: %s\""),
-    (0x5fe210, "WTPTP command sender. Called with \"GetVersion command......\" "
-               "and \"SelectImage command\". Builds 0x10/0x30 header then waits"),
-    (0x6daef0, "refcount/mutex: lock cmpxchg on (%fs:0x10)->0x8  <-- CAN BLOCK"),
-    (0x5ffdb0, "wrapper: GetVersion command"),
+    (0x5fe210, "WTPTP command sender. Logs 'GetVersion command......' / "
+               "'SelectImage command' then builds a 0x10/0x30 header and waits"),
+    (0x5fe860, "GetWtpMessage -- logs \"\\n GetWtpMessage...\\n\", reads a message"),
+    (0x5ffef0, "malloc(0x4006) + clear"),
     (0x5ff970, "wrapper: SelectImage command"),
+    (0x5ffdb0, "wrapper: GetVersion command"),
     (0x5ff800, "wrapper called just before the file-name log"),
+    (0x6daef0, "refcount/mutex: lock cmpxchg  <-- CAN BLOCK"),
+    (0x6d9870, "jump-table dispatch (computes a target from al and jumps)"),
     (0x6db920, "log printf (variadic)"),
     (0x6d9a30, "log printf (variadic)"),
-    (0x6918c0, "snprintf-family, the %m return fixup runs inline before it"),
+    (0x6918c0, "snprintf-family"),
+    (0x7165b0, "glibc ioctl() wrapper: mov $0x10,%eax ; syscall. __NR_ioctl = 16. "
+               "Break here to catch EVERY usbdevfs call with %rdi=fd, %rsi=code, "
+               "%rdx=&usbdevfs_bulktransfer{ep,len,timeout}"),
 ]
 LANDMARKS.sort()
 
