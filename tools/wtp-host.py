@@ -84,13 +84,20 @@ class Host:
         os.close(self.fd)
 
 
-def find_board(wait, vid=0x2ECC, pids=(0x3001, 0x3002, 0x3003)):
-    """Wait for the board to enumerate in download mode.
+def find_and_claim(wait, vid=0x2ECC, pids=(0x3001, 0x3002, 0x3003)):
+    """Wait for download mode and claim it as fast as possible.
 
-    Download mode is transient -- the module reverts to its normal USB identity
-    within seconds unless a session holds it -- so poll sysfs rather than
-    relying on lsusb at one instant.
+    Measured with tools/usb-watch.py on 2026-10-17: the board enumerates as
+    2ecc:3002 and is gone again 1.57 seconds later, with no driver bound in
+    between. That matches Yuge's upgrade guide, which warns that the module
+    reverts to its normal port after a few seconds if the download-port driver
+    has not claimed it.
+
+    So the poll has to be fast, and the claim has to happen in the same breath
+    as the discovery -- printing anything before claiming it wastes the window.
+    We are the driver: claiming the interface is what keeps the board talking.
     """
+    import glob
     deadline = time.time() + wait
     base = "/sys/bus/usb/devices"
     while time.time() < deadline:
@@ -98,17 +105,33 @@ def find_board(wait, vid=0x2ECC, pids=(0x3001, 0x3002, 0x3003)):
             parts = entry.split("-")
             if len(parts) != 2:
                 continue
-            vid_p, pid_p = parts
+            bus, dev = parts
             try:
-                if int(vid_p, 16) != vid or int(pid_p, 16) not in pids:
+                if int(bus, 16) != 1 or int(dev, 16) < 1:
                     continue
-            except ValueError:
+                v = int(open(f"{base}/{entry}/idVendor").read().strip(), 16)
+                p = int(open(f"{base}/{entry}/idProduct").read().strip(), 16)
+            except (OSError, ValueError):
                 continue
-            node = f"/dev/bus/usb/{vid_p}/{pid_p}"
-            if os.path.exists(node):
-                return node
-        time.sleep(0.2)
-    return None
+            if v != vid or p not in pids:
+                continue
+            node = f"/dev/bus/usb/{bus}/{dev}"
+            if not os.path.exists(node):
+                continue
+            try:
+                fd = os.open(node, os.O_RDWR)
+            except OSError:
+                continue
+            try:
+                buf = ctypes.create_string_buffer(64)
+                fcntl.ioctl(fd, USBDEVFS_CLAIMINTERFACE, ctypes.byref(buf))
+            except OSError:
+                os.close(fd)
+                continue
+            print(f"CLAIMED {node}  (idVendor={v:04x} idProduct={p:04x})")
+            return fd, node
+        time.sleep(0.02)
+    return None, None
 
 
 def main():
@@ -128,14 +151,20 @@ def main():
         print("must run as root (usbfs needs it)", file=sys.stderr)
         return 2
 
-    print(f"waiting up to {args.wait}s for the board in download mode...")
-    dev = args.device or find_board(args.wait)
-    if not dev:
-        print("not found. power-cycle the board while this is waiting.", file=sys.stderr)
-        return 2
-
-    print(f"\nboard: {dev}\n")
-    h = Host(dev, args.timeout)
+    print(f"waiting up to {args.wait}s for download mode.")
+    print("The window is about 1.5s -- power-cycle the board NOW.\n")
+    if args.device:
+        dev = args.device
+        print(f"board: {dev}\n")
+        h = Host(dev, args.timeout)
+    else:
+        fd, dev = find_and_claim(args.wait)
+        if not dev:
+            print("not found within the wait. Rerun and power-cycle sooner.",
+                  file=sys.stderr)
+            return 2
+        h = Host.__new__(Host)
+        h.fd, h.timeout_ms = fd, args.timeout
     try:
         print("=== session start (reproduces the vendor tool exactly) ===")
         h.cmd("Preamble", PREAMBLE, 38)
