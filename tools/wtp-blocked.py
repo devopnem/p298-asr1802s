@@ -28,7 +28,11 @@ USBDEVFS_BULK = 0xC0185502  # _IOWR('U', 2, struct usbdevfs_bulktransfer)
 # 24 bytes with natural alignment on x86-64: data sits at offset 16.
 BULK_FMT = "<III4xQ"
 
-SYS_IOCTL = 16  # x86-64
+SYS_IOCTL = 16      # x86-64
+SYS_FUTEX = 202     # x86-64
+SYS_READ = 0
+SYS_WRITE = 1
+SYS_NANOSLEEP = 35
 
 
 def find_pid(name):
@@ -41,21 +45,43 @@ def find_pid(name):
     return int(out[-1]) if out else None
 
 
-def read_syscall(pid):
+def read_syscall(path):
     """Return (number, [arg0..arg5]) or None if the task is running."""
     try:
-        with open(f"/proc/{pid}/syscall") as fh:
+        with open(path) as fh:
             raw = fh.read().split()
     except PermissionError:
         sys.exit(
-            f"cannot read /proc/{pid}/syscall -- run under sudo.\n"
+            "cannot read a task's syscall -- run under sudo.\n"
             "The tool runs as root, so only root or a tracer may inspect it."
         )
-    except FileNotFoundError:
+    except (FileNotFoundError, ProcessLookupError):
         return None
     if not raw or raw[0] in ("running", "-1"):
         return None
     return int(raw[0]), [int(a, 16) for a in raw[1:7]]
+
+
+def syscall_name(number):
+    return {
+        SYS_IOCTL: "ioctl",
+        SYS_FUTEX: "futex",
+        SYS_READ: "read",
+        SYS_WRITE: "write",
+        SYS_NANOSLEEP: "nanosleep",
+    }.get(number, f"syscall {number}")
+
+
+def describe_bulk(pid, tid, ptr):
+    try:
+        with open(f"/proc/{pid}/task/{tid}/mem", "rb") as mem:
+            mem.seek(ptr)
+            ep, length, timeout, _data = struct.unpack(BULK_FMT, mem.read(24))
+    except (OSError, struct.error) as exc:
+        return f"USBDEVFS_BULK (struct unreadable: {exc})"
+    direction = "IN, board must reply" if ep & 0x80 else "OUT, board must ACK"
+    tail = ", timeout INFINITE" if timeout == 0 else ""
+    return f"USBDEVFS_BULK ep=0x{ep:02x} ({direction}) len={length}{tail}"
 
 
 def main():
@@ -63,44 +89,37 @@ def main():
     if pid is None:
         sys.exit("no such process running")
 
-    args = read_syscall(pid)
-    if args is None:
-        sys.exit(f"pid {pid} is running, not blocked")
+    tasks = sorted(os.listdir(f"/proc/{pid}/task"))
+    print(f"pid {pid}: {len(tasks)} thread(s)\n")
 
-    number, a = args
-    print(f"pid            {pid}")
-    if number != SYS_IOCTL:
-        print(f"syscall        {number}  (not ioctl)")
-        return
-    print("syscall        ioctl")
-    print(f"fd             0x{a[0]:x}")
-    print(f"request        0x{a[1]:08x}", end="")
-    print("   USBDEVFS_BULK" if a[1] == USBDEVFS_BULK else "   (something else)")
+    for tid in tasks:
+        try:
+            with open(f"/proc/{pid}/task/{tid}/status") as fh:
+                state = next(
+                    (l.split()[1] for l in fh if l.startswith("State:")), "?"
+                )
+            with open(f"/proc/{pid}/task/{tid}/comm") as fh:
+                comm = fh.read().strip()
+        except OSError:
+            continue
 
-    if a[1] != USBDEVFS_BULK:
-        return
-    ptr = a[2]
-    try:
-        with open(f"/proc/{pid}/mem", "rb") as mem:
-            mem.seek(ptr)
-            ep, length, timeout, data = struct.unpack(BULK_FMT, mem.read(24))
-    except PermissionError:
-        sys.exit("cannot read /proc/PID/mem -- run under sudo")
+        args = read_syscall(f"/proc/{pid}/task/{tid}/syscall")
+        if args is None:
+            note = "running, not blocked"
+        else:
+            number, a = args
+            note = syscall_name(number)
+            if number == SYS_IOCTL and a[1] == USBDEVFS_BULK:
+                note += "  ->  " + describe_bulk(pid, tid, a[2])
 
-    direction = "IN  (host reads; board must reply)" if ep & 0x80 else "OUT (host writes; board must ACK)"
-    print(f"endpoint       0x{ep:02x}  -> {direction}")
-    print(f"length         {length}")
-    print(f"timeout        {timeout}", end="")
-    print("   INFINITE -- this is why it never returns" if timeout == 0 else "")
-    print(f"data           0x{data:x}")
+        # D is uninterruptible: parked in the kernel, no signal will move it.
+        flag = "   <== uninterruptible, this is the one" if state == "D" else ""
+        print(f"  tid {tid:<7} {state}  {comm:<16} {note}{flag}")
 
-    print()
-    if ep & 0x80:
-        print("The host is waiting for the BOARD to speak.")
-        print("A board that has gone quiet explains this; a host bug does not.")
-    else:
-        print("The host has bytes to give and the board is not taking them.")
-        print("A board that has stopped ACKing explains this.")
+    print(
+        "\nD state is the thread that matters. S on a main thread usually just\n"
+        "means it is joining the worker: futex is a userspace lock, not USB."
+    )
 
 
 if __name__ == "__main__":
