@@ -37,6 +37,7 @@ set width 0
 set $hits = 0
 set $n = 0
 set $forceebp = 0
+set $usbto = 0
 
 # --- the Preamble decision: %ebp, not the flag ----------------------------
 # 0x5182d6:  test %ebp,%ebp
@@ -98,7 +99,22 @@ commands
   silent
   set $n = $n + 1
   printf "\n--- ioctl #%d  fd=%d  req=0x%lx ---\n", $n, (int)$rdi, $rsi
-  printf "    struct@rdx: "
+  printf "    struct@rdx BEFORE: "
+  x/3wx $rdx
+  # struct usbdevfs_bulktransfer { u32 ep; u32 len; u32 timeout; ... }
+  # ep is at +0, len at +4, timeout at +8. The tool sets timeout = 0 on every
+  # transfer, which means "wait forever" -- so an unanswered request cannot fail
+  # and cannot be retried, and the only way out is SIGKILL plus an unplug.
+  # Injecting a real timeout makes the read return -ETIMEDOUT, which lets the
+  # tool take its own error path, report, clean up and exit. That also releases
+  # the device so it can be probed independently.
+  if $usbto > 0 && (($rsi >> 8) & 0xff) == 0x55 && ($rsi & 0xff) == 2
+    if (*(unsigned int *)($rdx) & 0x80) != 0
+      set *(unsigned int *)($rdx + 8) = $usbto
+      printf "    *** injected timeout = %d ms into this IN read ***\n", $usbto
+    end
+  end
+  printf "    struct@rdx AFTER:  "
   x/3wx $rdx
   bt 6
   continue

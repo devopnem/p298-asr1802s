@@ -38,12 +38,22 @@ STALL_SECS=${2:-60}
 # Forcing [r13+0x1c72] instead was tried and did nothing, because both sides of
 # that branch converge on the same SendPreamble call. Only %ebp decides.
 FORCE_EBP=0
+USB_TO=0
 for a in "${@:3}"; do
     case $a in
         --force-no-preamble) FORCE_EBP=1 ;;
+        --usb-timeout=*) USB_TO=${a#--usb-timeout=} ;;
+        --usb-timeout) shift ;;
         *) echo "unknown option: $a" >&2; exit 1 ;;
     esac
 done
+case "$USB_TO" in
+    ''|*[!0-9]*) USB_TO=0 ;;
+esac
+if [ "$USB_TO" -gt 0 ] 2>/dev/null; then
+    echo ">>> --usb-timeout=${USB_TO}: IN reads get a deadline, so an unanswered"
+    echo "    request returns ETIMEDOUT instead of hanging forever <<<"
+fi
 if [ "$FORCE_EBP" = 1 ]; then
     echo ">>> --force-no-preamble: image 2 will SKIP SendPreamble/GetVersion <<<"
 fi
@@ -217,12 +227,15 @@ fi
 # The script ends in `continue`, so a trailing -ex would never be reached, and
 # a leading -ex is overwritten by the script's own default. Substitute the value
 # into a per-run copy instead -- explicit, and it cannot silently do nothing.
-sed "s/^set \$forceebp = 0$/set \$forceebp = $FORCE_EBP/" \
+sed -e "s/^set \$forceebp = 0$/set \$forceebp = $FORCE_EBP/" \
+    -e "s/^set \$usbto = 0$/set \$usbto = $USB_TO/" \
     "$GDB_SCRIPT" > "$RUN/stall.gdb"
-if ! grep -q "^set \$forceebp = $FORCE_EBP$" "$RUN/stall.gdb"; then
-    echo "FATAL: could not set \$forceebp in $RUN/stall.gdb" >&2
-    exit 1
-fi
+for v in "forceebp=$FORCE_EBP" "usbto=$USB_TO"; do
+    if ! grep -q "^set \$${v%%=*} = ${v#*=}$" "$RUN/stall.gdb"; then
+        echo "FATAL: could not set \$${v%%=*} in $RUN/stall.gdb" >&2
+        exit 1
+    fi
+done
 
 gdb -q -batch -p "$CPID" -x "$RUN/stall.gdb" > "$RUN/gdb-hits.log" 2>&1 &
 GPID=$!
