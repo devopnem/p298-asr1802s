@@ -476,3 +476,101 @@ reset, which command (`SendPreamble` vs `SelectImage`), and BLF content itself.
 Everything we control now matches what `SWDownloader`'s own save produces. What
 remains is the board, the OBM resident in SRAM, or the WTPTP session model -- all
 vendor questions, in `docs/recovery/YUGE-QUESTION.md`.
+
+## The FBF TIM header is eliminated, 2026-10-17
+
+### `0x2c` is the image count
+
+Patching the FBF TIM's `0x2c` from `2` to the stock `8` produced:
+
+```
+Number of Images listed in TIM: 8
+Number of Images listed in TIM is 8, but provide image number is 2
+Parse FBF Tim failed.
+```
+
+So `0x2c` is the image count and our `2` is correct. `mtd8`'s `8` means the
+stock FBF carries 8 images; it is not a field we were getting wrong.
+
+### The header was then made byte-identical to stock
+
+Patching the remaining three (`0x08`=1, `0x30`=1, `0x34`=0x11c) and leaving
+`0x2c`=2 gives a FBF TIM that matches `mtd8.bin` over `[0:0x38]` with **zero
+differing bytes**, and the tool's parse accepts it. Against the board it stalls
+in exactly the same place:
+
+```
+|Completed DownLoad file: .../FBF_Ntimheader.bin
+|Begin DownloadImage...........          <- unchanged
+```
+
+**Conclusion: the 248-byte FBF TIM header is no longer a candidate cause.**
+`BinFile_tim3.bin` is a hand-patched diagnostic, not a deliverable.
+
+### Parse validation runs offline
+
+The `fbfdownloader` parse and validation stage completes before it touches USB,
+so TIM/BinFile structure can be iterated with **no board and no power cycle**.
+That is worth knowing; it makes structural experiments nearly free.
+
+### Partition geometry verified against the real dumps
+
+Every address we had invented turns out to be right. Cumulative offsets from
+the actual `mtd*.bin` sizes:
+
+| partition | BLF `Flash_Entry_Address` | derived | `Erase_Size` | size |
+|---|---|---|---|---|
+| mtd0  | `0x00000000` | `0x00000000` OK | - | `0x40000` |
+| mtd8  | `0x01400000` | `0x01400000` OK | - | `0x40000` |
+| mtd12 | `0x02040000` | `0x02040000` OK | `0xC0000` | `0xC0000` OK |
+| mtd14 | `0x02600000` | `0x02600000` OK | `0x500000` | `0x500000` OK |
+| mtd16 | `0x03F00000` | `0x03F00000` OK | `0x1400000` | `0x1400000` OK |
+
+Total flash `0x7E6C000` = 126 MiB. `mtd5` and `mtd6` have zero-length dumps
+(failed reads, not empty); solving for them gives `0x20000` each, which makes
+every other address land exactly. So the geometry is confirmed, not assumed.
+
+### Full 248-byte FBF TIM decoded
+
+Nested `TIMH` at `0x38` followed by two `DFBF` descriptors:
+
+```
+0x38 TIMH          0x3c DFBF    0x40 ffffffff
+0x44 d1101000  <- load address, INVENTED, unverified
+0x48 00040000  <- 262144 = mtd0.bin size
+0x94 00000008  <- descriptor length
+0x98 DFBF        0xa8 00040000
+0xac 007d1000  <- 8,192,000 = payload size, correct
+0xf4 00000008
+```
+
+Nothing malformed. But the `[0x38:]` region cannot be compared to the stock
+DTIM, because the stock has `TIM2`/`ZIMG` magics there instead of `DFBF` --
+different documents (stock = 8 images, 2516 bytes, `TIM2`+`ZIMG` sub-blocks of
+`0x9d4` and `0x8d4`; ours = 2 images, 248 bytes, `DFBF` descriptors). Copying
+the stock values across would be incoherent.
+
+### Still unverified
+
+Two load addresses remain invented, as `docs/reference/README.md` already
+warns:
+
+* `0xD1101000` -- TIMH `Load_Address`, lands at TIM offset `0x44`
+* `0x01C00000` -- OBMI `Load_Address`
+
+Neither can be confirmed without a genuine vendor `.blf` (item 1 of "what we
+are still looking for"). Both are inside the header that is now proven not to
+matter, since a header byte-identical to the stock one stalls identically.
+
+### Net state
+
+Everything we can construct is now either confirmed against the board or
+proven not to matter. The board stops answering after the FBF TIM header no
+matter what is in it. `fbfdownloader` offers only `-b` and `-p`; there is no
+DKB-override, and the DKB is skipped anyway because the board's own OBM
+already matches. Nothing remains to vary inside the package.
+
+What is still *not* established, and should not be claimed: that the board is
+faulty. That the OBM does not hang in a NAND-wait loop is equally consistent
+with the evidence, as is a WTPTP session-model difference between the host
+stack and this BootROM. All three are vendor questions.
