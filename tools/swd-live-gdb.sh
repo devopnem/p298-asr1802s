@@ -83,8 +83,29 @@ if [ -n "$STALE" ]; then
     echo "FATAL: swdl_linux is already running:" >&2
     ps -o pid,etime,stat,args -p "$(echo "$STALE" | tr '\n' ',' | sed 's/,$//')" >&2
     echo >&2
-    echo "  Each stalled run leaves one behind holding the lock. Stop them with:" >&2
-    echo "      sudo pkill -x swdl_linux" >&2
+    # A ptrace-stopped process cannot act on SIGTERM, and while a tracer is
+    # attached the signal is routed to the tracer instead. So `pkill -x
+    # swdl_linux` against a process gdb has stopped does nothing at all -- not
+    # even a pending signal, because the tracer is what would receive it. The
+    # order matters: the tracer has to go first.
+    TRACERS=""
+    for p in $STALE; do
+        t=$(awk '/^TracerPid:/{print $2}' "/proc/$p/status" 2>/dev/null)
+        [ -n "$t" ] && [ "$t" != "0" ] && TRACERS="$TRACERS $t"
+    done
+    if [ -n "$TRACERS" ]; then
+        echo "  Traced (stopped by a debugger): $(echo "$TRACERS" | tr ' ' '\n' | sort -u | tr '\n' ' ')" >&2
+        echo "  A ptrace-stopped process cannot be killed with SIGTERM -- the" >&2
+        echo "  signal goes to the tracer. Detach the debugger FIRST:" >&2
+        echo >&2
+        echo "      sudo pkill -x gdb          # detach, releases the tracing stop" >&2
+        echo "      sudo pkill -x swdl_linux   # now the signal lands" >&2
+        echo >&2
+        echo "  Killing them in the other order silently does nothing." >&2
+    else
+        echo "  Each stalled run leaves one behind holding the lock. Stop it with:" >&2
+        echo "      sudo pkill -x swdl_linux" >&2
+    fi
     exit 1
 fi
 
