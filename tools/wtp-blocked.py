@@ -36,13 +36,34 @@ SYS_NANOSLEEP = 35
 
 
 def find_pid(name):
+    """Find the downloader by name prefix.
+
+    Deliberately not `pgrep -x`: the kernel truncates comm to 15 characters, so
+    `fbfdownloader-nopreamble` is seen as `fbfdownloader-` and an exact match
+    silently finds nothing. Substring matching covers both names. This process
+    is excluded so the tool cannot report itself.
+    """
     try:
         out = subprocess.run(
-            ["pgrep", "-x", name], capture_output=True, text=True, check=False
+            ["pgrep", name], capture_output=True, text=True, check=False
         ).stdout.split()
     except FileNotFoundError:
         sys.exit("pgrep not available")
-    return int(out[-1]) if out else None
+    mine = os.getpid()
+    pids = [int(p) for p in out if int(p) != mine]
+    return pids[-1] if pids else None
+
+
+def which_binary(pid):
+    """Name of the executable, so it is never a guess which one is running."""
+    try:
+        return os.path.basename(os.readlink(f"/proc/{pid}/exe"))
+    except OSError:
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as fh:
+                return fh.read().split(b"\0")[0].decode("utf-8", "replace")
+        except OSError:
+            return "?"
 
 
 def read_syscall(path):
@@ -90,7 +111,8 @@ def main():
         sys.exit("no such process running")
 
     tasks = sorted(os.listdir(f"/proc/{pid}/task"))
-    print(f"pid {pid}: {len(tasks)} thread(s)\n")
+    print(f"pid {pid}   binary: {which_binary(pid)}")
+    print(f"{len(tasks)} thread(s)\n")
 
     for tid in tasks:
         try:
