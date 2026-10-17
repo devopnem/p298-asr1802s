@@ -1,42 +1,60 @@
 #!/usr/bin/env python3
-"""Patch fbfdownloader so it never sends a WTPTP Preamble.
+"""Patch fbfdownloader so it does not send a WTPTP Preamble.
 
-Diagnostic only. Produces a patched copy beside the original; the vendor
-binary is never modified.
+Diagnostic only. Writes a patched copy beside the original; the vendor binary is
+never modified.
 
     python3 tools/fbfdl-no-preamble.py
 
 Why
 ---
-The board accepts image 1 (the 248-byte FBF TIM header), replies
-`Platform ready status: 0`, and then stops answering. The host's next call is
-SendPreamble, and that is where it blocks forever.
+Measured, with tools/wtp-blocked.py, on a hung run:
 
-Inside DownloadImage (FUN_00409c10, image base 0x400000):
+    tid 9321  D  ioctl -> USBDEVFS_BULK ep=0x81 (IN, board must reply)
+                     len=38, timeout INFINITE
+
+`ep=0x81` is an IN endpoint and `len=38` (0x26) is exactly the Preamble reply
+size. So the board accepted our 4-byte Preamble on the OUT endpoint -- it is
+ACKing -- and then sent nothing back. The board answers exactly one Preamble
+per session: image 1's succeeds, image 2's does not.
+
+This patch removes the Preamble from both images, so image 2 asks for its next
+image the same way image 1 does.
+
+The site
+-------
+Inside DownloadImage, image base 0x400000:
 
     409d48:  test   %esi,%esi        ; per-image flag
-    409d4a:  jne    0x40a080         ; non-zero  =>  skip SendPreamble
+    409d4a:  jne    0x40a080         ; non-zero => log "Sending Preamble..."
     409d50:  mov    0x1c64(%r13),%esi
     409d57:  mov    0xd70(%rbx),%rdi
-    409d5e:  call   0x403810         ; SendPreamble
+    409d5e:  call   0x403810         ; SendPreamble   <-- patched here
+    409d63:  test   %eax,%eax
+    409d65:  jne    0x409e00         ; failure path
 
-which matches the device log exactly. Image 1 takes the branch and never sends
-a Preamble; image 2 falls through into it and stalls.
+An earlier attempt patched 0x409d4a instead, on the assumption that the `jne`
+guarded the call. It does not. 0x40a080 is an out-of-line block that builds the
+"Sending Preamble" string, prints it, and then jumps back:
 
-Turning the conditional into an unconditional jump makes every image take the
-path image 1 takes: straight to SelectImage, an exchange already observed to
-succeed. This is the Linux equivalent of the old `--force-no-preamble` switch
-that moved the stall on swdl_linux.
+    40a0d0:  je     0x409d50         ; back into the call
 
-What it does NOT prove
-----------------------
-Skipping the Preamble may simply desynchronise the host from the board. The
-WTPTP board drives the session, and a Preamble between images may be required.
-If the run stalls at SelectImage instead, that is a real result and not a
-failure of the patch: it localises the fault to "the board answers no command
-after image 1", whichever command it is.
+So `esi` controls only the message. SendPreamble runs either way, and patching
+the branch just made the message unconditional. Verified against the board:
+the patched binary behaved identically and still printed "Sending Preamble...".
 
-Run it the same way, then read the device log:
+Replacing the call with `xor %eax,%eax` plus nops is the same length, so there
+is no jump displacement to recompute -- the failure mode that bit the first
+attempt.
+
+What a stall here means
+-----------------------
+A stall at SelectImage instead of SendPreamble is a result, not a failed patch.
+The board drives WTPTP and may require a Preamble between images. Either way
+the fault is localised to "the board answers no command after image 1", and the
+patch tells us which command.
+
+Run it, then read the device log:
 
     sudo env LC_ALL=C LANG=C ./fbfdownloader-nopreamble -b BinFile.bin
     cat wtp_dev_bus_usb_001_*.log
@@ -44,7 +62,6 @@ Run it the same way, then read the device log:
 
 import hashlib
 import os
-import shutil
 import sys
 
 BINARY = "fbfdownloader"
@@ -52,15 +69,11 @@ PATCHED = "fbfdownloader-nopreamble"
 
 IMAGE_BASE = 0x400000  # ELF EXEC, LOAD offset 0 -> vaddr 0x400000
 
-# jne rel32 0x330 at vaddr 0x409d4a
-SITE_VADDR = 0x409D4A
-ORIGINAL = bytes.fromhex("0f8530030000")  # jne rel32 0x330
-# jmp rel32 is ONE BYTE SHORTER than jcc rel32: the opcode is e9, not 0f 8x.
-# The displacement is measured from the end of the instruction, which therefore
-# moves from 0x409d50 to 0x409d4f, so the same destination needs rel32 = 0x331,
-# not 0x330. Keeping 0x330 lands on 0x40a07f, one byte short -- which objdumps
-# as a jump into the middle of whatever is there.
-PATCHED_BYTES = bytes.fromhex("e93103000090")  # jmp rel32 0x331 + nop
+SITE_VADDR = 0x409D5E
+ORIGINAL = bytes.fromhex("e8ad9affff")  # call 0x403810
+# xor %eax,%eax + 3 nops. Same length, so no displacement arithmetic, and a
+# zero return takes the success branch at 0x409d63.
+PATCHED_BYTES = bytes.fromhex("31c0909090")
 
 
 def find_binary():
@@ -77,7 +90,8 @@ def find_binary():
 
 def main():
     src = find_binary()
-    data = bytearray(open(src, "rb").read())
+    original_bytes = open(src, "rb").read()
+    data = bytearray(original_bytes)
     off = SITE_VADDR - IMAGE_BASE
 
     actual = bytes(data[off : off + len(ORIGINAL)])
@@ -87,41 +101,28 @@ def main():
             f"  found    {actual.hex(' ')}\n"
             f"  expected {ORIGINAL.hex(' ')}\n"
             "This build is not the one the analysis was done against.\n"
-            "Refusing to patch. Re-run the disassembly first."
+            "Refusing to patch."
         )
+    if len(PATCHED_BYTES) != len(ORIGINAL):
+        sys.exit("patch must be the same length as the original instruction")
 
     data[off : off + len(PATCHED_BYTES)] = PATCHED_BYTES
-
-    # Verify we landed on the same destination, not merely on "a" destination.
-    # jcc rel32 and jmp rel32 differ in length, so a displacement copied across
-    # unchanged silently moves the target. Decode both and compare.
-    orig_target = SITE_VADDR + 6 + int.from_bytes(ORIGINAL[2:6], "little")
-    new_target = SITE_VADDR + 5 + int.from_bytes(PATCHED_BYTES[1:5], "little")
-    if orig_target != new_target:
-        sys.exit(
-            f"BUG: patch would jump to 0x{new_target:x}, not 0x{orig_target:x}.\n"
-            "jcc rel32 is 6 bytes and jmp rel32 is 5, so the displacement\n"
-            "must be recomputed for the new instruction end."
-        )
 
     dst = os.path.join(os.path.dirname(src), PATCHED)
     with open(dst, "wb") as fh:
         fh.write(data)
     os.chmod(dst, 0o755)
 
-    changed = [
-        (a, b)
-        for a, b in zip(open(src, "rb").read(), data)
-        if a != b
-    ]
     print(f"source   {src}")
-    print(f"         sha256 {hashlib.sha256(open(src, 'rb').read()).hexdigest()}")
+    print(f"         sha256 {hashlib.sha256(original_bytes).hexdigest()}")
     print(f"patched  {dst}")
     print(f"         sha256 {hashlib.sha256(bytes(data)).hexdigest()}")
-    print(f"\n1 instruction changed at vaddr 0x{SITE_VADDR:x}, {len(changed)} byte(s) differ")
-    print("\n  before  jne 0x40a080   ; esi != 0 skips SendPreamble")
-    print("  after   jmp 0x40a080   ; SendPreamble is never called")
-    print("\nThe original binary is untouched.")
+    print(f"\n{sum(1 for a, b in zip(original_bytes, data) if a != b)} byte(s) differ, "
+          f"all within one instruction at vaddr 0x{SITE_VADDR:x}")
+    print("\n  before  call 0x403810    ; SendPreamble")
+    print("  after   xor %eax,%eax    ; skipped, returns success")
+    print("\nThe 0x409d4a branch is left alone: it only guards the log line.")
+    print("The original binary is untouched.")
     print("Run:  sudo env LC_ALL=C LANG=C ./%s -b BinFile.bin" % PATCHED)
 
 
