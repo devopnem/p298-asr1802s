@@ -95,16 +95,26 @@ if [ -n "$STALE" ]; then
     done
     if [ -n "$TRACERS" ]; then
         echo "  Traced (stopped by a debugger): $(echo "$TRACERS" | tr ' ' '\n' | sort -u | tr '\n' ' ')" >&2
-        echo "  A ptrace-stopped process cannot be killed with SIGTERM -- the" >&2
-        echo "  signal goes to the tracer. Detach the debugger FIRST:" >&2
         echo >&2
-        echo "      sudo pkill -x gdb          # detach, releases the tracing stop" >&2
-        echo "      sudo pkill -x swdl_linux   # now the signal lands" >&2
+        echo "  A ptrace-stopped process cannot act on SIGTERM: while a tracer" >&2
+        echo "  is attached the signal goes to the tracer, not the tracee, and" >&2
+        echo "  /proc shows no pending signal on the tracee at all. SIGTERM also" >&2
+        echo "  failed to kill the gdb itself, because it sits in waitpid() with" >&2
+        echo "  the inferior stopped. Unwind it in this order:" >&2
         echo >&2
-        echo "  Killing them in the other order silently does nothing." >&2
+        echo "      sudo kill -9 <gdb-pid>      # SIGKILL; tracer death auto-detaches" >&2
+        echo "      UNPLUG THE BOARD             # see below" >&2
+        echo "      sudo pkill -9 -x swdl_linux" >&2
+        echo "      pgrep -a -x swdl_linux       # must print nothing" >&2
+        echo >&2
+        echo "  Why the board must be unplugged: the download thread is in state" >&2
+        echo "  D, blocked in usbfs_start_wait_urb on a transfer with timeout = 0." >&2
+        echo "  A process with a thread in uninterruptible sleep cannot exit at" >&2
+        echo "  all -- no signal can reap it. The URB only completes when the" >&2
+        echo "  device disappears, so powering off is what releases it." >&2
     else
         echo "  Each stalled run leaves one behind holding the lock. Stop it with:" >&2
-        echo "      sudo pkill -x swdl_linux" >&2
+        echo "      sudo pkill -9 -x swdl_linux" >&2
     fi
     exit 1
 fi
