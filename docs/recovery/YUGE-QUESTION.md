@@ -1,351 +1,387 @@
 # Question for the Yuge / ASR support team
 
-Written 2026-10-17. Self-contained; please send the whole thing.
+**Board:** Notion P298 router, ASR1802S module (`NEZHA3` platform, processor reports `NZA3`)
+**Tool:** SWDownloader **5.0.0.2**, dated 2024-5-24
+**Contact:** via Yuge support, the same channel that supplied the toolchain
 
 ---
 
-## Short version
+## The short version
 
-**Two different tools, following your own documentation, fail at exactly the
-same point.** Both transfer the first file successfully — the 248-byte FBF TIM
-header — and then the board stops answering, and the second file (the payload)
-is never sent.
+Following your own documented Linux procedure
+(`asr:cat4:update_l` → `fbfmake` then `fbfdownloader -b BinFile.bin`), the tool
+transfers the first image successfully, the board confirms it, and then the tool
+hangs forever waiting for a reply that never arrives.
 
-We reproduced this with:
+We are almost certainly using the toolchain incorrectly. We have been unable to
+find documentation that says how, and we would rather ask than keep guessing.
 
-- `swdl_linux -D <blf>`, the normal GUI-equivalent path
-- `fbfmake` + `fbfdownloader -b BinFile.bin`, the Linux procedure documented on
-  your `asr:cat4:update_l` page
+**One question would answer most of it:**
 
-The second one is the important result. It does **not** parse a BLF, has no
-image list and no per-image loop. It shares only the WTPTP transfer engine and
-the board with the first. So this is not our BLF, not our image content, and not
-the tool's image loop.
+> **Is the host supposed to send a WTPTP Preamble before every image, or only once
+> at the start of a session?**
 
-The board remains enumerated the whole time and never resets — confirmed with a
-500 ms USB poll across 146 samples. It goes silent on both the IN and the OUT
-endpoint, which only happens if the target stops acknowledging.
+The tool sends one before the first image and one before the second. The board
+answers the first and returns nothing for the second — it accepts the 4 bytes and
+then never replies. If no Preamble belongs between images, that is our bug and we
+will fix our BLF. If one does belong there, we would like to understand what the
+board is waiting for.
 
-We have ruled out, by measurement: payload content (byte-identical stock images
-from a verified NAND dump fail the same way), payload size, DKB identity, tool
-version, number of images in the BLF, and whether the board resets.
-
-We are asking rather than guessing, because the code involved is yours.
+Everything we have measured is below, so you do not have to reproduce it from
+scratch unless you want to.
 
 ---
-
-## Update: we tried your documented Linux procedure, and it fails the same way
-
-This is the most important part of this report, and it came after we found the
-Linux instructions in your documentation (`asr:cat4:update_l`). We followed
-them exactly:
-
-1. Build the upgrade file with the 5.0.0.2 tool:
-
-   ```
-   ./fbfmake -r p298_payload_b.blf -f <outdir>
-   ```
-
-   It succeeds — `DoFBFMake successfully` — and produces `BinFile.bin`
-   (8,491,524 B) and `FBF_Ntimheader.bin` (248 B). `BinFile.bin` begins
-   `00 04 03 00 48 4d 49 54`, i.e. `dwTimId` 0x00030400 followed by the TIMH
-   magic 0x54494d48.
-
-2. Download it, as your document describes:
-
-   ```
-   sudo ./fbfdownloader -b BinFile.bin
-   ```
-
-**The result is identical.** `fbfdownloader` parses the file correctly —
-`BinFileWtp_InitParameter2 Success!`, `Number of Images listed in TIM: 2` — and
-then:
-
-```
-download file name is .../FBF_Ntimheader.bin
-Completed DownLoad file: .../FBF_Ntimheader.bin
-Begin DownloadImage...........          ← stalls here
-```
-
-This is a **completely different code path**. `fbfdownloader` does not parse a
-BLF at run time, has no image list, and has no per-image loop. It shares only
-the WTPTP transfer engine and the board with `swdl_linux`.
-
-So the fault is not in our BLF, not in the image content, and not in
-`swdl_linux`'s image loop. It is in the shared WTPTP transfer path or in the
-target itself.
-
-### Two more things we found that may be relevant
-
-**1. A/B image balance check — RESOLVED, disregard.** From your own release notes:
-
-> `5.0.0.1: 5,IFL: Check for A/B image balance and report error on lone
-> DTIM-included image when AB_System = 2`
-
-We had guessed at this before, since our BLF had no `AB_System` key. Having
-round-tripped the BLF through `SWDownloader`'s save path, as your documentation
-instructs, we can confirm the tool writes `AB_System = 0` explicitly. The check
-applies at 2, so it does not apply here. Disregard this item.
-
-**2. A documented history of breakage in our configuration.**
-
-> `5.0.0.0: 2, IFL & FBFDownload: Fix failure to download RTOS FBF without multiple DDR support`
-> `5.0.0.1: 4, IFL: Fix failure to download RTOS FBF without multiple DDR support for the second time`
-
-Our board has no multiple-DDR support, so it is the configuration that needed
-fixing twice. Is anything still unfixed in this path?
-
-### One more question from your own readme
-
-`FBFDownloader_Readme.txt` lists an explicit platform type:
-
-```
--p: platform type
-    3--PXA1202(wukong)
-    6--PXA1802(NEZHA)
-```
-
-Our tool reports `NEZHA3 platform type` and our BLF declares
-`Processor_Type = PXA1826`. Should that map to platform type **6**? If the
-platform selection matters for how the FBF is transferred, that could explain
-why the target stops responding.
-
 
 ## Environment
 
 | | |
 |---|---|
-| Module | ASR1802S / `NEZHA3` platform, processor reports `NZA3` |
+| Module | ASR1802S, `NEZHA3` platform, processor reports `NZA3` |
 | Board | Notion P298 router |
-| USB | `2ecc:3002` (`VID_2ECC&PID_3002`, present in your `dl_WinUSB.inf`) |
-| Tool | `swdl_linux`, **SWDownloader 5.0.0.2**, dated 2024-5-24 |
-| Build | statically linked, GCC 4.4.7 (Red Hat 4.4.7-23), glibc |
-| Package | built by your `MakeDownloadPackage` from a `.blf` |
+| Flash | 128 MiB SPI-NAND (`Flash Family = SPI-NAND`) |
+| USB | `2ecc:3002` — `VID_2ECC&PID_3002`, present in your `dl_WinUSB.inf` |
+| Toolchain | SWDownloader 5.0.0.2 (2024-5-24), `binlinux/` |
+| Linux | x86-64, glibc, run as root |
+| Build | `./fbfmake -r <file>.blf -f <outdir>` then `./fbfdownloader -b BinFile.bin` |
 
-## Observed behaviour
+Also reproduced with `swdl_linux -D <blf>` (5.0.0.1 and 5.0.0.2). Identical
+result at the identical point.
 
-Device enumeration, WTPTP preamble, version query and the **first** transfer all
-succeed. The tool then logs `Begin DownloadImage` for the second file and hangs
-there forever, with zero CPU. The per-device log is byte-identical across every
-run.
+---
 
-The second file is never opened by the tool, so it is not a data or size
-problem. It hangs on a **control command**.
-
-### The USB traffic, in order
-
-`(ep, len)` from `ioctl(USBDEVFS_BULK)`:
+## Reproducing it
 
 ```
-  #2   OUT 4      <- Preamble          (during device open)
-  #3   IN  38     <- reply             OK
-  #4   OUT 8                              GetWtpMessage
-  #5   IN  262                            OK
- ...      (version, device type)
-  #10  OUT 8                              SelectImage
-  #11  IN  10                             OK
+mkdir -p /tmp/swd-fbf
+cd SWDownloader_5_0_0_2/binlinux
+LC_ALL=C LANG=C ./fbfmake -r <file>.blf -f /tmp/swd-fbf
+LC_ALL=C LANG=C sudo ./fbfdownloader -b /tmp/swd-fbf/BinFile.bin
+```
+
+Board powered **off** when the tool starts. Power-cycle the board once
+`Please plug your USB device` appears.
+
+Board stays enumerated at the same USB device node throughout. It does not reset.
+All WTPTP transfers are issued with `timeout = 0`, i.e. no deadline, so the tool
+waits indefinitely and has to be killed; the process then requires the USB cable
+to be unplugged to release the device.
+
+Reproducible on **six consecutive runs**, with per-device logs byte-identical
+apart from the USB device number.
+
+### Attached: `p298-vendor-handoff.zip` (7.2 MB)
+
+| file | |
+|---|---|
+| `BinFile.bin` | 8,491,524 B, built by `fbfmake` from the BLF below, accepted by `MakeDownloadPackage` 5.0.0.2 |
+| `p298_payload_b3.blf` | run 1 — slot B payload |
+| `p298_switch_b.blf` | run 2 — the 272-byte A/B switch, alone |
+| `README.txt` | reproduction steps and file contents |
+
+`fbfdownloader -b BinFile.bin` needs nothing else. To rebuild, note that the BLF
+references its five input images by bare filename, so `fbfmake` and
+`MakeDownloadPackage` will fail unless they are present in the working
+directory — they are omitted here only to keep the attachment small, and we will
+send them on request.
+
+One caveat on the payload: `ow-kernel.bin` and `ow-rootfs.bin` are from a
+work-in-progress OpenWrt port and are almost certainly **not** the problem.
+Byte-identical stock images taken from the board's own verified NAND dump fail in
+exactly the same way. Please do not spend time on the image content; we would
+rather you compare the BLF configuration and the message sequence.
+
+---
+
+## What the board actually says
+
+From the tool's own per-device log:
+
+```
+GetTargetMessage after sendpreamble
+GetWtpMessage...
+ Platform ready status: 0
+Getting Version...
+GetWtpMessage...
+ Platform ready status: 0
+
+Version: 3311
+Date: 06012014
+Processor: NZA3
+
+Begin DownloadImage...........
+download file name is /mp/SWD-4lou11/temp/FBF_Ntimheader.bin
+ GetWtpMessage...
+WTPTP Notification:  0x0
+ Platform ready status: 0
+Return flag in Dataheader CMD: 4,FDSwitch is 1,BufferSize is 0xF8
+*******NOTE:: Fast Download is NOW activated!
+Last Data
+Download data finished
+ GetWtpMessage...
+WTPTP Notification:  0x0
+ Platform ready status: 0
+Completed DownLoad file: /mp/SWD-4lou11/temp/FBF_Ntimheader.bin
+Begin DownloadImage...........            <-- hangs here, nothing further logged
+```
+
+**This is the part that confuses us.** The board accepts the 248-byte FBF TIM
+header and then reports success — `Platform ready status: 0`, notification
+`0x0`. As far as we can tell it has completed the operation successfully. It is
+not refusing the first image; it agrees to it and then stops responding to
+anything.
+
+---
+
+## The USB transfers, in order
+
+`(endpoint, length)` from `ioctl(USBDEVFS_BULK)`:
+
+```
+  #2   OUT 4      <- Preamble (during device open)
+  #3   IN  38           OK
+  #4   OUT 8             GetWtpMessage
+  #5   IN  262           OK
+  ...      (version, device type)
+  #10  OUT 8             SelectImage
+  #11  IN  10            OK
   #12  OUT 9
-  #13  IN  6                              OK
-  #14  OUT 8      (file 1 transfer begins)
+  #13  IN  6             OK
+  #14  OUT 8             file 1 transfer begins
   #15  IN  262
   #16  OUT 12
   #17  IN  10
-  #18  OUT 248                           <-- the 248-byte FBF TIM header
-  #19  IN  6                              OK
+  #18  OUT 248           <-- the FBF TIM header
+  #19  IN  6             OK
   #20  OUT 8
   #21  IN  262
   #22  OUT 8
-  #23  IN  6                              file 1 completes OK
+  #23  IN  6             file 1 completes, board reports ready
       --- tool logs "Begin DownloadImage" for file 2 ---
-  #24  OUT 4      <- Preamble AGAIN     <-- no reply, ever
-  #25  IN  38                           <-- blocks forever
+  #24  OUT 4       <- Preamble AGAIN, identical bytes
+  #25  IN  38            <-- blocks forever, no reply
 ```
 
-### The bytes
-
-The 4-byte Preamble the tool writes is:
+The Preamble written at #2 and at #24 is byte-identical:
 
 ```
   00 D3 02 2B
 ```
 
-(both occurrences, at session start and before file 2, are identical)
-
-### Why it never returns
-
-The `usbdevfs_bulktransfer` for the stalled transfer is:
+The blocked transfer (#25) has these fields:
 
 | field | value |
 |---|---|
-| `ep` | `0x81` (endpoint 1 IN) |
+| `ep` | `0x81` — endpoint 1, **IN** |
 | `len` | `38` |
-| `timeout` | `0` |
+| `timeout` | `0` (infinite) |
 
-`timeout = 0` means the transfer has no deadline, so the tool cannot time out,
-report an error and retry. It simply waits. This is why the process has to be
-killed with `SIGKILL` and why cleanup requires unplugging the USB cable.
+So the board **accepts** the 4-byte Preamble on the OUT endpoint — it is ACKing —
+and then produces nothing on the IN endpoint. We are waiting for 38 bytes that
+never arrive. We have never seen a Preamble reply beyond the first one.
+
+We read this out of the hung process rather than inferring it:
+
+```
+tid 9321  D  ioctl -> USBDEVFS_BULK ep=0x81 (IN, board must reply)
+                     len=38, timeout INFINITE
+```
 
 ---
 
-## What we would like to ask
+## What we have ruled out
 
-1. **Is a second WTPTP Preamble legal within one session?** The tool sends one
-   before every file after the first, and the board answers the first one but not
-   the second. Should the host re-send a Preamble between files at all?
+So that nobody repeats work we have already done. Each item was eliminated by
+measurement, not by argument.
 
-2. **Is the module expected to reset / re-enumerate between files?** The tool
-   keeps a `NETLINK_KOBJECT_UEVENT` socket open watching for hotplug events, and
-   the binary contains `TerminateBL.....`, `please wait .....` and
-   `Begin OpenUsbPort`. Our module stays enumerated the whole time, so if a reset
-   is expected, we may need to trigger it.
+| | result |
+|---|---|
+| payload content | byte-identical stock images from a verified NAND dump fail identically |
+| payload size | 36 KB and 8 MB fail identically |
+| DKB identity | the board's own `mtd0.bin` OBM and an unrelated loader fail identically |
+| image count in the BLF | 3, 4 and 5 enabled images fail identically |
+| BLF version field | now `V3.0.0`, as your 5.0.0.2 packager requires |
+| TIM identity fields | corrected — see below |
+| partition geometry | every flash offset and erase size confirmed against the real NAND partition sizes |
+| tool version | 4.8.8.2, 5.0.0.1 and 5.0.0.2 all stop at the same point |
+| entry point | `swdl_linux -D` and `fbfmake`+`fbfdownloader` stop at the same point |
+| board reset | device node number is unchanged throughout; the board does not reset |
+| Windows GUI | fails **earlier**, on the first Preamble during device detection |
 
-3. **What is the correct host sequence between two files in one run?** The
-   command set we can see used is: Preamble, GetVersion, SelectImage, GetWtpMessage,
-   and a "Data header" step. Is there a `TerminateBL` or `VerifyImage` step we
-   are missing, and should it be issued before the next file begins?
+### On the TIM identity fields
 
-4. **What is `0xD3`?** It appears in the 4-byte Preamble. We would like to know
-   the command IDs so we can log them properly.
+Our first BLF had TIM header values that had been guessed rather than read from
+the board. Diffing our generated header against the board's own stored TIM
+(`mtd8` partition) showed:
 
-5. **`GetWtpMessage` after the first file returns a 262-byte read.** Is a
-   notification expected there, and could a module that answers with a shorter
-   message leave the host waiting?
+| offset | stock (`mtd8`) | we had been sending |
+|---|---|---|
+| `0x0c` | `0x20140601` | `0x20141006` |
+| `0x10` | `0x4E5A4133` = `NZA3` | `0x21796B53` = `Sky!` |
+| `0x28` | `0x5350491C` | `0x5350490A` |
 
-6. **Is there a reference `.blf` for the `NEZHA3` platform we should be using as
-   a baseline?** Ours is built with your `MakeDownloadPackage` from a hand-written
-   `.blf`, so we would like to diff against a vendor file.
+`Sky!` is a generic Marvell SKU placeholder. We had been telling the board it was
+a different product in the one header it reads before deciding whether to talk to
+us. Both are now corrected, and our generated FBF TIM header is now
+**byte-identical to the board's own stored TIM over the first 56 bytes**, except
+the image count.
+
+We are telling you this because it was a real error on our side, and in case
+others have hit it. It did not change the outcome.
 
 ---
 
-## Reproducing
+## Our questions
 
-Any `.blf` for this platform reproduces it — we have confirmed that a package
-containing **byte-identical stock firmware images** taken from a verified NAND
-dump stalls at exactly the same point, so it is not caused by our image content.
+**1. Is a Preamble expected before every image, or only at session start?**
+This is the crux, as described at the top.
 
-```
-swdl_linux -D <package>.blf -S -T 1800 -N
-```
+**2. What is the layout of the 38-byte Preamble reply?** We have only ever
+observed one, so we have no reference to compare against. From the tool's own
+validation we can see that `buf[0]==0`, `buf[1]==0xD3`, `buf[2]==0x02`, and
+`buf[3]==1` means NACK. What occupies bytes 4–37?
 
-Power-cycle the module into download mode when prompted. The stall is
-deterministic and always at the same point.
+**3. What does `Platform ready status` mean, and what do the non-zero values
+indicate?** We only ever see `0`. We have also seen `WTPTP Notification: 0x0`.
+
+**4. Is the DKB expected to be uploaded, even when the board's resident OBM
+already matches?** The package we build contains four files —
+`DKB_ntimheader.bin`, `Dkb.bin`, `FBF_Ntimheader.bin`, `FBF_h.bin` — but the
+board never asks us for the DKB. It goes straight to the FBF TIM header. Is that
+correct for a board entering download mode with its own OBM already resident, or
+are we missing a step?
+
+**5. Does the host sequence need a step between two images that we are not
+issuing?** The commands we can see in the binary are Preamble, GetVersion,
+SelectImage, VerifyImage, DataHeader and Data. Is there a Terminate or Verify
+step that belongs after an image completes and before the next begins?
+
+**6. `Erase All Flash`.** Your published PXA1802 burning guide instructs selecting
+**Erase All Flash** in the Options menu before burning. Our BLF has
+`Erase_All_Flash = 0`. Does that change the message sequence between the TIM
+header and the payload? We have not tried enabling it, because on a single
+unrecoverable board it would erase the OBM and we would have no working way back.
+
+**7. Is there a known-good vendor `.blf` for this platform** — anything of the
+`Nezha_B0_MiFi2_Nontrusted.blf` family, for NEZHA3 / PXA1826 / SPI-NAND? We have
+reverse-engineered the format by hand and would much rather compare against a
+real one.
+
+**8. Do you have `IFL SWD UserGuidev1_0.pdf` or `How_to_add_a_file_in_blf.7z`?**
+We have not been able to obtain either. Even a table of contents, or the WTPTP
+message sequence table from the IFL guide, would help more than anything else.
+
+---
+
+## What we can offer
+
+* **The board itself.** We can make hardware available for bench testing if that
+  is the fastest route to an answer.
+* **Complete packet captures**, if they help — the full USB transfer trace with
+  payload bytes, not just the endpoints and lengths.
+* **Our BLF and its oracle-validated `BinFile.bin`**, so you can confirm whether
+  it differs from a package you consider correct.
+* **An NDA**, if any of the above is sensitive.
+
+We are not asking you to believe our diagnosis. The disassembly of
+`fbfdownloader` is in our hands and we can show our working for anything we
+claim.
 
 ---
 
 ## 中文提问
 
-**问题概述**
+**设备：** Notion P298 路由器，ASR1802S 模块（平台 `NEZHA3`，处理器自报 `NZA3`）
+**工具：** SWDownloader **5.0.0.2**（2024-5-24）
 
-下载工具可以正常完成第一个文件的传输，但在开始传输第二个文件时卡死。逐条
-对比 USB 流量后，唯一区别是：工具在第二个文件前会再发一次 WTPTP Preamble，
-而模块不回复。同样的 Preamble 在打开设备时发送一次则完全正常。
+### 简要说明
 
-我们认为这属于主机端/工具行为的问题，所以来请教，而不是自行猜测。
+按照贵司文档 `asr:cat4:update_l` 的 Linux 流程（`fbfmake` 生成后运行
+`fbfdownloader -b BinFile.bin`），工具成功发送第一个文件，芯片也确认成功，
+随后工具永久等待一个永远不会到来的应答。
 
-## 重要更新：换用官方 Linux 流程后，问题依旧
+我们几乎可以确定是**我们使用方式有误**，只是找不到相关说明，因此来请教，
+不想继续猜测。
 
-我们后来发现了贵司文档中针对 Linux 的官方流程 (`asr:cat4:update_l`)，并按其操作：
+**如果能回答一个问题，基本就能解决：**
 
-1. 用 5.0.0.2 的 `FBFMake -r blf -f outpath` 生成升级文件，得到 `BinFile.bin`
-   （提示 `DoFBFMake successfully`，头部为 `00 04 03 00 48 4d 49 54`）
-2. `sudo ./fbfdownloader -b BinFile.bin`
+> **主机是否应该在每个镜像之前都发送一次 WTPTP Preamble，还是只在会话开始时发送一次？**
 
-**结果完全相同。** `fbfdownloader` 正确解析了 `BinFile.bin`
-（`BinFileWtp_InitParameter2 Success!`），然后：
+工具在第一个镜像前发送一次、第二个镜像前又发送一次。芯片应答了第一次，
+第二次则接受了 4 个字节却不再回复。如果镜像之间本就不该发送 Preamble，
+那是我们的 BLF 配置问题；如果应该发送，我们希望知道芯片在等待什么。
+
+### 芯片的实际回应（工具自身日志）
 
 ```
-download file name is .../FBF_Ntimheader.bin
+Version: 3311
+Date: 06012014
+Processor: NZA3
+
+Return flag in Dataheader CMD: 4,FDSwitch is 1,BufferSize is 0xF8
+*******NOTE:: Fast Download is NOW activated!
+Last Data
+Download data finished
+WTPTP Notification:  0x0
+ Platform ready status: 0
 Completed DownLoad file: .../FBF_Ntimheader.bin
-Begin DownloadImage...........          ← 同样卡死
+Begin DownloadImage...........          <-- 卡在这里，之后再无任何日志
 ```
 
-这是一条**完全不同的代码路径**：不解析 blf，没有镜像列表，没有逐镜像循环，
-但卡在同一个位置。因此问题不在 blf、不在镜像内容、也不在 swdl_linux 的下载循环。
+**令人困惑之处在于：芯片接收了 248 字节的 FBF TIM 头之后明确报告成功**
+（`Platform ready status: 0`）。它不是拒绝了第一个镜像，而是同意之后
+就不再响应任何命令。
 
-另外，关于 `AB_System`：我们按照贵司文档要求，把 blf 用 SWDownloader 打开并
-重新保存过一次，确认工具会明确写入 `AB_System = 0`。因此 5.0.0.1 中提到的检查
-（仅在 `AB_System = 2` 时触发）对我们并不适用，此项可以忽略。
+### USB 传输顺序
 
-同样值得注意的是，贵司自己的更新日志显示这条下载路径曾经反复出现问题：
+卡住的那次传输参数为：`ep=0x81`（IN 端点）、`len=38`、`timeout=0`（无限等待）。
 
-> `5.0.0.0: 2, IFL & FBFDownload: Fix failure to download RTOS FBF without multiple DDR support`
-> `5.0.0.1: 4, IFL: Fix failure to download RTOS FBF without multiple DDR support for the second time`
+也就是说，芯片**已经 ACK 了 OUT 方向的 4 字节 Preamble**，但 IN 方向不再返回
+任何数据。我们在等待 38 字节，而它们永远不会到达。除第一次之外，
+我们从未见过 Preamble 的应答内容。
 
-我们这块板子正是「不含 multiple DDR 支持」的配置。是否还有类似的未修复问题？
+### 已排除的项目（均为实测，非推测）
 
+负载内容（使用校验过的 NAND 原始镜像同样失败）、负载大小（36 KB 与 8 MB
+同样失败）、DKB 身份、BLF 中的镜像数量、BLF 版本号、TIM 头部字段、
+分区地址与擦除大小（已与真实 NAND 分区尺寸逐一核对）、工具版本
+（4.8.8.2 / 5.0.0.1 / 5.0.0.2 均在同一点停止）、入口程序、
+芯片是否复位（全程 USB 设备号未变，芯片没有复位）。
 
-**环境**
+### 我们的 TIM 字段错误（主动说明）
 
-- 模块：ASR1802S，`NEZHA3` 平台，芯片自报 `NZA3`
-- 板子：Notion P298 路由器
-- USB：`2ecc:3002`（在贵司 `dl_WinUSB.inf` 中已列出）
-- 工具：`swdl_linux`，SWDownloader 5.0.0.2，2024-5-24
-- 静态链接，GCC 4.4.7 (Red Hat 4.4.7-23)，glibc
+我们最初的 BLF 中，部分 TIM 头部字段是猜测的，并非从芯片读取。与芯片自身
+存储的 TIM（`mtd8` 分区）逐字节比对后发现：
 
-**现象**
+| 偏移 | 芯片原值 | 我们原先发送 |
+|---|---|---|
+| `0x10` | `0x4E5A4133` = `NZA3` | `0x21796B53` = `Sky!` |
 
-设备枚举、WTPTP 前导、版本查询、第一个文件传输全部成功。之后工具打印第二个
-文件的 `Begin DownloadImage` 就永久卡住，CPU 占用为 0，且每个设备的日志文件
-完全一致。第二个文件的 payload 从未被打开，因此不是数据或长度的问题，卡住
-的是一个**控制命令**。
+`Sky!` 是 Marvell 的通用占位符。此项已更正，现已与芯片自身 TIM 的前
+56 字节完全一致（仅镜像数量不同）。但结果没有改变。特此说明，
+以防其他人遇到同样问题。
 
-USB 流量（`ioctl(USBDEVFS_BULK)` 的 `ep, len`）：
+### 具体问题
 
-```
-  #2   OUT 4      <- Preamble（打开设备时）
-  #3   IN  38     <- 应答，正常
-  ...   （版本、设备类型、SelectImage 均正常）
-  #18  OUT 248    <- 248 字节的 FBF TIM 头
-  #19  IN  6      正常
-  ...   第一个文件传输完成，正常
-      --- 工具打印第二个文件的 Begin DownloadImage ---
-  #24  OUT 4      <- 再次发送 Preamble   <- 没有任何回复
-  #25  IN  38     <- 永久阻塞
-```
+1. 每个镜像之前是否都应发送 Preamble，还是仅会话开始时发送一次？
+2. 38 字节 Preamble 应答的结构是什么？第 4–37 字节的内容是什么？
+3. `Platform ready status` 的含义是什么？非零值各代表什么？
+4. **即使芯片自身 OBM 已经驻留，DKB 是否仍然应当上传？** 我们生成的包中包含
+   `DKB_ntimheader.bin` 与 `Dkb.bin`，但芯片从未索取 DKB，而是直接要求
+   FBF TIM 头。这样是否正确？
+5. 两个镜像之间是否缺少某个必须执行的步骤？
+6. **贵司 PXA1802 烧写指南要求勾选 `Erase All Flash`**，而我们的 BLF 中
+   该项为 `0`。这是否会改变 TIM 头与负载之间的消息顺序？我们暂未尝试开启，
+   因为只有一台无法恢复的设备，开启会擦除 OBM。
+7. 是否有该平台可用的原厂 `.blf`（如 `Nezha_B0_MiFi2_Nontrusted.blf` 系列）？
+8. 是否可以提供 `IFL SWD UserGuidev1_0.pdf` 或 `How_to_add_a_file_in_blf.7z`？
+   哪怕只有目录，也会非常有帮助。
 
-Preamble 的 4 字节内容（两处完全相同）：
+### 我们可以提供
 
-```
-  00 D3 02 2B
-```
+设备本体（可用于实验室测试）、完整的 USB 抓包（含数据内容）、我们的 BLF
+与 `BinFile.bin`，以及保密协议（NDA）。
 
-卡住的那次传输，其 `usbdevfs_bulktransfer` 为：
+我们并非要求贵司认可我们的判断——`fbfdownloader` 的反汇编在我们手中，
+任何结论都可以展示依据。
 
-| 字段 | 值 |
-|---|---|
-| `ep` | `0x81`（端点 1 IN） |
-| `len` | `38` |
-| `timeout` | `0` |
-
-`timeout = 0` 意味着这个传输没有超时，所以工具无法超时退出、报错重试，只会一直
-等待。这也是为什么最后只能用 `SIGKILL` 结束进程、并且必须拔掉 USB 线才能清理。
-
-**想请教的问题**
-
-1. **同一个会话内，第二次发送 WTPTP Preamble 是否合法？** 工具会在第一个之后的
-   每个文件前都发一次 Preamble；模块对第一次有回复，对第二次完全没有回复。主机
-   端在文件之间是否应该重新发送 Preamble？
-
-2. **模块在两个文件之间是否应该复位 / 重新枚举？** 工具一直持有
-   `NETLINK_KOBJECT_UEVENT` 套接字监听热插拔事件，二进制里也能看到
-   `TerminateBL.....`、`please wait .....`、`Begin OpenUsbPort` 等字符串。我们的
-   模块在整个过程中始终保持枚举状态。如果确实需要复位，可能需要我们主动触发。
-
-3. **一次运行中传输两个文件，主机端的正确顺序是什么？** 我们能看到的命令集合是：
-   Preamble、GetVersion、SelectImage、GetWtpMessage，以及一个 "Data header" 步骤。
-   是否缺少 `TerminateBL` 或 `VerifyImage` 之类的步骤？是否应该在下一个文件开始前
-   发送？
-
-4. **`0xD3` 是什么？** 它出现在 4 字节 Preamble 中。我们想知道各个命令 ID，以便
-   做正确的日志。
-
-5. **第一个文件之后的 `GetWtpMessage` 会产生一次 262 字节的读操作。** 那里是否应
-   该有通知消息？如果模块返回了更短的消息，主机是否会一直等待？
-
-6. **有没有 `NEZHA3` 平台的参考 `.blf` 可以作为基准？** 我们的包是用贵司
-   `MakeDownloadPackage` 从手工编写的 `.blf` 生成的，希望能和原厂文件做对比。
-
-**复现方式**
-
-该平台上任意 `.blf` 均可复现。我们已经确认：即使使用**从已校验 NAND 备份中取出的、
-与板上内容逐字节相同的固件镜像**，卡住的位置也完全相同，因此与我们的镜像内容无关。
+---
