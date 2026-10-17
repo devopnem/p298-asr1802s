@@ -6,15 +6,110 @@ Written 2026-10-17. Self-contained; please send the whole thing.
 
 ## Short version
 
-The download tool transfers the first file successfully, then stops responding
-to the board for the second file. Comparing the two, the only difference is that
-the tool sends a **WTPTP Preamble** before the second file and the board never
-replies to it. The same Preamble, at session start, works fine.
+**Two different tools, following your own documentation, fail at exactly the
+same point.** Both transfer the first file successfully — the 248-byte FBF TIM
+header — and then the board stops answering, and the second file (the payload)
+is never sent.
 
-We believe this is a host/tool behaviour question rather than a configuration
-problem, so we are asking rather than guessing.
+We reproduced this with:
+
+- `swdl_linux -D <blf>`, the normal GUI-equivalent path
+- `fbfmake` + `fbfdownloader -b BinFile.bin`, the Linux procedure documented on
+  your `asr:cat4:update_l` page
+
+The second one is the important result. It does **not** parse a BLF, has no
+image list and no per-image loop. It shares only the WTPTP transfer engine and
+the board with the first. So this is not our BLF, not our image content, and not
+the tool's image loop.
+
+The board remains enumerated the whole time and never resets — confirmed with a
+500 ms USB poll across 146 samples. It goes silent on both the IN and the OUT
+endpoint, which only happens if the target stops acknowledging.
+
+We have ruled out, by measurement: payload content (byte-identical stock images
+from a verified NAND dump fail the same way), payload size, DKB identity, tool
+version, number of images in the BLF, and whether the board resets.
+
+We are asking rather than guessing, because the code involved is yours.
 
 ---
+
+## Update: we tried your documented Linux procedure, and it fails the same way
+
+This is the most important part of this report, and it came after we found the
+Linux instructions in your documentation (`asr:cat4:update_l`). We followed
+them exactly:
+
+1. Build the upgrade file with the 5.0.0.2 tool:
+
+   ```
+   ./fbfmake -r p298_payload_b.blf -f <outdir>
+   ```
+
+   It succeeds — `DoFBFMake successfully` — and produces `BinFile.bin`
+   (8,491,524 B) and `FBF_Ntimheader.bin` (248 B). `BinFile.bin` begins
+   `00 04 03 00 48 4d 49 54`, i.e. `dwTimId` 0x00030400 followed by the TIMH
+   magic 0x54494d48.
+
+2. Download it, as your document describes:
+
+   ```
+   sudo ./fbfdownloader -b BinFile.bin
+   ```
+
+**The result is identical.** `fbfdownloader` parses the file correctly —
+`BinFileWtp_InitParameter2 Success!`, `Number of Images listed in TIM: 2` — and
+then:
+
+```
+download file name is .../FBF_Ntimheader.bin
+Completed DownLoad file: .../FBF_Ntimheader.bin
+Begin DownloadImage...........          ← stalls here
+```
+
+This is a **completely different code path**. `fbfdownloader` does not parse a
+BLF at run time, has no image list, and has no per-image loop. It shares only
+the WTPTP transfer engine and the board with `swdl_linux`.
+
+So the fault is not in our BLF, not in the image content, and not in
+`swdl_linux`'s image loop. It is in the shared WTPTP transfer path or in the
+target itself.
+
+### Two more things we found that may be relevant
+
+**1. A/B image balance check.** From your own release notes:
+
+> `5.0.0.1: 5,IFL: Check for A/B image balance and report error on lone
+> DTIM-included image when AB_System = 2`
+
+Our BLF does not contain an `AB_System` key at all, so it inherits whatever the
+default is. Our image set is exactly the shape described: a single
+DTIM-included image (`TIMH`, `Enable = 0`). Please confirm what the default value
+is, and whether it needs to be set explicitly for this board.
+
+**2. A documented history of breakage in our configuration.**
+
+> `5.0.0.0: 2, IFL & FBFDownload: Fix failure to download RTOS FBF without multiple DDR support`
+> `5.0.0.1: 4, IFL: Fix failure to download RTOS FBF without multiple DDR support for the second time`
+
+Our board has no multiple-DDR support, so it is the configuration that needed
+fixing twice. Is anything still unfixed in this path?
+
+### One more question from your own readme
+
+`FBFDownloader_Readme.txt` lists an explicit platform type:
+
+```
+-p: platform type
+    3--PXA1202(wukong)
+    6--PXA1802(NEZHA)
+```
+
+Our tool reports `NEZHA3 platform type` and our BLF declares
+`Processor_Type = PXA1826`. Should that map to platform type **6**? If the
+platform selection matters for how the FBF is transferred, that could explain
+why the target stops responding.
+
 
 ## Environment
 
