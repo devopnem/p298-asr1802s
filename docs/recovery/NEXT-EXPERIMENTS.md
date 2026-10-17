@@ -41,25 +41,52 @@ name the failing command, which would beat anything we have inferred.
 
 ---
 
-## 2. Linux — no BLF at all
+## 2. Linux — the vendor's own flow, no BLF at run time
 
-`fbfdownloader` takes a raw FBF, so the BLF and its image list are removed from
-the picture entirely.
+This is the procedure the vendor documents for Linux, and it is a different
+route through the same protocol. Two steps.
 
-`FBF_h.bin` (8,196,100 B, magic `0x46424644` "FBFD") was produced by the 4.8.8.2
-`MakeDownloadPackage` from `p298_payload_b.blf`.
+Build the upgrade file with `fbfmake`, which is in `binlinux` and is the
+5.0.0.2 tool -- so it accepts our BLF where `MakeDownloadPackage` did not:
 
 ```sh
+mkdir -p /tmp/swd-fbf
 cd /home/void/Downloads/Modems/Notion_P298_ASR1802S/flashing_tools/SWDownloader_5_0_0_2/binlinux
-sudo env LC_ALL=C LANG=C ./fbfdownloader \
-  -b /home/void/Downloads/Modems/Notion_P298_ASR1802S/flashing_tools/p298-swd/FBF_h.bin
+env LC_ALL=C LANG=C ./fbfmake \
+  -r /home/void/Downloads/Modems/Notion_P298_ASR1802S/flashing_tools/p298-swd/p298_payload_b.blf \
+  -f /tmp/swd-fbf
 ```
 
-Same board, same protocol, different entry point. If this transfers where
-`swdl_linux` hangs, the problem is in the BLF-driven image loop rather than in
-WTPTP.
+It produces `BinFile.bin` and `FBF_Ntimheader.bin`. Confirmed working:
+`DoFBFMake successfully`, and `BinFile.bin` starts `00 04 03 00 48 4d 49 54` --
+`dwTimId` 0x00030400 and the TIMH magic 0x54494d48 that the tool prints as
+`TIMH=0x54494d48`.
 
----
+Then download it, per the vendor's instructions:
+
+```sh
+sudo env LC_ALL=C LANG=C \
+  /home/void/Downloads/Modems/Notion_P298_ASR1802S/flashing_tools/SWDownloader_5_0_0_2/binlinux/fbfdownloader \
+  -b /home/void/Downloads/Modems/Notion_P298_ASR1802S/flashing_tools/p298-swd/BinFile.bin
+```
+
+**The order matters.** `fbfdownloader` runs until it is ready, then *waits for
+the module to enter download mode*. Power-cycle the board at that point. The
+vendor's words: run the command, wait for it to reach that state, then reboot
+the module. When the upgrade finishes the program exits on its own and the
+module reboots itself.
+
+This bypasses `swdl_linux` entirely -- no BLF parsing, no image list, no
+per-image loop, and therefore none of the `SendPreamble` / `SelectImage`
+machinery that stalls.
+
+### What went wrong before we found this
+
+`fbfdownloader` was previously run against `FBF_h.bin`, which is the wrong file.
+`FBF_h.bin` is what `MakeDownloadPackage` emits and it begins `DFBF`; the vendor
+flow wants `BinFile.bin` from `FBFMake`, which begins with the TIM header. Given
+the wrong file, `fbfdownloader` read `ffffffff` for the map offset and size and
+segfaulted. That was a format mismatch, never a board fault.
 
 ## 3. Windows — no BLF, no GUI
 
@@ -75,10 +102,9 @@ Utilities\FBFMake\FBFDownloader.exe -b FBF_h.bin
 
 Board power-cycled into download mode when prompted.
 
-Caveat worth stating: the FBF was produced by the **4.8.8.2** packaging tool,
-because 5.0.0.2's `MakeDownloadPackage` rejects our BLF with `Tool version is not
-matched with blf version`. A 5.0.0.2-built FBF may be required. If it refuses,
-say so and we will find another way to produce one.
+Use `BinFile.bin`, not `FBF_h.bin`. Built with the 5.0.0.2 `fbfmake` on Linux,
+the same way the vendor documents. The 4.8.8.2-era `FBF_h.bin` starts `DFBF`
+and is the wrong format for this tool.
 
 ---
 

@@ -70,20 +70,43 @@ def ioc(code, arg):
     return rc, struct.unpack("I", buf.raw)[0]
 
 
-def find_board(wait=0):
+def find_board(wait=0, vid=0x2ECC, pids=(0x3001, 0x3002, 0x3003)):
+    """Locate the download-mode device node.
+
+    Uses sysfs rather than the usbfs node. Two reasons, both learned the hard
+    way:
+
+      * /dev/bus/usb/BUS/DEV cannot be read without root, and its device
+        descriptor layout has to be parsed correctly -- idVendor lives at
+        offset 8 and idProduct at offset 10. An earlier version read offset 0x1000
+        for two bytes and therefore never matched anything.
+      * sysfs is readable unprivileged, lists every device with its bus number,
+        and agrees with lsusb.
+
+    Note that download mode is transient. The target reverts to its normal USB
+    configuration within seconds unless a session is holding it, so this may
+    legitimately return None even though the board was there moments earlier.
+    """
     deadline = time.time() + wait
     while True:
-        for path in sorted(glob.glob("/dev/bus/usb/*/*")):
+        for d in sorted(glob.glob("/sys/bus/usb/devices/*/")):
             try:
-                with open(path, "rb") as fh:
-                    fh.seek(0x1000)
-                    if fh.read(2) == b"\xec\x86":
-                        return path
-            except OSError:
+                v = int(open(d + "idVendor").read().strip(), 16)
+                p = int(open(d + "idProduct").read().strip(), 16)
+            except (OSError, ValueError):
                 continue
+            if v == vid and p in pids:
+                bus = open(d + "busnum").read().strip()
+                try:
+                    dev = os.path.basename(
+                        os.readlink(d + "dev").strip())
+                except OSError:
+                    dev = None
+                if dev:
+                    return f"/dev/bus/usb/{bus}/{dev}"
         if time.time() >= deadline:
             return None
-        time.sleep(0.5)
+        time.sleep(0.25)
 
 
 import fcntl  # noqa: E402  (after find_board so the docstring reads first)
@@ -127,8 +150,20 @@ def main():
 
     dev = args.device or find_board(args.wait)
     if not dev:
-        print("board not found on /dev/bus/usb -- power-cycle it into "
-              "download mode, or pass --wait", file=sys.stderr)
+        print("board not found in download mode.", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Download mode is TRANSIENT -- the target reverts to its normal",
+              file=sys.stderr)
+        print("USB configuration within a few seconds unless a session is",
+              file=sys.stderr)
+        print("holding it. So start this command FIRST, then power-cycle the",
+              file=sys.stderr)
+        print("board while it is already waiting:", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("  sudo tools/wtp-probe.py --wait 30", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Or watch for it with:", file=sys.stderr)
+        print("  watch -n0.5 'lsusb | grep -i 2ecc'", file=sys.stderr)
         return 2
 
     print(f"device : {dev}")
