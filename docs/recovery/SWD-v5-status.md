@@ -350,3 +350,129 @@ Untouched. Still on vendor firmware in slot A, still enumerates in download
 mode, `DLOK CLOSED`, all partitions as dumped. `findings/nand-dumps/MANIFEST.
 sha256` verifies OK for every partition including mtd0, mtd7, mtd13–16, mtd19
 and mtd21.
+
+## Corrections and confirmations, 2026-10-17
+
+### The BLF was wrong, in ways that mattered
+
+Diffing our generated `FBF_Ntimheader.bin` against the **stock DTIM** (`mtd8.bin`)
+byte by byte showed the TIM identity fields had been invented rather than read
+from the board. Read big-endian, the ASCII is visible:
+
+| offset | stock | was | now | meaning |
+|---|---|---|---|---|
+| `0x0c` | `0x20140601` | `0x20141006` | `0x20140601` | Issue Date |
+| `0x10` | `0x4E5A4133` = **"NZA3"** | `0x21796B53` = **"Sky!"** | `0x4E5A4133` | OEM Unique ID |
+| `0x28` | `0x5350491C` = `SPI`+`0x1c` | `0x5350490A` = `SPI`+`\n` | `0x5350491C` | Boot flash signature |
+
+`OEM_UniqueID` was `"Sky!"`, a generic Marvell SKU placeholder. The board's own
+DTIM says `"NZA3"`, and `Processor: NZA3` is exactly what the device reports over
+WTPTP. So the entire campaign had been telling the board it was a different
+product, in the one header it reads before deciding whether to talk to us.
+
+Correcting this did **not** fix the stall. Recorded because it was the first
+genuinely *wrong* field rather than merely different.
+
+A claim retracted: `Boot_Flash_Signature` was called corroborated because
+`"SPI\n"` occurs in `mtd0.bin`. Too loose -- a substring hit is not confirmation
+of a structured field. The DTIM's signature ends in `0x1c`, not `0x0a`.
+
+### BLF version is mandatory
+
+5.0.0.2's `MakeDownloadPackage` rejects a BLF with no version:
+`Tool version is not matched with blf version`. Requires, in a section literally
+headed `[BLF_Version]`:
+
+```
+Blf_Version_Number = V3.0.0
+```
+
+`V2.0.0`, `V2.2.0`, `V4.0.0`, `V5.0.0`, `3.0.0`, `V1.0.0` are all rejected. Only
+the `V` prefix plus `3.0.0` works. The Windows GUI writes `NOT AVAILABLE`
+instead, so its own save does not satisfy this -- a BLF must be round-tripped
+**and** the version pinned.
+
+### The oracle is now 5.0.0.2, not 4.8.8.2
+
+`mk-openwrt-blf.py` validated against 4.8.8.2's `MakeDownloadPackage` all along.
+With the stock identity fields in place that packager dies with
+`std::logic_error: basic_string::_S_construct NULL not valid`. 5.0.0.2 is both the
+tool that will actually run the download and the one that accepts the file, so it
+is now the oracle. It needs its `7z.exe` sibling present or it will not run at
+all.
+
+### The vendor's documented Linux flow
+
+From `docs.yuge-info.com/doku.php?id=asr:cat4:update_l`:
+
+```
+FBFMake -r blf_file -f outpath      ->  BinFile.bin + FBF_Ntimheader.bin
+sudo ./fbfdownloader -b BinFile.bin  ->  waits for download mode, then flashes
+```
+
+`fbfmake` is in `binlinux`, is the 5.0.0.2 tool, and **accepts our BLF** where
+`MakeDownloadPackage` did not. The doc also says to open the BLF in
+`SWDownloader`, untick Erase All Flash and **save** it -- a step we had skipped.
+
+`fbfdownloader` then **reproduces the stall identically**:
+
+```
+download file name is .../FBF_Ntimheader.bin
+Completed DownLoad file: .../FBF_Ntimheader.bin
+Begin DownloadImage...........          <- stalls
+```
+
+This is a different entry point with **no BLF parsing, no image list and no
+per-image loop**. It shares only the WTPTP engine and the board with
+`swdl_linux`. That is what clears the BLF as a cause.
+
+Earlier `fbfdownloader` was run against `FBF_h.bin` and segfaulted after reading
+`ffffffff` -- wrong file entirely. `FBF_h.bin` (from `MakeDownloadPackage`, begins
+`DFBF`) is not what it wants; it wants `BinFile.bin` from `FBFMake`, which begins
+with the TIM header.
+
+### Windows is a separate, earlier failure
+
+`SWDownloader.exe` times out on the **first** Preamble, at device detection
+(`SendPreamble failed in GetDeviceBootType`, ~3.4 s), whereas Linux succeeds at
+that exact point and fails only on the second. WinUSB versus usbfs. Zero-Length
+Packet handling is the usual suspect: WinUSB requires the host to send ZLPs
+explicitly where usbfs inserts them.
+
+Device Manager shows **YUGA download** correctly, so the binding is fine. Board
+LEDs stay red on Linux and go all-on on Windows, which is the transient
+download-mode window the vendor documents.
+
+Net effect: Windows cannot reach the stage where our BLF is even used.
+
+### Still unidentified
+
+Four TIM fields differ from the stock DTIM and are **not driven by any BLF key**:
+
+| offset | stock | ours |
+|---|---|---|
+| `0x08` | `1` | `0` |
+| `0x2c` | `8` | `2` |
+| `0x30` | `1` | `0` |
+| `0x34` | `0x11c` (284) | `0` |
+
+The GUI's own saved BLF produces the same values we do, so there is no BLF-level
+lever on them. `0x38+` legitimately diverges -- stock is a DTIM, ours is an FBF
+TIM.
+
+`AB_System` is `0`, so the 5.0.0.1 A/B image balance check (which fires at 2)
+never applied. Question withdrawn from the vendor letter.
+
+### Where the evidence actually points
+
+**Established:** the board stops answering WTPTP immediately after the FBF TIM
+header. Confirmed by two entry points, two BLF formats, both toolchains, correct
+OEM identity, and 146 samples of USB polling showing no reset.
+
+**Eliminated by measurement:** payload content (byte-identical stock images fail
+the same way), payload size, DKB identity, tool version, BLF image count, board
+reset, which command (`SendPreamble` vs `SelectImage`), and BLF content itself.
+
+Everything we control now matches what `SWDownloader`'s own save produces. What
+remains is the board, the OBM resident in SRAM, or the WTPTP session model -- all
+vendor questions, in `docs/recovery/YUGE-QUESTION.md`.
