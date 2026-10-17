@@ -147,6 +147,42 @@ deterministic and always at the same point.
 
 我们认为这属于主机端/工具行为的问题，所以来请教，而不是自行猜测。
 
+## 重要更新：换用官方 Linux 流程后，问题依旧
+
+我们后来发现了贵司文档中针对 Linux 的官方流程 (`asr:cat4:update_l`)，并按其操作：
+
+1. 用 5.0.0.2 的 `FBFMake -r blf -f outpath` 生成升级文件，得到 `BinFile.bin`
+   （提示 `DoFBFMake successfully`，头部为 `00 04 03 00 48 4d 49 54`）
+2. `sudo ./fbfdownloader -b BinFile.bin`
+
+**结果完全相同。** `fbfdownloader` 正确解析了 `BinFile.bin`
+（`BinFileWtp_InitParameter2 Success!`），然后：
+
+```
+download file name is .../FBF_Ntimheader.bin
+Completed DownLoad file: .../FBF_Ntimheader.bin
+Begin DownloadImage...........          ← 同样卡死
+```
+
+这是一条**完全不同的代码路径**：不解析 blf，没有镜像列表，没有逐镜像循环，
+但卡在同一个位置。因此问题不在 blf、不在镜像内容、也不在 swdl_linux 的下载循环。
+
+另外，我们的 BLF 中没有 `AB_System` 字段，因此使用默认值。而 5.0.0.1 的
+更新日志中写道：
+
+> `5,IFL: Check for A/B image balance and report error on lone DTIM-included image when AB_System = 2`
+
+我们的 BLF 恰好是「只有一个 DTIM-included 镜像（`TIMH`, `Enable = 0`）」的情况。
+请确认默认的 `AB_System` 取值，以及是否需要显式设置。
+
+同样值得注意的是，贵司自己的更新日志显示这条下载路径曾经反复出现问题：
+
+> `5.0.0.0: 2, IFL & FBFDownload: Fix failure to download RTOS FBF without multiple DDR support`
+> `5.0.0.1: 4, IFL: Fix failure to download RTOS FBF without multiple DDR support for the second time`
+
+我们这块板子正是「不含 multiple DDR 支持」的配置。是否还有类似的未修复问题？
+
+
 **环境**
 
 - 模块：ASR1802S，`NEZHA3` 平台，芯片自报 `NZA3`
