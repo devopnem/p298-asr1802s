@@ -148,6 +148,8 @@ for _ in $(seq 1 30); do
 done
 if [ "$READY" != 1 ]; then
     echo "warning: never saw the device prompt; attaching anyway"
+else
+    echo "tool is waiting for a device -- good, that is the window we need"
 fi
 
 # --- attach, armed, while the board is still absent ------------------------
@@ -155,23 +157,39 @@ gdb -q -batch -p "$CPID" -x "$GDB_SCRIPT" > "$RUN/gdb-hits.log" 2>&1 &
 GPID=$!
 sleep 5
 
-if ! kill -0 $GPID 2>/dev/null; then
-    echo "FATAL: gdb exited immediately. gdb-hits.log:"
+# Judge success by whether the breakpoints were armed, not by whether gdb is
+# still alive. If the board is already in download mode the device is detected
+# immediately, a breakpoint fires within these five seconds, and any error in
+# the hit handler takes gdb down. Calling that "exited immediately" hid the fact
+# that a hit had already been recorded and was worth reading.
+if grep -q "breakpoints armed" "$RUN/gdb-hits.log"; then
+    HITS=$(grep -c "^########## HIT" "$RUN/gdb-hits.log" || true)
+    if kill -0 $GPID 2>/dev/null; then
+        echo "gdb attached and armed (4 breakpoints)"
+    else
+        echo "gdb armed the breakpoints but has since exited; $HITS hit(s) recorded."
+        echo "Those hits are still valid -- read gdb-hits.log."
+    fi
+else
+    echo "FATAL: gdb never armed the breakpoints. gdb-hits.log:"
     cat "$RUN/gdb-hits.log"
-    exit 1
-fi
-if ! grep -q "breakpoints armed" "$RUN/gdb-hits.log"; then
-    echo "FATAL: gdb did not arm the breakpoints:"
-    cat "$RUN/gdb-hits.log"
+    echo
+    echo "If it says 'already traced', another debugger is attached."
     exit 1
 fi
 
 echo
 echo "############################################################"
 echo "#  gdb is attached and armed."
-echo "#  >>> POWER-CYCLE THE BOARD NOW <<<"
-echo "#  Then watch:"
-echo "#      tail -f $RUN/gdb-hits.log"
+echo "#"
+echo "#  Have the board POWERED OFF or UNPLUGGED until now."
+echo "#  >>> POWER-CYCLE IT NOW <<<"
+echo "#"
+echo "#  If it was already in download mode when this started, the"
+echo "#  early breakpoints may have been missed. Unplug it and"
+echo "#  re-run if the hit list looks incomplete."
+echo "#"
+echo "#  Watch:  sudo tail -f $RUN/gdb-hits.log"
 echo "############################################################"
 echo
 

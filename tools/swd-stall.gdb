@@ -44,7 +44,7 @@ commands
   silent
   set $hits = $hits + 1
   printf "\n########## HIT %d: Begin DownloadImage  (0x51825c) ##########\n", $hits
-  printf "pc=0x%lx  this=%p\n", $pc, this
+  printf "pc=0x%lx\n", $pc
   bt 8
   x/4i $pc - 16
   printf "\n"
@@ -88,7 +88,7 @@ break *0x518445
 commands
   silent
   set $hits = $hits + 1
-  printf "\n########## HIT %d: \"download file name is %%s\"  (0x518445) ##########\n", $hits
+  printf "\n########## HIT %d: download-file-name print  (0x518445) ##########\n", $hits
   bt 8
   printf "\n"
   continue
