@@ -69,18 +69,70 @@ echo "blf : $BLF  ($BLF_SIZE bytes)"
 echo "out : $RUN"
 echo
 
+# --- pre-flight: refuse to run beside a stale instance ---------------------
+# swdl_linux takes a lock file and refuses to start a second copy, printing
+# "there is already an swdl_inux is running, you can't run it again." The
+# failure is silent from the harness's point of view -- the tool exits, but
+# `pgrep -x swdl_linux` still finds the OLD process, so the harness happily
+# attaches gdb to the previous run. That process already has a thread in D, so
+# the attach hangs and the whole exercise produces nothing.
+#
+# Hence: check before launching, and never trust pgrep to identify our process.
+STALE=$(pgrep -x swdl_linux || true)
+if [ -n "$STALE" ]; then
+    echo "FATAL: swdl_linux is already running:" >&2
+    ps -o pid,etime,stat,args -p "$(echo "$STALE" | tr '\n' ',' | sed 's/,$//')" >&2
+    echo >&2
+    echo "  Each stalled run leaves one behind holding the lock. Stop them with:" >&2
+    echo "      sudo pkill -x swdl_linux" >&2
+    exit 1
+fi
+
+# A stale strace still holds a ptrace slot. It does not block this run, but it
+# is worth surfacing rather than accumulating unnoticed.
+if pgrep -x strace >/dev/null 2>&1; then
+    echo "note: stale strace processes are still around (they hold ptrace slots):"
+    pgrep -a -x strace | sed 's/^/    /'
+fi
+
+# The tool's lock is a pid file in its own directory. If a previous run was
+# killed rather than exited, the file outlives the process and the next launch
+# reports "lock is acquired by pid NNNNN" for a pid that no longer exists.
+LOCK=$BIN/swdlinux.pid
+if [ -f "$LOCK" ]; then
+    LOCKPID=$(tr -dc '0-9' < "$LOCK" 2>/dev/null)
+    if [ -n "$LOCKPID" ] && ! kill -0 "$LOCKPID" 2>/dev/null; then
+        echo "removing stale lock file $LOCK (pid $LOCKPID is gone)"
+        rm -f "$LOCK"
+    fi
+fi
+
 # --- launch ---------------------------------------------------------------
+# Process substitution rather than a pipe to tee: with `cmd | tee`, $! is tee's
+# pid, not swdl_linux's, and the only way to identify the process is pgrep --
+# which cannot tell ours from a stale one.
 env LC_ALL=C LANG=C \
-    "$SWDL" -D "$BLF" -S -T 1800 -N 2> >(tee -a "$RUN/stderr.log" >&2) \
-    | tee "$RUN/stdout.log" &
+    "$SWDL" -D "$BLF" -S -T 1800 -N \
+    > >(tee -a "$RUN/stdout.log") \
+    2> >(tee -a "$RUN/stderr.log" >&2) &
 SWPID=$!
 sleep 2
 
-CPID=$(pgrep -x swdl_linux | head -1)
-if [ -z "$CPID" ]; then
-    echo "FATAL: swdl_linux did not start"; tail -20 "$RUN/stdout.log"; exit 1
+# Identify the process by the pid we launched, and confirm it is alive and is
+# actually swdl_linux rather than a shell that has already exited.
+CPID=$SWPID
+if ! kill -0 "$CPID" 2>/dev/null; then
+    echo "FATAL: swdl_linux (pid $CPID) exited immediately. stdout:"
+    tail -20 "$RUN/stdout.log"
+    echo
+    if grep -q "already an swdl_inux is running" "$RUN/stdout.log"; then
+        echo "It refused to start: another copy holds the lock."
+        echo "Stale instances:"; pgrep -a -x swdl_linux
+    fi
+    exit 1
 fi
-echo "swdl_linux pid $CPID"
+echo "swdl_linux pid $CPID (launched by us)"
+ps -o pid,etime,stat,args -p "$CPID" | tail -1
 
 # Wait for the tool to reach its "waiting for a device" state. Until it has
 # opened the board, every thread is in interruptible sleep and therefore
