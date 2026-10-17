@@ -107,7 +107,10 @@ def find_and_claim(wait, vid=0x2ECC, pids=(0x3001, 0x3002, 0x3003)):
                 continue
             bus, dev = parts
             try:
-                if int(bus, 16) != 1 or int(dev, 16) < 1:
+                # No bus restriction. Bus numbers shift when the QEMU VM that
+                # was holding USB passthrough is stopped, and a hard-coded bus
+                # silently misses the board when that happens.
+                if int(bus, 16) < 1 or int(dev, 16) < 1:
                     continue
                 v = int(open(f"{base}/{entry}/idVendor").read().strip(), 16)
                 p = int(open(f"{base}/{entry}/idProduct").read().strip(), 16)

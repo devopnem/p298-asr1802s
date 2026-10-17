@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # One command, one action: start this, then power the board.
 #
-#   sudo tools/wtp-session.py            # our own host, asks SelectImage directly
-#   sudo tools/wtp-session.py --tool host      # (default) same
-#   sudo tools/wtp-session.py --tool nopreamble
-#   sudo tools/wtp-session.py --tool vendor
+#   sudo tools/wtp-session.sh            # our own host, asks SelectImage directly
+#   sudo tools/wtp-session.sh --tool host      # (default) same
+#   sudo tools/wtp-session.sh --tool nopreamble
+#   sudo tools/wtp-session.sh --tool vendor
 #
 # It does all of it: loads usbmon, starts a byte-level capture, waits for
 # download mode, claims it inside the ~1.5 s window, runs the session, stops the
