@@ -102,23 +102,25 @@ def find_and_claim(wait, vid=0x2ECC, pids=(0x3001, 0x3002, 0x3003)):
     base = "/sys/bus/usb/devices"
     while time.time() < deadline:
         for entry in os.listdir(base):
-            parts = entry.split("-")
-            if len(parts) != 2:
+            if "-" not in entry:
                 continue
-            bus, dev = parts
             try:
-                # No bus restriction. Bus numbers shift when the QEMU VM that
-                # was holding USB passthrough is stopped, and a hard-coded bus
-                # silently misses the board when that happens.
-                if int(bus, 16) < 1 or int(dev, 16) < 1:
-                    continue
                 v = int(open(f"{base}/{entry}/idVendor").read().strip(), 16)
                 p = int(open(f"{base}/{entry}/idProduct").read().strip(), 16)
+                # busnum and devnum are DECIMAL, and they are not the same
+                # numbers as the sysfs directory name. A device at
+                # /sys/bus/usb/devices/1-13 has devnum 19 (0x13), while its
+                # usbfs node is /dev/bus/usb/001/013. Building the path from the
+                # directory name silently looks for a device that does not
+                # exist -- and the board then sits in download mode, claimed by
+                # nobody, while the tool reports it was never found.
+                busnum = int(open(f"{base}/{entry}/busnum").read().strip())
+                devnum = int(open(f"{base}/{entry}/devnum").read().strip())
             except (OSError, ValueError):
                 continue
-            if v != vid or p not in pids:
+            if v != vid or p not in pids or busnum < 1 or devnum < 1:
                 continue
-            node = f"/dev/bus/usb/{bus}/{dev}"
+            node = f"/dev/bus/usb/{busnum:03d}/{devnum:03d}"
             if not os.path.exists(node):
                 continue
             try:
