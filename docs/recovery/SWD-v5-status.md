@@ -591,3 +591,45 @@ What is still *not* established, and should not be claimed: that the board is
 faulty. That the OBM does not hang in a NAND-wait loop is equally consistent
 with the evidence, as is a WTPTP session-model difference between the host
 stack and this BootROM. All three are vendor questions.
+
+## Run 2 of the flash had never been rebuilt, 2026-10-17
+
+Found while reorganising `flashing_tools/`, not while debugging the stall.
+
+The flash is two runs, because the downloader orders FBF images by partition
+number **descending** so `mtd19` goes first in any combined package and would
+flip the active slot to B before B's contents existed:
+
+1. `p298_payload_b3.blf` — mtd12 u-boot, mtd14 kernel, mtd16 rootfs
+2. `p298_switch_b.blf` — the 272-byte mtd19 A/B switch, alone
+
+**Run 2 was stale.** It still carried every field the TIM identity work fixed:
+
+```
+OEM_UniqueID         0x21796B53   <- "Sky!", the wrong value
+Issue_Date           0x20141006   <- pre-fix
+Boot_Flash_Signature 0x5350490A   <- pre-fix
+Blf_Version_Number   (absent)     <- 5.0.0.2 rejects this outright
+```
+
+It also referenced `mtd7.bin`, which was no longer present in the working
+directory, so run 2 could not have been built at all. Both are fixed: rebuilt
+with `mk-openwrt-blf.py --slot b --dkb p298 --slot-flag mtd19.slotb.bin`,
+oracle-validated.
+
+Its TIMH source also changed, from a hand-chosen `mtd7.bin` to `mtd8.bin`. The
+generator picks the board's own DTIM at partition 8, which is what run 1 uses;
+`mtd7` was an arbitrary earlier choice and nothing had justified it.
+
+**Lesson worth keeping:** the identity bug was fixed in the *generator*, and the
+generator was correct, but a checked-in BLF from before the fix was never
+rebuilt. Fixing a generator does not fix the artifacts it produced. Both runs
+must be regenerated together, and `flashing_tools/README.md` now says so.
+
+### Working set integrity
+
+`mtd0/mtd8/mtd12` in the working set were real copies rather than links,
+contrary to the binary data rule. Hashes were verified identical to
+`findings/nand-dumps/` and they are now symlinks. `mtd19.slotb.bin` and
+`mtd7.bin` are linked too; the unused `mtd7` link was removed after run 2 moved
+to `mtd8`.
