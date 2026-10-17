@@ -377,22 +377,41 @@ def main() -> int:
         dkbname=dkb_name, out=out.name)
 
     text = head + """
+[BLF_Version]
+Blf_Version_Number = V3.0.0
+
+[UE_Options]
+UE_Boot_Option = 0
+
 [TIM_Configuration]
 Number_of_Images = %d
 Number_of_Keys = 0
 Boot_Flash_Signature = 0x5350490A
 Processor_Type = PXA1826
+FFOS_Type = NONE
 OEM_UniqueID = 0x21796B53
 Issue_Date = 0x20141006
 Version = 0x00030400
 Trusted = 0
-ProductionMode = 0
 
 [Flash_Properties]
 Flash_Block_Size = 0x20000
+Flash_NandID = 0x0
+Max_Upload_Split_Size = 0x10000000
+Max_FBF_Split_Size = 0x10000000
+Max_OTA_Image_Size = 0x2000000
+OTA_Image_Split_Size =
 Flash_Family = SPI-NAND
+Spare_Area_Size = NOT AVAILABLE
+Data_Area_Size = NOT AVAILABLE
+FBF_Sector_Size = -1
+
+[Flash_Options]
+ProductionMode = 0
+Skip_Blocks_Number =
 Erase_All_Flash = 0
 Reset_BBT = 0
+AB_System = 0
 
 [Image_List]
 """ % len(plan) + "".join(body)
