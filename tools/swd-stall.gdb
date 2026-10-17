@@ -36,6 +36,40 @@ set width 0
 
 set $hits = 0
 set $n = 0
+set $forcemark = 0
+
+# --- the Preamble decision ------------------------------------------------
+# 0x5182fc:  cmpb $0x0,0x1c72(%r13) ; jne 0x518b21
+#
+# If the flag at [r13+0x1c72] is set, control skips the block that contains
+# SendPreamble (0x5ffef0) and jumps to 0x518b21, which logs "Sending Preamble"
+# and rejoins just before SelectImage. That is image 1's behaviour.
+#
+# If it is clear, the block runs: 0x518319 calls SendPreamble, which writes a
+# 4-byte command and then reads a 38-byte reply. That is image 2's behaviour,
+# and it is where the board stops answering.
+#
+# The same 4-byte Preamble with the same 38-byte expected reply SUCCEEDS at
+# session start, from openUsbPort. So the command is not malformed; the board
+# accepts one Preamble per session and not a second.
+#
+# Setting $forcemark to 1 forces the flag set, which makes image 2 take image
+# 1's path. That is the experiment: if skipping the second Preamble lets the
+# payload transfer, the fix is to stop the tool re-preambling.
+break *0x5182fc
+commands
+  silent
+  set $hits = $hits + 1
+  printf "\n########## HIT %d: Preamble decision  (0x5182fc) ##########\n", $hits
+  printf "  [r13+0x1c72] before = %d\n", *(unsigned char *)($r13 + 0x1c72)
+  if $forcemark != 0
+    set *(unsigned char *)($r13 + 0x1c72) = 1
+    printf "  *** FORCED to 1 -- second Preamble will be SKIPPED ***\n"
+  end
+  printf "  [r13+0x1c72] after  = %d  (0 -> SendPreamble, 1 -> skip it)\n", *(unsigned char *)($r13 + 0x1c72)
+  bt 6
+  continue
+end
 
 # --- every ioctl, with the bulktransfer struct inline ---------------------
 # 0x7165b0 is the static glibc ioctl() wrapper:

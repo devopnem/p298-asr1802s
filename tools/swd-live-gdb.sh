@@ -28,8 +28,23 @@
 
 set -u
 
-BLF_ARG=${1:?usage: swd-live-gdb.sh <blf> [stall-secs]}
+BLF_ARG=${1:?usage: swd-live-gdb.sh <blf> [stall-secs] [--force-preamble-skip]}
 STALL_SECS=${2:-60}
+
+# --force-preamble-skip sets $forcemark in the gdb script, which makes the
+# breakpoint at 0x5182fc force [r13+0x1c72] to 1. Image 1 already takes that
+# branch; forcing it for image 2 skips the second SendPreamble, which is the
+# command the board stops answering.
+FORCE_MARK=0
+for a in "${@:3}"; do
+    case $a in
+        --force-preamble-skip) FORCE_MARK=1 ;;
+        *) echo "unknown option: $a" >&2; exit 1 ;;
+    esac
+done
+if [ "$FORCE_MARK" = 1 ]; then
+    echo ">>> --force-preamble-skip: image 2 will SKIP SendPreamble <<<"
+fi
 
 ROOT=/home/void/Downloads/Modems/Notion_P298_ASR1802S
 BIN=$ROOT/flashing_tools/SWDownloader_5_0_0_2/binlinux
@@ -184,7 +199,17 @@ else
 fi
 
 # --- attach, armed, while the board is still absent ------------------------
-gdb -q -batch -p "$CPID" -x "$GDB_SCRIPT" > "$RUN/gdb-hits.log" 2>&1 &
+# The script ends in `continue`, so a trailing -ex would never be reached, and
+# a leading -ex is overwritten by the script's own default. Substitute the value
+# into a per-run copy instead -- explicit, and it cannot silently do nothing.
+sed "s/^set \$forcemark = 0$/set \$forcemark = $FORCE_MARK/" \
+    "$GDB_SCRIPT" > "$RUN/stall.gdb"
+if ! grep -q "^set \$forcemark = $FORCE_MARK$" "$RUN/stall.gdb"; then
+    echo "FATAL: could not set \$forcemark in $RUN/stall.gdb" >&2
+    exit 1
+fi
+
+gdb -q -batch -p "$CPID" -x "$RUN/stall.gdb" > "$RUN/gdb-hits.log" 2>&1 &
 GPID=$!
 sleep 5
 
